@@ -27,9 +27,10 @@
 
 ## 📖 Overview
 
-**FindMate** is an instant team-up and matchmaking platform designed for competitive gamers, hackathon developers, sports enthusiasts, and study squads. 
+**FindMate** is an instant team-up and matchmaking platform designed for competitive gamers, hackathon developers, sports enthusiasts, and study squads.
 
 Traditional platforms force users through cumbersome event planning tools, rigid calendar invites, or noisy Discord servers. FindMate cuts through the noise:
+
 - **Lobby-First Architecture**: Create or discover micro-lobbies with real-time capacity counters.
 - **Tag-Driven Matchmaking**: Intelligent compatibility scoring based on interests and skill tags.
 - **Host-Vetted Squads**: Seamless join request & review workflows with custom pitch notes and reliability scoring.
@@ -40,27 +41,32 @@ Traditional platforms force users through cumbersome event planning tools, rigid
 ## ✨ Key Features
 
 ### 🎮 1. Dynamic Lobby Discovery & Filtering
+
 - **Multi-Category Feeds**: Browse lobbies across `Gaming`, `Coding`, `Sports`, `Fitness`, and `Study`.
 - **Topic Hashtags & Search**: Real-time filtering by tags (e.g., `#valorant`, `#leetcode`, `#hackathon`, `#faang`).
 - **Match Compatibility Score**: Live calculation showing alignment between host requirements and user profile tags.
 - **Location Modes**: Support for digital channels (Discord servers, Zoom links) and in-person venues.
 
 ### 👑 2. Application & Approval Engine
+
 - **Pitch Notes**: Applicants submit custom messages detailing experience, rank, or availability.
 - **Host Review Flow**: Hosts inspect applicant profiles, reliability metrics, and acceptance histories.
 - **One-Click Decisioning**: Accept or decline applicants with automatic slot locking, system announcements, and instant DM thread spawning.
 
 ### 💬 3. Integrated Messaging System
+
 - **Lobby Squad Chat**: Dedicated group chat room automatically provisioned for host and approved teammates.
 - **1-on-1 Direct Messaging (DMs)**: Private direct chat threads with unread message badges and instant navigation.
 - **Interactive Notifications**: Real-time alerts for incoming applications, approvals, and message requests.
 
 ### 🛡️ 4. Administration & Platform Moderation
+
 - **Report Submission**: Community-driven reporting for spam, inappropriate behavior, or fraudulent lobbies.
 - **Admin Dashboard (`/admin`)**: Dedicated moderation queue allowing administrators to review reports, ban offending accounts, or delete infringing lobbies.
 - **Tag Management**: Administrative control to curate official platform interest tags.
 
 ### 🎨 5. Modern UI & Theme Synchronization
+
 - **Dual Theme Support**: Flawless light mode and dark mode toggling powered by CSS variables and local storage persistence.
 - **Adaptive Layout**: Desktop capsule pill navigation and mobile-optimized bottom navigation drawer.
 - **Figma Precision**: Faithfully built to match the official [FindMate Figma UI Specification](https://www.figma.com/make/RaBBNO5W3Vjr9vEr0dd0v6/FindMate-Main).
@@ -70,27 +76,30 @@ Traditional platforms force users through cumbersome event planning tools, rigid
 ## 🛠️ Tech Stack
 
 ### Frontend (`/FindMate_Frontend`)
-| Technology | Description |
-| :--- | :--- |
-| **React 19** | Modern declarative UI library using React Hooks and Context API |
-| **Vite 6** | Ultra-fast next-generation frontend build tool and dev server |
-| **Tailwind CSS 3** | Utility-first styling with comprehensive custom design tokens |
-| **React Router v6** | Client-side routing with nested routes and parameter matching |
-| **Axios** | HTTP client configured with environment-driven base endpoints |
+
+| Technology          | Description                                                     |
+| :------------------ | :-------------------------------------------------------------- |
+| **React 19**        | Modern declarative UI library using React Hooks and Context API |
+| **Vite 6**          | Ultra-fast next-generation frontend build tool and dev server   |
+| **Tailwind CSS 3**  | Utility-first styling with comprehensive custom design tokens   |
+| **React Router v6** | Client-side routing with nested routes and parameter matching   |
+| **Axios**           | HTTP client configured with environment-driven base endpoints   |
 
 ### Backend (`/FindMate_Backend`)
-| Technology | Description |
-| :--- | :--- |
-| **Go (Golang)** | High-concurrency backend service entry point |
+
+| Technology                 | Description                                                          |
+| :------------------------- | :------------------------------------------------------------------- |
+| **Go (Golang)**            | High-concurrency backend service entry point                         |
 | **REST API (In Progress)** | Microservices for authentication, lobbies, applications, and reports |
-| **WebSockets (Planned)** | Low-latency duplex channels for squad chats and real-time alerts |
+| **WebSockets (Planned)**   | Low-latency duplex channels for squad chats and real-time alerts     |
 
 ### Architecture & Engineering Design (`/Diagrams`)
-| Category | Formats & Artifacts |
-| :--- | :--- |
-| **Entity-Relationship** | Modular Chen's ER Model & Crow's Foot Relational Schema (`.md`, `.drawio`) |
-| **Sequence Diagrams** | 5 end-to-end temporal workflows covering Auth, Lobbies, Matchmaking, Messaging, and Moderation |
-| **Use Case Diagrams** | Master system boundary diagram and 4 subsystem-level use cases |
+
+| Category                | Formats & Artifacts                                                                            |
+| :---------------------- | :--------------------------------------------------------------------------------------------- |
+| **Entity-Relationship** | Modular Chen's ER Model & Crow's Foot Relational Schema (`.md`, `.drawio`)                     |
+| **Sequence Diagrams**   | 5 end-to-end temporal workflows covering Auth, Lobbies, Matchmaking, Messaging, and Moderation |
+| **Use Case Diagrams**   | Master system boundary diagram and 4 subsystem-level use cases                                 |
 
 ---
 
@@ -117,35 +126,6 @@ Diagrams/
 │   ├── Aplication Usecase.drawio
 │   └── Communication Usecase.drawio
 ```
-
-### High-Level System Workflow
-
-```mermaid
-flowchart TD
-    subgraph Client [" FindMate Frontend (React 19 + Vite) "]
-        A["Landing & Discovery Feed"] --> B["Lobby Detail & Join Request"]
-        B --> C["Host Review & Applicant Panel"]
-        C -->|Accepted| D["Squad Group Chat & 1-on-1 DMs"]
-        A --> E["Admin Dashboard & Moderation"]
-    end
-
-    subgraph API [" Backend Service Layer (Go) "]
-        F["Auth & OAuth Controller"]
-        G["Lobby & Tag Service"]
-        H["Applicant & Team Engine"]
-        I["WebSocket Hub (Chat & Notifications)"]
-        J["Moderation Controller"]
-    end
-
-    subgraph Data [" Data Storage Layer "]
-        DB[("PostgreSQL Database")]
-    end
-
-    Client -->|REST & WebSockets| API
-    API --> Data
-```
-
----
 
 ## 📂 Project Structure
 
@@ -185,32 +165,38 @@ Findmate/
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - **Node.js**: v18.0.0 or higher
 - **npm** or **yarn** / **pnpm**
-- **Go**: v1.22 or higher *(for backend development)*
+- **Go**: v1.22 or higher _(for backend development)_
 
 ---
 
 ### Frontend Setup
 
 1. **Navigate to the frontend directory**:
+
    ```bash
    cd FindMate_Frontend
    ```
 
 2. **Install dependencies**:
+
    ```bash
    npm install
    ```
 
 3. **Configure environment variables (optional)**:
    Create a `.env` file in `FindMate_Frontend/`:
+
    ```env
    VITE_API_URL=http://localhost:8080/api
    ```
-   *(Note: The frontend includes full built-in mock persistence, so it runs out-of-the-box without an active backend).*
+
+   _(Note: The frontend includes full built-in mock persistence, so it runs out-of-the-box without an active backend)._
 
 4. **Start the development server**:
+
    ```bash
    npm run dev
    ```
@@ -228,6 +214,7 @@ Findmate/
 ### Backend Setup
 
 1. **Navigate to the backend directory**:
+
    ```bash
    cd FindMate_Backend
    ```
@@ -239,52 +226,18 @@ Findmate/
 
 ---
 
-## 🗺️ Project Roadmap
-
-- [x] **UI/UX Design System**: Complete Figma design specifications with responsive layout and dual themes.
-- [x] **System Architecture**: Verified ER diagrams, Crow's foot database schemas, Use Case models, and Sequence workflows.
-- [x] **Frontend Core Prototype**:
-  - [x] Interactive feed with category & hashtag filtering
-  - [x] Lobby creation, inspection, and application modal
-  - [x] Host review panel with accept/decline logic
-  - [x] In-app squad chat and 1-on-1 direct messages
-  - [x] Notification dropdown with read tracking
-  - [x] Admin dashboard for tag curation and report actions
-  - [x] Dark / Light theme toggle with persistence
-- [ ] **Go Backend Implementation**:
-  - [ ] Initialize `go.mod` and Gin/Fiber routing structure
-  - [ ] RESTful CRUD endpoints (`/api/lobbies`, `/api/applicants`, `/api/reports`)
-  - [ ] JWT authentication and OAuth2 integration (Google, Discord, GitHub)
-  - [ ] WebSocket hub for live chat broadcasts (`/ws/lobby/:id`, `/ws/dms/:threadId`)
-- [ ] **Database & Persistence**:
-  - [ ] PostgreSQL migration based on the relational ER diagram
-  - [ ] GORM or sqlc database mappings
-- [ ] **Deployment & CI/CD**:
-  - [ ] Docker containerization for Frontend and Backend
-  - [ ] Production deployment and health monitoring
-
----
-
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome!
+
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
----
-
 ## 👥 Authors & Acknowledgments
 
-- **Abu Nasim** ([@Error-nasim](https://github.com/Error-nasim)) — Project Lead & Developer
-- **Rimon Chandra Bhowmik** ([@rimon21](https://github.com/rimon21)) — Contributor
-- **Al Imtiaz** ([@imtiaz11](https://github.com/imtiaz11)) — Contributor
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE) — see the repository files for details.
-
+- **Abu Nasim** — Project Lead & Developer
+- **Rimon Chandra Bhowmik** — Documentation Lead
+- **Al Imtiaz** — Supervisor
