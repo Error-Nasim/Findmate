@@ -1,0 +1,40 @@
+// Applicants for the Valorant lobby (lobbyId: '1') matching Figma data
+
+export const applicants = [
+  {
+    id: 'a1',
+    lobbyId: '1',
+    name: 'Jordan Reeve',
+    handle: 'jreeve',
+    avatar: 'JR',
+    tags: ['#gaming', '#valorant', '#ranked'],
+    reliability: 94,
+    teamUps: 23,
+    status: 'pending',
+    message: 'Hey! Diamond 2 Reyna/Jett main, 800+ hours, always on comms, never tilt. Free Saturday evening. Happy to share my tracker.',
+  },
+  {
+    id: 'a2',
+    lobbyId: '1',
+    name: 'Sana Okafor',
+    handle: 'sanaok',
+    avatar: 'SO',
+    tags: ['#gaming', '#fps', '#competitive'],
+    reliability: 87,
+    teamUps: 14,
+    status: 'pending',
+    message: 'Diamond 1 Omen main looking for a consistent 5-stack. I focus on utility and rotations. LMK if you need a controller player.',
+  },
+  {
+    id: 'a3',
+    lobbyId: '1',
+    name: 'Remi Dubois',
+    handle: 'remid',
+    avatar: 'RD',
+    tags: ['#gaming', '#valorant', '#chill'],
+    reliability: 91,
+    teamUps: 19,
+    status: 'pending',
+    message: 'Plat 3 but climbing fast — positive KD in last 20 games. I play Sage. Chill attitude, always on comms.',
+  },
+]

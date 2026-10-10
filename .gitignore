@@ -1,0 +1,24 @@
+# Dependency directories
+node_modules/
+frontend/node_modules/
+backend/vendor/
+
+# Build artifacts
+dist/
+frontend/dist/
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+
