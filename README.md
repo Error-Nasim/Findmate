@@ -9,7 +9,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind_CSS_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Go](https://img.shields.io/badge/Backend-Go_1.22+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://golang.org/)
 [![Status](https://img.shields.io/badge/Status-Active_Development-emerald?style=flat-square)](#-project-roadmap)
-[![Figma](https://img.shields.io/badge/UI_Design-Figma_Prototype-F24E1E?style=flat-square&logo=figma&logoColor=white)](https://www.figma.com/make/RaBBNO5W3Vjr9vEr0dd0v6/FindMate-Main)
+[![Figma](https://img.shields.io/badge/UI_Design-Figma_Prototype-F24E1E?style=flat-square&logo=figma&logoColor=white)]([https://www.figma.com/make/RaBBNO5W3Vjr9vEr0dd0v6/FindMate-Main](https://appeal-rich-26498266.figma.site))
 
 <p align="center">
   <a href="#-overview">Overview</a> •
