@@ -69,7 +69,7 @@ Traditional platforms force users through cumbersome event planning tools, rigid
 
 - **Dual Theme Support**: Flawless light mode and dark mode toggling powered by CSS variables and local storage persistence.
 - **Adaptive Layout**: Desktop capsule pill navigation and mobile-optimized bottom navigation drawer.
-- **Figma Precision**: Faithfully built to match the official [FindMate Figma UI Specification]([https://www.figma.com/make/RaBBNO5W3Vjr9vEr0dd0v6/FindMate-Main](https://appeal-rich-26498266.figma.site)).
+- **Figma Precision**: Faithfully built to match the official [FindMate Figma UI Specification](https://appeal-rich-26498266.figma.site).
 
 ---
 
