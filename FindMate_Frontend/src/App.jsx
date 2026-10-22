@@ -30,6 +30,7 @@ import CreateLobbyModal from "./components/modals/CreateLobbyModal.jsx";
 import ApplicantModal from "./components/modals/ApplicantModal.jsx";
 import AcceptedModal from "./components/modals/AcceptedModal.jsx";
 import ReportModal from "./components/modals/ReportModal.jsx";
+import PostLobbyRatingModal from "./components/modals/PostLobbyRatingModal.jsx";
 
 // Slide-in Panels
 // Nasim is good
@@ -46,6 +47,7 @@ import { lobbies as initialLobbies } from "./data/lobbies.js";
 import { applicants as initialApplicants } from "./data/applicants.js";
 import { dmThreads as initialDMThreads } from "./data/dmThreads.js";
 import { notifications as initialNotifications } from "./data/notifications.js";
+import { initialUsers } from "./data/users.js";
 
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(
@@ -68,6 +70,7 @@ function LobbyRouteWrapper({
   onReport,
   onGroupChat,
   onMsgHost,
+  onCompleteLobby,
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -112,6 +115,7 @@ function LobbyRouteWrapper({
       onReport={onReport}
       onGroupChat={() => onGroupChat(lobby.id)}
       onMsgHost={() => onMsgHost(lobby)}
+      onCompleteLobby={onCompleteLobby}
     />
   );
 }
@@ -144,6 +148,12 @@ export default function App() {
   const [applicantsList, setApplicantsList] = useState(initialApplicants);
   const [dmList, setDmList] = useState(initialDMThreads);
   const [notifsList, setNotifsList] = useState(initialNotifications);
+  const [usersList, setUsersList] = useState(initialUsers);
+
+  // Current logged in user (Abu Nasim by default)
+  const currentUser =
+    usersList.find((u) => u.handle.toLowerCase() === "error-nasim") ||
+    usersList[0];
 
   // Sets of lobby IDs
   const [pendingLobbyIds, setPendingLobbyIds] = useState(new Set());
@@ -155,6 +165,7 @@ export default function App() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [reviewingApplicant, setReviewingApplicant] = useState(null);
   const [acceptedModalData, setAcceptedModalData] = useState(null);
+  const [ratingLobby, setRatingLobby] = useState(null);
 
   // Slide panel controls
   const [activeApplicantsLobbyId, setActiveApplicantsLobbyId] = useState(null);
@@ -340,14 +351,61 @@ export default function App() {
     setShowNotifsDropdown(false);
   };
 
-  const openDMThread = (threadId) => {
-    setActiveDMThreadId(threadId);
-    setDmList((prev) =>
-      prev.map((t) => (t.id === threadId ? { ...t, unread: 0 } : t)),
-    );
+  const openDMThread = (threadId, userName, userHandle, userAvatar) => {
+    let targetId = threadId;
+    if (!targetId && (userHandle || userName)) {
+      const existing = dmList.find(
+        (t) =>
+          (userHandle && t.handle?.toLowerCase() === userHandle.toLowerCase()) ||
+          (userName && t.user?.toLowerCase() === userName.toLowerCase()),
+      );
+      if (existing) {
+        targetId = existing.id;
+      } else {
+        targetId = `dm-user-${userHandle || Date.now()}`;
+        const newThread = {
+          id: targetId,
+          user: userName || userHandle,
+          handle: userHandle || "user",
+          avatar: userAvatar || (userName || userHandle || "U").slice(0, 2).toUpperCase(),
+          lobbyContext: "Direct Message",
+          unread: 0,
+          messages: [],
+        };
+        setDmList((prev) => [newThread, ...prev]);
+      }
+    }
+
+    if (targetId) {
+      setActiveDMThreadId(targetId);
+      setDmList((prev) =>
+        prev.map((t) => (t.id === targetId ? { ...t, unread: 0 } : t)),
+      );
+    }
     setAcceptedModalData(null);
     setShowNotifsDropdown(false);
   };
+
+  const handleRateUser = useCallback(
+    (targetHandle, newReview) => {
+      setUsersList((prev) =>
+        prev.map((u) => {
+          if (
+            u.handle.toLowerCase() === targetHandle.toLowerCase() ||
+            u.name.toLowerCase() === targetHandle.toLowerCase()
+          ) {
+            return {
+              ...u,
+              ratings: [newReview, ...(u.ratings || [])],
+            };
+          }
+          return u;
+        }),
+      );
+      showToast(`⭐ Rating recorded for @${targetHandle}!`);
+    },
+    [showToast],
+  );
 
   const markNotifRead = (notifId) => {
     setNotifsList((prev) =>
@@ -374,6 +432,35 @@ export default function App() {
       prev.map((l) => (l.id === lobbyId ? { ...l, status: newStatus } : l)),
     );
     showToast(`Lobby status updated to ${newStatus}`);
+  };
+
+  const handleCompleteLobby = (lobbyId) => {
+    const target = lobbiesList.find((l) => l.id === lobbyId);
+    if (!target) return;
+
+    setLobbiesList((prev) =>
+      prev.map((l) => (l.id === lobbyId ? { ...l, status: "Completed" } : l)),
+    );
+
+    // Increment roomsCompleted count for host
+    setUsersList((prev) =>
+      prev.map((u) => {
+        if (
+          u.handle.toLowerCase() === target.handle?.toLowerCase() ||
+          u.name.toLowerCase() === target.host?.toLowerCase()
+        ) {
+          return {
+            ...u,
+            roomsCompleted: (u.roomsCompleted || 0) + 1,
+          };
+        }
+        return u;
+      }),
+    );
+
+    setActiveChatLobbyId(null);
+    setRatingLobby(target);
+    showToast(`🏆 Lobby "${target.title}" completed! Please rate your teammates.`);
   };
 
   const handleCreateLobby = (title) => {
@@ -516,6 +603,7 @@ export default function App() {
               onReport={() => setShowReportModal(true)}
               onGroupChat={openGroupChat}
               onMsgHost={handleMessageHost}
+              onCompleteLobby={handleCompleteLobby}
             />
           }
         />
@@ -540,6 +628,7 @@ export default function App() {
                 }}
                 onOpenChat={openGroupChat}
                 onStatusChange={handleStatusChange}
+                onCompleteLobby={handleCompleteLobby}
               />
             )
           }
@@ -566,12 +655,70 @@ export default function App() {
           }
         />
 
-        {/* Profile Route */}
+        {/* Profile Routes — Own Profile and Viewing Others */}
         <Route
           path="/profile"
           element={
             <ProfilePage
               isAuthed={isAuthed}
+              currentUser={currentUser}
+              usersList={usersList}
+              lobbies={lobbiesList}
+              onRateUser={handleRateUser}
+              onOpenDM={openDMThread}
+              onSelectLobby={(lobby) => navigate(`/lobby/${lobby.id}`)}
+              onReport={() => setShowReportModal(true)}
+              onAuth={() => openAuth("signin")}
+              onLogout={() => {
+                setIsAuthed(false);
+                setAcceptedLobbyIds(new Set());
+                setPendingLobbyIds(new Set());
+                navigate("/");
+                showToast("You've been signed out.");
+              }}
+              toast={showToast}
+              mobile={isMobile}
+            />
+          }
+        />
+
+        <Route
+          path="/profile/:handle"
+          element={
+            <ProfilePage
+              isAuthed={isAuthed}
+              currentUser={currentUser}
+              usersList={usersList}
+              lobbies={lobbiesList}
+              onRateUser={handleRateUser}
+              onOpenDM={openDMThread}
+              onSelectLobby={(lobby) => navigate(`/lobby/${lobby.id}`)}
+              onReport={() => setShowReportModal(true)}
+              onAuth={() => openAuth("signin")}
+              onLogout={() => {
+                setIsAuthed(false);
+                setAcceptedLobbyIds(new Set());
+                setPendingLobbyIds(new Set());
+                navigate("/");
+                showToast("You've been signed out.");
+              }}
+              toast={showToast}
+              mobile={isMobile}
+            />
+          }
+        />
+
+        <Route
+          path="/user/:handle"
+          element={
+            <ProfilePage
+              isAuthed={isAuthed}
+              currentUser={currentUser}
+              usersList={usersList}
+              lobbies={lobbiesList}
+              onRateUser={handleRateUser}
+              onOpenDM={openDMThread}
+              onSelectLobby={(lobby) => navigate(`/lobby/${lobby.id}`)}
               onReport={() => setShowReportModal(true)}
               onAuth={() => openAuth("signin")}
               onLogout={() => {
@@ -720,6 +867,7 @@ export default function App() {
           lobbyTitle={activeChatLobby.title}
           messages={activeChatLobby.chatMessages || []}
           onClose={() => setActiveChatLobbyId(null)}
+          onCompleteLobby={handleCompleteLobby}
           onSend={(lobbyId, text) => {
             const newMsg = {
               id: String(Date.now()),
@@ -774,6 +922,19 @@ export default function App() {
             setActiveDMThreadId("");
             navigate("/messages");
           }}
+        />
+      )}
+
+      {/* ── Post-Lobby Teammate Rating Modal ── */}
+      {ratingLobby && (
+        <PostLobbyRatingModal
+          lobby={ratingLobby}
+          applicants={applicantsList}
+          usersList={usersList}
+          currentUser={currentUser}
+          onRateUser={handleRateUser}
+          onClose={() => setRatingLobby(null)}
+          toast={showToast}
         />
       )}
 

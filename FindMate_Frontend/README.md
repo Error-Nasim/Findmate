@@ -10,13 +10,14 @@ Backend: Golang (planned; current is in-memory mock).
 * `/lobby/:id` — LobbyDetailView (expanded lobby card).
 * `/activities` — MyLobbiesPage (host applicant review + joined squad chat).
 * `/messages` — MessagesPage (1-on-1 direct message threads).
-* `/profile` — ProfilePage (bio, accounts, admin link, sign out).
+* `/profile` — ProfilePage (own profile: edit bio, tags, connected accounts, admin link).
+* `/profile/:handle` & `/user/:handle` — Public ProfilePage (view others' stats, active lobbies, rating, submit review).
 * `/admin` — AdminPage (manage platform tags, review reports, ban users).
 
 ## Architecture
-* `src/App.jsx`: Root coordinator; owns state (lobbies, DMs, notifs), modals, and router.
+* `src/App.jsx`: Root coordinator; owns state (lobbies, DMs, notifs, usersList), modals, and router.
 * `src/api/index.js`: Axios client (`VITE_API_URL` || `http://localhost:8080/api`) + mock handlers.
-* `src/data/`: Initial mock data (`lobbies.js`, `applicants.js`, `dmThreads.js`, `notifications.js`).
+* `src/data/`: Initial mock data (`users.js`, `lobbies.js`, `applicants.js`, `dmThreads.js`, `notifications.js`).
 * `src/components/`:
   * `layout/`: Navbar (pill navigation, theme toggle), BottomNav (mobile).
   * `modals/`: AuthModal, CreateLobbyModal, ApplicantModal, AcceptedModal, ReportModal.
@@ -26,8 +27,15 @@ Backend: Golang (planned; current is in-memory mock).
 ## Critical Rules & Behaviors
 1. **Navbar Tabs**: "Explore Lobbies" is active ONLY on `/feed`. "How It Works" is active ONLY on `/` (scrolls to `#how-it-works`).
 2. **Admin Panel**: Route is `/admin` (no auth gate). Reachable via direct URL, Profile button (`🛡️ Admin Panel`), or Landing footer (`Admin Panel →`). Uses `toast` prop from `App.jsx`.
-3. **Toast**: Root-managed in `App.jsx` (`showToast(msg)`).
-4. **Theme**: Dual-theme (`light` / `[data-theme="dark"]`) controlled via CSS vars in `src/index.css`.
+3. **User Profiles & Ratings**:
+   - Every user has a public profile at `/profile/:handle` displaying:
+     - **Running Now**: dynamic count of active lobbies hosted right now.
+     - **Rooms Joined & Completed**: team-up participation stats.
+     - **Calculated Rating**: average score (`X.X ★`) dynamically calculated from reviews left by other users (`calculateUserRating()`).
+   - Teammates can rate any other user with a 1-5 star score + feedback comment.
+   - Clickable profile links from Lobby cards, Lobby detail view, Applicants panel, and Messages.
+4. **Toast**: Root-managed in `App.jsx` (`showToast(msg)`).
+5. **Theme**: Dual-theme (`light` / `[data-theme="dark"]`) controlled via CSS vars in `src/index.css`.
 
 ## Golang Backend Roadmap
 * REST: `/api/lobbies` (CRUD/apply), `/api/applicants` (accept/decline), `/api/messages/threads`, `/api/admin/reports` & `/api/admin/tags`.

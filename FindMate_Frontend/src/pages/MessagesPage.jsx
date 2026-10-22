@@ -2,6 +2,7 @@
 // 2 Tabs: Direct Messages & Group Chats
 
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Avatar from '../components/ui/Avatar.jsx'
 
 export default function MessagesPage({
@@ -11,6 +12,7 @@ export default function MessagesPage({
   onOpenDM,
   onOpenGroupChat,
 }) {
+  const navigate = useNavigate()
   const [tab, setTab] = useState('dms') // 'dms' | 'groups'
 
   const joinedLobbies = lobbies.filter(l => acceptedLobbyIds.has(l.id))
@@ -87,7 +89,18 @@ export default function MessagesPage({
                 e.currentTarget.style.transform = 'translateY(0)'
               }}
             >
-              <Avatar initials={thread.avatar} size={46} />
+              <div
+                onClick={(e) => {
+                  if (thread.handle) {
+                    e.stopPropagation()
+                    navigate(`/profile/${thread.handle}`)
+                  }
+                }}
+                title={thread.handle ? `View @${thread.handle}'s Profile` : undefined}
+                style={{ cursor: thread.handle ? 'pointer' : 'default' }}
+              >
+                <Avatar initials={thread.avatar} size={46} />
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>

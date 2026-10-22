@@ -3,7 +3,14 @@
 import { useState, useRef, useEffect } from "react";
 import Avatar from "../ui/Avatar.jsx";
 
-export default function LobbyChatPanel({ lobbyId, lobbyTitle, messages = [], onClose, onSend }) {
+export default function LobbyChatPanel({
+  lobbyId,
+  lobbyTitle,
+  messages = [],
+  onClose,
+  onSend,
+  onCompleteLobby,
+}) {
   const [text, setText] = useState("");
   const bottomRef = useRef(null);
 
@@ -76,19 +83,43 @@ export default function LobbyChatPanel({ lobbyId, lobbyTitle, messages = [], onC
               Group Chat · All accepted members
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--text-muted)",
-              fontSize: 24,
-              cursor: "pointer",
-              lineHeight: 1,
-            }}
-          >
-            ×
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {onCompleteLobby && (
+              <button
+                onClick={() => onCompleteLobby(lobbyId)}
+                title="Finish lobby session and rate teammates"
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 14,
+                  background: "rgba(99,102,241,0.12)",
+                  border: "1px solid rgba(99,102,241,0.25)",
+                  color: "var(--primary-text)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  transition: "opacity 0.15s ease",
+                }}
+              >
+                🏁 Finish & Rate
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                fontSize: 24,
+                cursor: "pointer",
+                lineHeight: 1,
+              }}
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         {/* Message feed */}

@@ -4,6 +4,7 @@ export default function StatusBadge({ status = "Open" }) {
   const configs = {
     Open: { color: "#059669", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.25)", dot: true },
     Full: { color: "#E11D48", bg: "rgba(244,63,94,0.12)", border: "rgba(244,63,94,0.25)", dot: false },
+    Completed: { color: "#6366F1", bg: "rgba(99,102,241,0.12)", border: "rgba(99,102,241,0.25)", dot: false },
     Closed: { color: "#64748B", bg: "rgba(100,116,139,0.12)", border: "rgba(100,116,139,0.25)", dot: false },
   };
 

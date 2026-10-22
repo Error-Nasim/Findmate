@@ -1,9 +1,11 @@
 // DMPanel — Slide-in direct message conversation panel
 
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Avatar from "../ui/Avatar.jsx";
 
 export default function DMPanel({ thread, onClose, onSend, onBack }) {
+  const navigate = useNavigate();
   const [text, setText] = useState("");
   const bottomRef = useRef(null);
 
@@ -75,10 +77,45 @@ export default function DMPanel({ thread, onClose, onSend, onBack }) {
               ←
             </button>
           )}
-          <Avatar initials={thread.avatar} size={38} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)" }}>{thread.user}</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>via {thread.lobbyContext}</div>
+          <div
+            onClick={() => {
+              if (thread.handle) {
+                onClose?.();
+                navigate(`/profile/${thread.handle}`);
+              }
+            }}
+            title={thread.handle ? `View @${thread.handle}'s Profile` : undefined}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              flex: 1,
+              cursor: thread.handle ? "pointer" : "default",
+            }}
+          >
+            <Avatar initials={thread.avatar} size={38} />
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 800,
+                  color: "var(--text-primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span>{thread.user}</span>
+                {thread.handle && (
+                  <span style={{ fontSize: 10, color: "var(--primary-text)", fontWeight: 700 }}>
+                    Profile ↗
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                {thread.handle ? `@${thread.handle} · ` : ""}via {thread.lobbyContext}
+              </div>
+            </div>
           </div>
           <button
             onClick={onClose}

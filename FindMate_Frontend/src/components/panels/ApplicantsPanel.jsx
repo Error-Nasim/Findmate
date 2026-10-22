@@ -1,9 +1,11 @@
 // ApplicantsPanel — Slide-in panel listing all applicants for a hosted lobby
 
+import { useNavigate } from "react-router-dom";
 import Avatar from "../ui/Avatar.jsx";
 import Tag from "../ui/Tag.jsx";
 
 export default function ApplicantsPanel({ applicants, lobbyId, lobbyTitle, onClose, onReview }) {
+  const navigate = useNavigate();
   const lobbyApplicants = applicants.filter((a) => a.lobbyId === lobbyId);
 
   return (
@@ -104,10 +106,31 @@ export default function ApplicantsPanel({ applicants, lobbyId, lobbyTitle, onClo
               }}
             >
               {/* User Profile info */}
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div
+                onClick={() => {
+                  onClose();
+                  navigate(`/profile/${a.handle}`);
+                }}
+                title={`Inspect @${a.handle}'s profile`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  marginBottom: 12,
+                  cursor: "pointer",
+                  borderRadius: 10,
+                  padding: "4px",
+                  transition: "background 0.15s ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-card)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
                 <Avatar initials={a.avatar} size={42} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)" }}>{a.name}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>{a.name}</span>
+                    <span style={{ fontSize: 11, color: "var(--primary-text)", fontWeight: 700 }}>Profile ↗</span>
+                  </div>
                   <div style={{ fontSize: 12, color: "var(--text-faint)" }}>@{a.handle}</div>
                 </div>
                 {a.status !== "pending" && (

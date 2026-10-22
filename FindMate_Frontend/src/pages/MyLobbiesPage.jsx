@@ -2,6 +2,7 @@
 // 3 Tabs: Created Lobbies (with status switcher & pending review), Joined Teams, Pending Requests
 
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Avatar from '../components/ui/Avatar.jsx'
 import Button from '../components/ui/Button.jsx'
 import Tag from '../components/ui/Tag.jsx'
@@ -14,7 +15,9 @@ export default function MyLobbiesPage({
   onReviewApplicants,
   onOpenChat,
   onStatusChange,
+  onCompleteLobby,
 }) {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('created') // 'created' | 'joined' | 'pending'
 
   const pendingCount = applicants.filter(a => a.status === 'pending').length
@@ -125,11 +128,17 @@ export default function MyLobbiesPage({
                     {/* Status switcher */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
                       <StatusBadge status={lobby.status} />
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {['Open', 'Full', 'Closed'].map(st => (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {['Open', 'Full', 'Completed', 'Closed'].map(st => (
                           <button
                             key={st}
-                            onClick={() => onStatusChange(lobby.id, st)}
+                            onClick={() => {
+                              if (st === 'Completed' && onCompleteLobby) {
+                                onCompleteLobby(lobby.id);
+                              } else {
+                                onStatusChange(lobby.id, st);
+                              }
+                            }}
                             style={{
                               padding: '4px 10px',
                               borderRadius: 6,
@@ -150,7 +159,7 @@ export default function MyLobbiesPage({
                   </div>
 
                   {/* Pending / Review row */}
-                  <div style={{ marginTop: 18, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ marginTop: 18, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                     {pendingApplicants.length > 0 ? (
                       <>
                         <div
@@ -180,6 +189,15 @@ export default function MyLobbiesPage({
                     )}
                     <Button v="line" sm onClick={() => onOpenChat(lobby.id)}>
                       💬 Chat
+                    </Button>
+                    <Button
+                      v={lobby.status === 'Completed' ? 'ghost' : 'primary'}
+                      sm
+                      onClick={() => {
+                        if (onCompleteLobby) onCompleteLobby(lobby.id);
+                      }}
+                    >
+                      {lobby.status === 'Completed' ? '⭐ Rate Teammates' : '🏆 Complete & Rate'}
                     </Button>
                   </div>
                 </div>
@@ -211,18 +229,38 @@ export default function MyLobbiesPage({
                   boxShadow: 'var(--card-shadow)',
                 }}
               >
-                <Avatar initials={lobby.avatar} size={46} />
+                <div
+                  onClick={() => navigate(`/profile/${lobby.handle}`)}
+                  title={`View @${lobby.handle}'s Profile`}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <Avatar initials={lobby.avatar} size={46} />
+                </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>
                     {lobby.title}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
-                    Hosted by {lobby.host} · {lobby.time}
+                  <div
+                    onClick={() => navigate(`/profile/${lobby.handle}`)}
+                    style={{ fontSize: 12, color: 'var(--text-faint)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <span>Hosted by <strong style={{ color: 'var(--text-primary)' }}>{lobby.host}</strong></span>
+                    <span style={{ color: 'var(--primary-text)', fontWeight: 700 }}>Profile ↗</span>
+                    <span>· {lobby.time}</span>
                   </div>
                 </div>
                 <StatusBadge status={lobby.status} />
                 <Button v="ghost" sm onClick={() => onOpenChat(lobby.id)}>
                   💬 Open Live Chat
+                </Button>
+                <Button
+                  v="line"
+                  sm
+                  onClick={() => {
+                    if (onCompleteLobby) onCompleteLobby(lobby.id);
+                  }}
+                >
+                  ⭐ Rate Teammates
                 </Button>
               </div>
             ))

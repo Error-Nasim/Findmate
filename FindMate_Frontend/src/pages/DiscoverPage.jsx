@@ -2,6 +2,7 @@
 // Search bar, Sort dropdown, Category tabs, Hashtag pills, Lobby cards with match score and status badge
 
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Avatar from '../components/ui/Avatar.jsx'
 import Button from '../components/ui/Button.jsx'
 import Tag from '../components/ui/Tag.jsx'
@@ -17,6 +18,7 @@ export default function DiscoverPage({
   onOpenChat,
   onSelectLobby,
 }) {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('All')
   const [selectedTags, setSelectedTags] = useState([])
@@ -196,6 +198,7 @@ export default function DiscoverPage({
             onSelect={() => onSelectLobby(lobby)}
             onApply={onApply}
             applied={appliedLobbies.includes(lobby.id)}
+            onViewProfile={(h) => navigate(`/profile/${h}`)}
           />
         ))}
 
@@ -217,7 +220,7 @@ export default function DiscoverPage({
   )
 }
 
-function LobbyCard({ lobby, onSelect, onApply, applied }) {
+function LobbyCard({ lobby, onSelect, onApply, applied, onViewProfile }) {
   const [hovered, setHovered] = useState(false)
   const isFull = lobby.joined >= lobby.max
 
@@ -242,10 +245,27 @@ function LobbyCard({ lobby, onSelect, onApply, applied }) {
     >
       {/* Header with Host and Status */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          onClick={(e) => {
+            e.stopPropagation()
+            if (onViewProfile) onViewProfile(lobby.handle)
+          }}
+          title={`View @${lobby.handle}'s Profile`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            cursor: 'pointer',
+            padding: '2px 4px',
+            borderRadius: 8,
+            transition: 'opacity 0.15s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.8')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+        >
           <Avatar initials={lobby.avatar} size={40} />
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
               {lobby.host}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>

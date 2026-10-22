@@ -2,6 +2,7 @@
 // Header banner, host card, tags, location pill, roster with host badge and open slots (+), action bar with share & report
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Avatar from "./Avatar.jsx";
 import Button from "./Button.jsx";
 import Tag from "./Tag.jsx";
@@ -16,7 +17,9 @@ export default function LobbyDetailView({
   onReport,
   onGroupChat,
   onMsgHost,
+  onCompleteLobby,
 }) {
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
   if (!lobby) return null;
@@ -53,6 +56,41 @@ export default function LobbyDetailView({
         ← Back to Feed
       </button>
 
+      {/* Completed Lobby Rating Banner */}
+      {lobby.status === "Completed" && (
+        <div
+          style={{
+            marginBottom: 20,
+            padding: "16px 20px",
+            background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(16,185,129,0.1))",
+            border: "1px solid rgba(99,102,241,0.25)",
+            borderRadius: 16,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 24 }}>🏆</span>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)" }}>
+                This lobby session has been completed!
+              </div>
+              <div style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
+                Share your feedback and rate the host & squad members.
+              </div>
+            </div>
+          </div>
+          {onCompleteLobby && (
+            <Button v="primary" sm onClick={() => onCompleteLobby(lobby.id)}>
+              ⭐ Rate Teammates
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Host Card with Banner */}
       <div
         style={{
@@ -73,6 +111,8 @@ export default function LobbyDetailView({
           }}
         >
           <div
+            onClick={() => navigate(`/profile/${lobby.handle}`)}
+            title={`View @${lobby.handle}'s Profile`}
             style={{
               position: "absolute",
               bottom: -24,
@@ -81,7 +121,11 @@ export default function LobbyDetailView({
               borderRadius: "50%",
               padding: 4,
               boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              cursor: "pointer",
+              transition: "transform 0.15s ease",
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
           >
             <Avatar initials={lobby.avatar || "AN"} size={52} />
           </div>
@@ -91,8 +135,36 @@ export default function LobbyDetailView({
           <div
             style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}
           >
-            <div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text-primary)" }}>{lobby.host}</div>
+            <div
+              onClick={() => navigate(`/profile/${lobby.handle}`)}
+              title={`View @${lobby.handle}'s Profile`}
+              style={{ cursor: "pointer" }}
+            >
+              <div
+                style={{
+                  fontSize: 17,
+                  fontWeight: 800,
+                  color: "var(--text-primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <span>{lobby.host}</span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "var(--primary-text)",
+                    background: "var(--primary-light)",
+                    border: "1px solid var(--primary-border)",
+                    padding: "1px 8px",
+                    borderRadius: 12,
+                  }}
+                >
+                  View Profile ↗
+                </span>
+              </div>
               <div style={{ fontSize: 13, color: "var(--text-faint)" }}>@{lobby.handle}</div>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
