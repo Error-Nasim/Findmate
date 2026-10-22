@@ -1,4 +1,4 @@
-// App.jsx with React Router v6 integrated and Figma theme synchronization
+// App.jsx — Master Root Component with Centralized State, API Persistence, and Clean Routes
 // Routes: / (landing/feed), /feed, /activities, /messages, /profile, /admin, /lobby/:id
 
 import { useState, useCallback, useEffect } from "react";
@@ -30,19 +30,23 @@ import CreateLobbyModal from "./components/modals/CreateLobbyModal.jsx";
 import ApplicantModal from "./components/modals/ApplicantModal.jsx";
 import AcceptedModal from "./components/modals/AcceptedModal.jsx";
 import ReportModal from "./components/modals/ReportModal.jsx";
+import ApplyModal from "./components/modals/ApplyModal.jsx";
 import PostLobbyRatingModal from "./components/modals/PostLobbyRatingModal.jsx";
 
 // Slide-in Panels
-// Nasim is good
 import ApplicantsPanel from "./components/panels/ApplicantsPanel.jsx";
 import LobbyChatPanel from "./components/panels/LobbyChatPanel.jsx";
 import DMPanel from "./components/panels/DMPanel.jsx";
 import NotificationsPanel from "./components/panels/NotificationsPanel.jsx";
 
-// UI Toast
-import Toast from "./components/ui/Toast.jsx";
+// Contexts
+import { useAuth } from "./context/AuthContext.jsx";
+import { useToast } from "./context/ToastContext.jsx";
 
-// Initial Data
+// API Layer with LocalStorage Persistence (Pre-Go Stage)
+import { api } from "./api/index.js";
+
+// Initial Mock Seed Data
 import { lobbies as initialLobbies } from "./data/lobbies.js";
 import { applicants as initialApplicants } from "./data/applicants.js";
 import { dmThreads as initialDMThreads } from "./data/dmThreads.js";
@@ -112,7 +116,7 @@ function LobbyRouteWrapper({
       isAccepted={acceptedIds.has(lobby.id)}
       onBack={() => navigate("/feed")}
       onJoin={onJoin}
-      onReport={onReport}
+      onReport={() => onReport({ type: "lobby", id: lobby.id, name: lobby.title })}
       onGroupChat={() => onGroupChat(lobby.id)}
       onMsgHost={() => onMsgHost(lobby)}
       onCompleteLobby={onCompleteLobby}
@@ -125,7 +129,11 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Theme state (default to light mode matching Figma design)
+  // Context Hooks
+  const { isAuthed, user, login, logout } = useAuth();
+  const { showToast } = useToast();
+
+  // Theme state
   const [theme, setTheme] = useState(
     () => localStorage.getItem("findmate_theme") || "light",
   );
@@ -138,45 +146,63 @@ export default function App() {
   const toggleTheme = () =>
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
 
-  // Auth state
-  const [isAuthed, setIsAuthed] = useState(false);
+  // Auth modal controls
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authView, setAuthView] = useState("signin");
 
-  // Entities state
+  // Entities state (Loaded from centralized API & localStorage)
   const [lobbiesList, setLobbiesList] = useState(initialLobbies);
   const [applicantsList, setApplicantsList] = useState(initialApplicants);
   const [dmList, setDmList] = useState(initialDMThreads);
   const [notifsList, setNotifsList] = useState(initialNotifications);
+  const [reportsList, setReportsList] = useState([]);
+  const [platformTags, setPlatformTags] = useState([]);
   const [usersList, setUsersList] = useState(initialUsers);
-
-  // Current logged in user (Abu Nasim by default)
-  const currentUser =
-    usersList.find((u) => u.handle.toLowerCase() === "error-nasim") ||
-    usersList[0];
 
   // Sets of lobby IDs
   const [pendingLobbyIds, setPendingLobbyIds] = useState(new Set());
-  const [acceptedLobbyIds, setAcceptedLobbyIds] = useState(new Set());
+  const [acceptedLobbyIds, setAcceptedLobbyIds] = useState(new Set(["1", "2", "3"]));
+
+  // Load persistent state from API
+  useEffect(() => {
+    api.getLobbies().then(setLobbiesList);
+    api.getApplicants().then(setApplicantsList);
+    api.getDMThreads().then(setDmList);
+    api.getNotifications().then(setNotifsList);
+    api.getReports().then(setReportsList);
+    api.getTags().then(setPlatformTags);
+    api.getPendingLobbyIds().then(setPendingLobbyIds);
+    api.getAcceptedLobbyIds().then((ids) => {
+      if (ids && ids.size > 0) setAcceptedLobbyIds(ids);
+    });
+  }, []);
+
+  // Current user info
+  const currentUser = {
+    id: user?.id || "u_nasim",
+    name: user?.name || "Abu Nasim",
+    handle: user?.username || "Error-nasim",
+    avatar: user?.avatar || "AN",
+    tags: user?.tags || ["#gaming", "#valorant", "#competitive"],
+    reliability: user?.reliability || 98,
+    teamUps: user?.teamUps || 24,
+  };
 
   // Modal controls
   const [showNotifsDropdown, setShowNotifsDropdown] = useState(false);
   const [showCreateLobby, setShowCreateLobby] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
+  const [applyingLobby, setApplyingLobby] = useState(null);
   const [reviewingApplicant, setReviewingApplicant] = useState(null);
   const [acceptedModalData, setAcceptedModalData] = useState(null);
   const [ratingLobby, setRatingLobby] = useState(null);
 
   // Slide panel controls
   const [activeApplicantsLobbyId, setActiveApplicantsLobbyId] = useState(null);
-  const [activeApplicantsLobbyTitle, setActiveApplicantsLobbyTitle] =
-    useState("");
+  const [activeApplicantsLobbyTitle, setActiveApplicantsLobbyTitle] = useState("");
   const [activeChatLobbyId, setActiveChatLobbyId] = useState(null);
   const [activeDMThreadId, setActiveDMThreadId] = useState("");
-
-  // Toast message
-  const [toastMsg, setToastMsg] = useState("");
-  const showToast = useCallback((msg) => setToastMsg(msg), []);
 
   // Derived counts
   const unreadNotifCount = notifsList.filter((n) => n.unread).length;
@@ -190,43 +216,89 @@ export default function App() {
     setShowAuthModal(true);
   };
 
-  const handleLoginSuccess = () => {
-    setIsAuthed(true);
+  const handleLoginSuccess = (userData) => {
+    login(userData);
     setShowAuthModal(false);
-    setAcceptedLobbyIds(new Set(["1", "2", "3"]));
     navigate("/feed");
-    showToast(
-      "Welcome! You've been added to 3 demo lobbies so you can explore all features.",
-    );
+    showToast(`Welcome back, ${userData?.name || "Abu Nasim"}!`);
   };
 
-  // Lobby interactions
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+    showToast("You've been signed out.");
+  };
+
+  // Lobby Join & Pitch Workflow (Step 4)
   const handleJoinLobby = (lobbyId) => {
     if (!isAuthed) {
       openAuth("signin");
       return;
     }
-    if (pendingLobbyIds.has(lobbyId) || acceptedLobbyIds.has(lobbyId)) return;
+    if (pendingLobbyIds.has(lobbyId)) {
+      showToast("You've already applied to this lobby.");
+      return;
+    }
+    if (acceptedLobbyIds.has(lobbyId)) {
+      showToast("You are already a member of this lobby!");
+      return;
+    }
 
-    setPendingLobbyIds((prev) => new Set([...prev, lobbyId]));
-    const lobbyTitle =
-      lobbiesList.find((l) => l.id === lobbyId)?.title ?? "lobby";
-    setNotifsList((prev) => [
-      {
-        id: String(Date.now()),
-        icon: "✋",
-        text: `Your request to join "${lobbyTitle}" was sent`,
-        time: "Just now",
-        unread: true,
-        type: "reminder",
-      },
-      ...prev,
-    ]);
-    showToast("Request sent! Waiting for host approval.");
+    const lobby = lobbiesList.find((l) => l.id === lobbyId);
+    if (!lobby) return;
+    setApplyingLobby(lobby);
   };
 
-  // Accept applicant
+  const handleConfirmApply = ({ lobbyId, message }) => {
+    const lobby = lobbiesList.find((l) => l.id === lobbyId);
+    if (!lobby) return;
+
+    setPendingLobbyIds((prev) => {
+      const next = new Set([...prev, lobbyId]);
+      api.savePendingLobbyIds(next);
+      return next;
+    });
+
+    const newApp = {
+      id: `app_${Date.now()}`,
+      lobbyId,
+      name: currentUser.name,
+      handle: currentUser.handle,
+      avatar: currentUser.avatar,
+      tags: currentUser.tags,
+      reliability: currentUser.reliability,
+      teamUps: currentUser.teamUps,
+      status: "pending",
+      message,
+    };
+
+    setApplicantsList((prev) => [newApp, ...prev]);
+    api.addApplicant(newApp);
+
+    setLobbiesList((prev) =>
+      prev.map((l) =>
+        l.id === lobbyId ? { ...l, pending: (l.pending || 0) + 1 } : l,
+      ),
+    );
+
+    const newNotif = {
+      id: String(Date.now()),
+      icon: "✋",
+      text: `Your pitch note for "${lobby.title}" was submitted to host @${lobby.handle}`,
+      time: "Just now",
+      unread: true,
+      type: "reminder",
+    };
+    setNotifsList((prev) => [newNotif, ...prev]);
+    api.addNotification(newNotif);
+
+    setApplyingLobby(null);
+    showToast("Application submitted with your pitch note!");
+  };
+
+  // Accept applicant (Sequence Diagram 3)
   const handleAcceptApplicant = (applicant) => {
+    api.updateApplicantStatus(applicant.id, "accepted");
     setApplicantsList((prev) =>
       prev.map((a) =>
         a.id === applicant.id ? { ...a, status: "accepted" } : a,
@@ -258,7 +330,11 @@ export default function App() {
       ),
     );
 
-    setAcceptedLobbyIds((prev) => new Set([...prev, applicant.lobbyId]));
+    setAcceptedLobbyIds((prev) => {
+      const next = new Set([...prev, applicant.lobbyId]);
+      api.saveAcceptedLobbyIds(next);
+      return next;
+    });
 
     const threadId = `dm-new-${applicant.handle}`;
     const newDM = {
@@ -279,11 +355,12 @@ export default function App() {
       ],
     };
 
+    api.createDMThread(newDM);
     setDmList((prev) =>
       prev.some((t) => t.id === threadId) ? prev : [newDM, ...prev],
     );
 
-    // Update notifications
+    // Update notification
     setNotifsList((prev) =>
       prev.map((n) =>
         n.applicantId === applicant.id
@@ -297,17 +374,16 @@ export default function App() {
       ),
     );
 
-    setNotifsList((prev) => [
-      {
-        id: String(Date.now()),
-        icon: "🎉",
-        unread: true,
-        type: "accepted",
-        text: `🎉 ${applicant.name} was accepted into your "${lobby.title}" lobby!`,
-        time: "Just now",
-      },
-      ...prev,
-    ]);
+    const acceptNotif = {
+      id: String(Date.now()),
+      icon: "🎉",
+      unread: true,
+      type: "accepted",
+      text: `🎉 ${applicant.name} was accepted into your "${lobby.title}" lobby!`,
+      time: "Just now",
+    };
+    setNotifsList((prev) => [acceptNotif, ...prev]);
+    api.addNotification(acceptNotif);
 
     setReviewingApplicant(null);
     setActiveApplicantsLobbyId(null);
@@ -321,6 +397,7 @@ export default function App() {
 
   // Decline applicant
   const handleDeclineApplicant = (applicant) => {
+    api.updateApplicantStatus(applicant.id, "declined");
     setApplicantsList((prev) =>
       prev.map((a) =>
         a.id === applicant.id ? { ...a, status: "declined" } : a,
@@ -351,27 +428,27 @@ export default function App() {
     setShowNotifsDropdown(false);
   };
 
-  const openDMThread = (threadId, userName, userHandle, userAvatar) => {
+  const openDMThread = (threadId) => {
     let targetId = threadId;
-    if (!targetId && (userHandle || userName)) {
+    if (typeof threadId === "object" && threadId !== null) {
+      const lobby = threadId;
       const existing = dmList.find(
-        (t) =>
-          (userHandle && t.handle?.toLowerCase() === userHandle.toLowerCase()) ||
-          (userName && t.user?.toLowerCase() === userName.toLowerCase()),
+        (t) => t.user === lobby.host || t.handle === lobby.handle,
       );
       if (existing) {
         targetId = existing.id;
       } else {
-        targetId = `dm-user-${userHandle || Date.now()}`;
+        targetId = `dm-host-${lobby.id}`;
         const newThread = {
           id: targetId,
-          user: userName || userHandle,
-          handle: userHandle || "user",
-          avatar: userAvatar || (userName || userHandle || "U").slice(0, 2).toUpperCase(),
-          lobbyContext: "Direct Message",
+          user: lobby.host,
+          handle: lobby.handle,
+          avatar: lobby.avatar || "AN",
+          lobbyContext: lobby.title,
           unread: 0,
           messages: [],
         };
+        api.createDMThread(newThread);
         setDmList((prev) => [newThread, ...prev]);
       }
     }
@@ -408,6 +485,7 @@ export default function App() {
   );
 
   const markNotifRead = (notifId) => {
+    api.markNotificationRead(notifId);
     setNotifsList((prev) =>
       prev.map((n) => (n.id === notifId ? { ...n, unread: false } : n)),
     );
@@ -428,6 +506,7 @@ export default function App() {
   };
 
   const handleStatusChange = (lobbyId, newStatus) => {
+    api.updateLobbyStatus(lobbyId, newStatus);
     setLobbiesList((prev) =>
       prev.map((l) => (l.id === lobbyId ? { ...l, status: newStatus } : l)),
     );
@@ -438,11 +517,11 @@ export default function App() {
     const target = lobbiesList.find((l) => l.id === lobbyId);
     if (!target) return;
 
+    api.updateLobbyStatus(lobbyId, "Completed");
     setLobbiesList((prev) =>
       prev.map((l) => (l.id === lobbyId ? { ...l, status: "Completed" } : l)),
     );
 
-    // Increment roomsCompleted count for host
     setUsersList((prev) =>
       prev.map((u) => {
         if (
@@ -463,59 +542,127 @@ export default function App() {
     showToast(`🏆 Lobby "${target.title}" completed! Please rate your teammates.`);
   };
 
-  const handleCreateLobby = (title) => {
-    const newId = String(Date.now());
+  const categoryColors = {
+    Gaming: "#6366F1",
+    Coding: "#10B981",
+    Sports: "#F59E0B",
+    Study: "#8B5CF6",
+    Fitness: "#06B6D4",
+    Music: "#EC4899",
+  };
+
+  const handleCreateLobby = (payload) => {
+    const isObj = typeof payload === "object" && payload !== null;
+    const title = isObj ? payload.title : payload;
+    const category = isObj ? payload.category || "Gaming" : "Gaming";
+    const tags =
+      isObj && Array.isArray(payload.tags) && payload.tags.length > 0
+        ? payload.tags
+        : [`#${category.toLowerCase()}`];
+    const max = isObj ? Number(payload.max) || 4 : 4;
+    const description =
+      isObj && payload.description
+        ? payload.description
+        : "Looking for reliable teammates!";
+    const locMode = isObj ? payload.locMode : "digital";
+    const location = locMode === "digital" ? "Discord" : "In-Person";
+    const locationDetail =
+      isObj && payload.locationValue
+        ? payload.locationValue
+        : locMode === "digital"
+          ? "discord.gg/lobby"
+          : "Campus Center";
+    const dateTime = isObj ? payload.dateTime : "";
+
     const newLobby = {
-      id: newId,
-      host: "Abu Nasim",
-      handle: "Error-nasim",
-      avatar: "AN",
-      time: "Just now",
+      host: currentUser.name,
+      handle: currentUser.handle,
+      avatar: currentUser.avatar,
       title,
-      location: "Discord",
-      locationDetail: "discord.gg/nasimval",
-      tags: ["#gaming"],
-      matchScore: 100,
-      joined: 1,
-      max: 4,
-      status: "Open",
-      description: "Your new lobby.",
-      pending: 0,
-      category: "Gaming",
-      color: "#6366F1",
-      chatMessages: [
-        {
-          id: "1",
-          type: "system",
-          text: "Lobby created. Waiting for teammates.",
-        },
-      ],
+      location,
+      locationDetail,
+      tags,
+      max,
+      description,
+      category,
+      color: categoryColors[category] || "#6366F1",
+      dateTime,
     };
-    setLobbiesList((prev) => [newLobby, ...prev]);
-    setAcceptedLobbyIds((prev) => new Set([...prev, newId]));
-    showToast(`Lobby "${title}" posted!`);
+
+    api.createLobby(newLobby).then((created) => {
+      setLobbiesList((prev) => [created, ...prev]);
+      setAcceptedLobbyIds((prev) => {
+        const next = new Set([...prev, created.id]);
+        api.saveAcceptedLobbyIds(next);
+        return next;
+      });
+      showToast(`Lobby "${title}" posted!`);
+    });
   };
 
   const handleMessageHost = (lobby) => {
-    const existing = dmList.find(
-      (t) => t.user === lobby.host && t.lobbyContext === lobby.title,
-    );
-    if (existing) {
-      openDMThread(existing.id);
-      return;
-    }
-    const newId = `dm-host-${lobby.id}`;
-    const thread = {
-      id: newId,
-      user: lobby.host,
-      handle: lobby.handle,
-      avatar: lobby.avatar,
-      lobbyContext: lobby.title,
-      unread: 0,
-      messages: [],
+    openDMThread(lobby);
+  };
+
+  // Moderation Handlers (Step 5)
+  const handleOpenReport = (target) => {
+    setReportTarget(target);
+    setShowReportModal(true);
+  };
+
+  const handleSubmitReport = (reportData) => {
+    const newRep = {
+      id: Date.now(),
+      type: reportData.targetType,
+      targetId: reportData.targetId,
+      name: reportData.targetName,
+      reporter: currentUser.name,
+      reason: reportData.reason,
+      details: reportData.details,
+      time: "Just now",
     };
-    setDmList((prev) => [thread, ...prev]);
-    openDMThread(newId);
+    setReportsList((prev) => [newRep, ...prev]);
+    api.createReport(newRep);
+    setShowReportModal(false);
+    setReportTarget(null);
+    showToast("Report submitted to Admin Moderation queue — thank you!");
+  };
+
+  const handleDismissReport = (id) => {
+    setReportsList((prev) => prev.filter((r) => r.id !== id));
+    api.resolveReport(id);
+  };
+
+  const handleAdminDeleteLobby = (lobbyIdOrTarget, name) => {
+    setLobbiesList((prev) =>
+      prev.filter(
+        (l) => l.id !== lobbyIdOrTarget && l.title !== name && l.title !== lobbyIdOrTarget,
+      ),
+    );
+    api.deleteLobby(lobbyIdOrTarget);
+    showToast(`Lobby "${name || lobbyIdOrTarget}" deleted and removed from feed.`);
+  };
+
+  const handleAdminBanUser = (userHandle, name) => {
+    setUsersList((prev) =>
+      prev.map((u) =>
+        u.handle === userHandle || u.name === name
+          ? { ...u, isBanned: true }
+          : u,
+      ),
+    );
+    setLobbiesList((prev) =>
+      prev.filter((l) => l.handle !== userHandle && l.host !== name),
+    );
+    showToast(`User @${userHandle} banned from FindMate.`);
+  };
+
+  const handleAddPlatformTag = (tag) => {
+    api.addTag(tag).then(setPlatformTags);
+  };
+
+  const handleRemovePlatformTag = (tag) => {
+    api.removeTag(tag).then(setPlatformTags);
   };
 
   const isAdminRoute = location.pathname.startsWith("/admin");
@@ -527,7 +674,7 @@ export default function App() {
         background: "var(--bg-canvas)",
         color: "var(--text-primary)",
         fontFamily: "var(--font-inter)",
-        paddingBottom: isMobile && isAuthed && !isAdminRoute ? 64 : 0,
+        paddingBottom: isMobile && !isAdminRoute ? 68 : 0,
         transition: "background-color 0.2s ease, color 0.2s ease",
       }}
     >
@@ -563,10 +710,12 @@ export default function App() {
                 lobbies={lobbiesList}
                 pendingIds={pendingLobbyIds}
                 acceptedIds={acceptedLobbyIds}
+                acceptedLobbyIds={acceptedLobbyIds}
                 appliedLobbies={Array.from(pendingLobbyIds)}
                 onSelectLobby={(lobby) => navigate(`/lobby/${lobby.id}`)}
                 onCreateLobby={() => setShowCreateLobby(true)}
                 onApply={handleJoinLobby}
+                onOpenChat={openGroupChat}
               />
             )
           }
@@ -580,6 +729,7 @@ export default function App() {
               lobbies={lobbiesList}
               pendingIds={pendingLobbyIds}
               acceptedIds={acceptedLobbyIds}
+              acceptedLobbyIds={acceptedLobbyIds}
               appliedLobbies={Array.from(pendingLobbyIds)}
               onSelectLobby={(lobby) => navigate(`/lobby/${lobby.id}`)}
               onCreateLobby={() => {
@@ -587,6 +737,7 @@ export default function App() {
                 else setShowCreateLobby(true);
               }}
               onApply={handleJoinLobby}
+              onOpenChat={openGroupChat}
             />
           }
         />
@@ -600,7 +751,7 @@ export default function App() {
               pendingIds={pendingLobbyIds}
               acceptedIds={acceptedLobbyIds}
               onJoin={handleJoinLobby}
-              onReport={() => setShowReportModal(true)}
+              onReport={handleOpenReport}
               onGroupChat={openGroupChat}
               onMsgHost={handleMessageHost}
               onCompleteLobby={handleCompleteLobby}
@@ -622,6 +773,9 @@ export default function App() {
                 lobbies={lobbiesList}
                 applicants={applicantsList}
                 acceptedLobbyIds={acceptedLobbyIds}
+                pendingLobbyIds={pendingLobbyIds}
+                currentUser={currentUser}
+                onCreateLobby={() => setShowCreateLobby(true)}
                 onReviewApplicants={(id, title) => {
                   setActiveApplicantsLobbyId(id);
                   setActiveApplicantsLobbyTitle(title);
@@ -655,7 +809,7 @@ export default function App() {
           }
         />
 
-        {/* Profile Routes — Own Profile and Viewing Others */}
+        {/* Profile Routes */}
         <Route
           path="/profile"
           element={
@@ -667,15 +821,9 @@ export default function App() {
               onRateUser={handleRateUser}
               onOpenDM={openDMThread}
               onSelectLobby={(lobby) => navigate(`/lobby/${lobby.id}`)}
-              onReport={() => setShowReportModal(true)}
+              onReport={(target) => handleOpenReport(target || { type: "user", id: currentUser.handle, name: currentUser.name })}
               onAuth={() => openAuth("signin")}
-              onLogout={() => {
-                setIsAuthed(false);
-                setAcceptedLobbyIds(new Set());
-                setPendingLobbyIds(new Set());
-                navigate("/");
-                showToast("You've been signed out.");
-              }}
+              onLogout={handleLogout}
               toast={showToast}
               mobile={isMobile}
             />
@@ -693,15 +841,9 @@ export default function App() {
               onRateUser={handleRateUser}
               onOpenDM={openDMThread}
               onSelectLobby={(lobby) => navigate(`/lobby/${lobby.id}`)}
-              onReport={() => setShowReportModal(true)}
+              onReport={(target) => handleOpenReport(target)}
               onAuth={() => openAuth("signin")}
-              onLogout={() => {
-                setIsAuthed(false);
-                setAcceptedLobbyIds(new Set());
-                setPendingLobbyIds(new Set());
-                navigate("/");
-                showToast("You've been signed out.");
-              }}
+              onLogout={handleLogout}
               toast={showToast}
               mobile={isMobile}
             />
@@ -719,15 +861,9 @@ export default function App() {
               onRateUser={handleRateUser}
               onOpenDM={openDMThread}
               onSelectLobby={(lobby) => navigate(`/lobby/${lobby.id}`)}
-              onReport={() => setShowReportModal(true)}
+              onReport={(target) => handleOpenReport(target)}
               onAuth={() => openAuth("signin")}
-              onLogout={() => {
-                setIsAuthed(false);
-                setAcceptedLobbyIds(new Set());
-                setPendingLobbyIds(new Set());
-                navigate("/");
-                showToast("You've been signed out.");
-              }}
+              onLogout={handleLogout}
               toast={showToast}
               mobile={isMobile}
             />
@@ -759,14 +895,29 @@ export default function App() {
                   ← Back to Main App
                 </Link>
               </div>
-              <AdminPage toast={showToast} />
+              <AdminPage
+                toast={showToast}
+                reports={reportsList}
+                onDismissReport={handleDismissReport}
+                onDeleteLobby={handleAdminDeleteLobby}
+                onBanUser={handleAdminBanUser}
+                tags={platformTags}
+                onAddTag={handleAddPlatformTag}
+                onRemoveTag={handleRemovePlatformTag}
+              />
             </div>
           }
         />
       </Routes>
 
       {/* ── Mobile Bottom Navigation Bar (Hidden on Admin screen) ── */}
-      {isMobile && !isAdminRoute && <BottomNav dmUnread={unreadDMCount} />}
+      {isMobile && !isAdminRoute && (
+        <BottomNav
+          dmUnread={unreadDMCount}
+          isAuthed={isAuthed}
+          onAuth={() => openAuth("signin")}
+        />
+      )}
 
       {/* ── Notification Dropdown Backdrop & Panel ── */}
       {showNotifsDropdown && (
@@ -788,6 +939,7 @@ export default function App() {
             }}
             onMarkRead={markNotifRead}
             onMarkAll={() => {
+              api.markAllNotificationsRead();
               setNotifsList((prev) =>
                 prev.map((n) => ({ ...n, unread: false })),
               );
@@ -809,21 +961,32 @@ export default function App() {
 
       {showCreateLobby && (
         <CreateLobbyModal
+          availableTags={platformTags}
           onClose={() => setShowCreateLobby(false)}
           onCreate={(data) => {
-            handleCreateLobby(typeof data === "string" ? data : data.title);
+            handleCreateLobby(data);
             setShowCreateLobby(false);
           }}
         />
       )}
 
+      {applyingLobby && (
+        <ApplyModal
+          lobby={applyingLobby}
+          currentUser={currentUser}
+          onClose={() => setApplyingLobby(null)}
+          onSubmit={handleConfirmApply}
+        />
+      )}
+
       {showReportModal && (
         <ReportModal
-          onClose={() => setShowReportModal(false)}
-          onSubmit={() => {
+          target={reportTarget}
+          onClose={() => {
             setShowReportModal(false);
-            showToast("Report submitted — thank you!");
+            setReportTarget(null);
           }}
+          onSubmit={handleSubmitReport}
         />
       )}
 
@@ -872,7 +1035,7 @@ export default function App() {
             const newMsg = {
               id: String(Date.now()),
               sender: "You",
-              avatar: "AN",
+              avatar: currentUser.avatar || "AN",
               text,
               time: new Date().toLocaleTimeString([], {
                 hour: "2-digit",
@@ -886,6 +1049,7 @@ export default function App() {
                   : l,
               ),
             );
+            api.sendLobbyMessage(lobbyId, text, "You", currentUser.avatar || "AN");
           }}
         />
       )}
@@ -898,7 +1062,7 @@ export default function App() {
             const newMsg = {
               id: String(Date.now()),
               sender: "You",
-              avatar: "AN",
+              avatar: currentUser.avatar || "AN",
               text,
               time: new Date().toLocaleTimeString([], {
                 hour: "2-digit",
@@ -912,11 +1076,12 @@ export default function App() {
                       ...t,
                       lastMessage: text,
                       lastTime: "Just now",
-                      messages: [...t.messages, newMsg],
+                      messages: [...(t.messages || []), newMsg],
                     }
                   : t,
               ),
             );
+            api.sendDMMessage(threadId, text, "You", currentUser.avatar || "AN");
           }}
           onBack={() => {
             setActiveDMThreadId("");
@@ -937,9 +1102,6 @@ export default function App() {
           toast={showToast}
         />
       )}
-
-      {/* ── Bottom Toast Notification ── */}
-      {toastMsg && <Toast msg={toastMsg} onDone={() => setToastMsg("")} />}
     </div>
   );
 }

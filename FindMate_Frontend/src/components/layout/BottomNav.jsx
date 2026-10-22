@@ -1,17 +1,25 @@
 // BottomNav using React Router Link components
+// Responsive mobile bottom bar with unread counters and auth protection
 
 import { Link, useLocation } from 'react-router-dom'
 
 const tabs = [
-  { label: 'Explore', to: '/feed', icon: '🔍' },
-  { label: 'Activities', to: '/activities', icon: '📋' },
-  { label: 'Messages', to: '/messages', icon: '💬' },
-  { label: 'Profile', to: '/profile', icon: '👤' },
+  { label: 'Explore', to: '/feed', icon: '🔍', requiresAuth: false },
+  { label: 'Activities', to: '/activities', icon: '📋', requiresAuth: true },
+  { label: 'Messages', to: '/messages', icon: '💬', requiresAuth: true },
+  { label: 'Profile', to: '/profile', icon: '👤', requiresAuth: false },
 ]
 
-export default function BottomNav({ dmUnread }) {
+export default function BottomNav({ dmUnread, isAuthed = false, onAuth }) {
   const location = useLocation()
   const currentPath = location.pathname
+
+  const handleTabClick = (e, tab) => {
+    if (tab.requiresAuth && !isAuthed) {
+      e.preventDefault()
+      if (onAuth) onAuth('signin')
+    }
+  }
 
   return (
     <nav
@@ -28,12 +36,14 @@ export default function BottomNav({ dmUnread }) {
         backdropFilter: 'blur(10px)',
       }}
     >
-      {tabs.map(tab => {
-        const isActive = currentPath === tab.to || (tab.to === '/feed' && currentPath === '/')
+      {tabs.map((tab) => {
+        const isActive =
+          currentPath === tab.to || (tab.to === '/feed' && currentPath === '/')
         return (
           <Link
             key={tab.to}
             to={tab.to}
+            onClick={(e) => handleTabClick(e, tab)}
             style={{
               flex: 1,
               display: 'flex',
@@ -48,7 +58,13 @@ export default function BottomNav({ dmUnread }) {
             }}
           >
             <span style={{ fontSize: 20 }}>{tab.icon}</span>
-            <span style={{ fontSize: 11, fontWeight: isActive ? 800 : 500, fontFamily: 'var(--font-inter)' }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: isActive ? 800 : 500,
+                fontFamily: 'var(--font-inter)',
+              }}
+            >
               {tab.label}
             </span>
 

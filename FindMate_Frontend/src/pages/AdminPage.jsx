@@ -1,25 +1,42 @@
+// AdminPage — Platform moderation dashboard for reviewing reports and managing tags
+// Matches Sequence Diagram 5 and integrates with centralized App state
+
 import { useState } from "react";
 import Button from "../components/ui/Button.jsx";
 
-export default function AdminPage({ toast }) {
+const DEFAULT_TAGS = [
+  "#gaming",
+  "#coding",
+  "#sports",
+  "#study",
+  "#fitness",
+  "#music",
+  "#art",
+  "#valorant",
+];
+
+export default function AdminPage({
+  toast,
+  reports: externalReports,
+  onDismissReport: externalDismiss,
+  onDeleteLobby: externalDeleteLobby,
+  onBanUser: externalBanUser,
+  tags: externalTags,
+  onAddTag: externalAddTag,
+  onRemoveTag: externalRemoveTag,
+}) {
   const showToast = typeof toast === "function" ? toast : (msg) => console.log(msg);
 
-  const [tags, setTags] = useState([
-    "#gaming",
-    "#coding",
-    "#sports",
-    "#study",
-    "#fitness",
-    "#music",
-    "#art",
-    "#valorant",
-  ]);
+  const [localTags, setLocalTags] = useState(DEFAULT_TAGS);
+  const tags = externalTags || localTags;
+
   const [newTag, setNewTag] = useState("");
 
-  const [reports, setReports] = useState([
+  const [localReports, setLocalReports] = useState([
     {
       id: 1,
       type: "lobby",
+      targetId: "5",
       name: "CS Study Session",
       reporter: "Zara Kim",
       reason: "Spam",
@@ -28,6 +45,7 @@ export default function AdminPage({ toast }) {
     {
       id: 2,
       type: "user",
+      targetId: "u_spambot",
       name: "@spambot99",
       reporter: "Abu Nasim",
       reason: "Inappropriate Behavior",
@@ -36,6 +54,7 @@ export default function AdminPage({ toast }) {
     {
       id: 3,
       type: "lobby",
+      targetId: "fake_robux",
       name: "Free Robux Grind",
       reporter: "Marcus J.",
       reason: "Fake Lobby",
@@ -43,32 +62,56 @@ export default function AdminPage({ toast }) {
     },
   ]);
 
+  const reports = externalReports || localReports;
+
   const handleAddTag = () => {
     if (!newTag.trim()) return;
     const formatted = newTag.startsWith("#") ? newTag.trim() : `#${newTag.trim()}`;
-    setTags((prev) => [...prev, formatted]);
+    if (externalAddTag) {
+      externalAddTag(formatted);
+    } else {
+      setLocalTags((prev) => [...prev, formatted]);
+    }
     setNewTag("");
     showToast(`Tag ${formatted} added`, "success");
   };
 
   const handleRemoveTag = (tag) => {
-    setTags((prev) => prev.filter((t) => t !== tag));
+    if (externalRemoveTag) {
+      externalRemoveTag(tag);
+    } else {
+      setLocalTags((prev) => prev.filter((t) => t !== tag));
+    }
     showToast(`Tag ${tag} removed`, "info");
   };
 
   const handleDismissReport = (id) => {
-    setReports((prev) => prev.filter((r) => r.id !== id));
+    if (externalDismiss) {
+      externalDismiss(id);
+    } else {
+      setLocalReports((prev) => prev.filter((r) => r.id !== id));
+    }
     showToast("Report dismissed", "info");
   };
 
-  const handleDeleteReportedLobby = (id) => {
-    setReports((prev) => prev.filter((r) => r.id !== id));
-    showToast("Lobby deleted and removed", "success");
+  const handleDeleteReportedLobby = (report) => {
+    if (externalDeleteLobby) {
+      externalDeleteLobby(report.targetId || report.id, report.name);
+      if (externalDismiss) externalDismiss(report.id);
+    } else {
+      setLocalReports((prev) => prev.filter((r) => r.id !== report.id));
+    }
+    showToast(`Lobby "${report.name}" deleted and removed from feed`, "success");
   };
 
-  const handleBanUser = (id) => {
-    setReports((prev) => prev.filter((r) => r.id !== id));
-    showToast("User banned from FindMate", "error");
+  const handleBanUser = (report) => {
+    if (externalBanUser) {
+      externalBanUser(report.targetId || report.name, report.name);
+      if (externalDismiss) externalDismiss(report.id);
+    } else {
+      setLocalReports((prev) => prev.filter((r) => r.id !== report.id));
+    }
+    showToast(`User ${report.name} banned from FindMate`, "error");
   };
 
   return (
@@ -103,7 +146,7 @@ export default function AdminPage({ toast }) {
           </span>
         </div>
         <p style={{ margin: 0, fontSize: 14, color: "var(--text-muted)" }}>
-          Platform moderation, tag management, and system overview
+          Platform moderation, tag management, and community oversight
         </p>
       </div>
 
@@ -128,7 +171,7 @@ export default function AdminPage({ toast }) {
             Platform Tags
           </h2>
           <p style={{ margin: "0 0 18px", fontSize: 13, color: "var(--text-muted)" }}>
-            Add or remove official interest tags across the platform
+            Curate official interest tags available across lobbies and profiles
           </p>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
@@ -218,7 +261,7 @@ export default function AdminPage({ toast }) {
             </span>
           </div>
           <p style={{ margin: "0 0 18px", fontSize: 13, color: "var(--text-muted)" }}>
-            Review user reports for spam or safety issues
+            Review user reports for spam, harassment, or fake lobbies
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -247,24 +290,29 @@ export default function AdminPage({ toast }) {
               >
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)" }}>
-                    {rep.type === "lobby" ? "🏷️ " : "👤 "} {rep.name}
+                    {rep.type === "lobby" || rep.targetType === "lobby" ? "🏷️ " : "👤 "} {rep.name || rep.targetName}
                   </span>
                   <span style={{ fontSize: 11, color: "var(--text-faint)" }}>{rep.time}</span>
                 </div>
-                <div style={{ fontSize: 12, color: "#E11D48", fontWeight: 700, marginBottom: 10 }}>
-                  Reason: {rep.reason} (reported by {rep.reporter})
+                <div style={{ fontSize: 12, color: "#E11D48", fontWeight: 700, marginBottom: 4 }}>
+                  Reason: {rep.reason} (reported by {rep.reporter || "Anonymous"})
                 </div>
+                {rep.details && (
+                  <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10, fontStyle: "italic" }}>
+                    "{rep.details}"
+                  </div>
+                )}
 
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   <Button v="line" sm onClick={() => handleDismissReport(rep.id)}>
                     Dismiss
                   </Button>
-                  {rep.type === "lobby" ? (
-                    <Button v="bad" sm onClick={() => handleDeleteReportedLobby(rep.id)}>
+                  {rep.type === "lobby" || rep.targetType === "lobby" ? (
+                    <Button v="bad" sm onClick={() => handleDeleteReportedLobby(rep)}>
                       Delete Lobby
                     </Button>
                   ) : (
-                    <Button v="bad" sm onClick={() => handleBanUser(rep.id)}>
+                    <Button v="bad" sm onClick={() => handleBanUser(rep)}>
                       Ban User
                     </Button>
                   )}

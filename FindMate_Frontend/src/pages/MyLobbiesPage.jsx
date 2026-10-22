@@ -1,5 +1,5 @@
 // MyLobbiesPage — Activities management matching Figma design exactly
-// 3 Tabs: Created Lobbies (with status switcher & pending review), Joined Teams, Pending Requests
+// 3 Dynamic Tabs: Created Lobbies (with status switcher & pending review), Joined Teams, Pending Requests
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -11,39 +11,66 @@ import StatusBadge from '../components/ui/StatusBadge.jsx'
 export default function MyLobbiesPage({
   lobbies = [],
   applicants = [],
-  acceptedLobbyIds = new Set(['2']),
+  acceptedLobbyIds = new Set(),
+  pendingLobbyIds = new Set(),
+  currentUser = { name: 'Abu Nasim', handle: 'Error-nasim' },
   onReviewApplicants,
   onOpenChat,
   onStatusChange,
   onCompleteLobby,
+  onCreateLobby,
 }) {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('created') // 'created' | 'joined' | 'pending'
 
-  const pendingCount = applicants.filter(a => a.status === 'pending').length
-  const createdLobbies = lobbies.slice(0, 3)
-  const joinedLobbies = lobbies.filter(l => acceptedLobbyIds.has(l.id))
-  const pendingLobbies = lobbies.slice(3, 6)
+  // 1. Created Lobbies: Hosted by current user
+  const createdLobbies = lobbies.filter(
+    (l) => l.host === currentUser.name || l.handle === currentUser.handle
+  )
+
+  // 2. Joined Teams: Accepted lobbies excluding user's own hosted lobbies
+  const joinedLobbies = lobbies.filter(
+    (l) => acceptedLobbyIds.has(l.id) && l.host !== currentUser.name
+  )
+
+  // 3. Pending Requests: Lobbies the user applied to and awaiting host response
+  const pendingLobbies = lobbies.filter((l) => pendingLobbyIds.has(l.id))
+
+  // Badge metrics
+  const createdLobbyIds = new Set(createdLobbies.map((l) => l.id))
+  const incomingReviewCount = applicants.filter(
+    (a) => createdLobbyIds.has(a.lobbyId) && a.status === 'pending'
+  ).length
+  const outgoingPendingCount = pendingLobbies.length
+
+  const tabs = [
+    { id: 'created', label: 'Created Lobbies', badge: incomingReviewCount, badgeColor: '#D97706', badgeBg: 'rgba(245,158,11,0.15)' },
+    { id: 'joined', label: 'Joined Teams', badge: joinedLobbies.length, badgeColor: '#059669', badgeBg: 'rgba(16,185,129,0.15)' },
+    { id: 'pending', label: 'Pending Requests', badge: outgoingPendingCount, badgeColor: '#6366F1', badgeBg: 'var(--primary-light)' },
+  ]
 
   return (
     <div style={{ maxWidth: 940, margin: '0 auto', padding: '28px 20px 80px' }}>
       {/* ── Header ── */}
-      <div style={{ marginBottom: 26 }}>
-        <h1 style={{ margin: '0 0 6px', fontSize: 26, fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-          My Activities
-        </h1>
-        <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)' }}>
-          Manage your lobbies and team memberships
-        </p>
+      <div style={{ marginBottom: 26, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14 }}>
+        <div>
+          <h1 style={{ margin: '0 0 6px', fontSize: 26, fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            My Activities
+          </h1>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)' }}>
+            Manage your lobbies and team memberships
+          </p>
+        </div>
+        {onCreateLobby && (
+          <Button v="primary" sm onClick={onCreateLobby}>
+            + Create New Lobby
+          </Button>
+        )}
       </div>
 
       {/* ── Sub Navigation Tabs ── */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', marginBottom: 28, gap: 8 }}>
-        {[
-          { id: 'created', label: 'Created Lobbies' },
-          { id: 'joined', label: 'Joined Teams' },
-          { id: 'pending', label: 'Pending Requests', badge: pendingCount },
-        ].map(tab => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -69,8 +96,8 @@ export default function MyLobbiesPage({
               <span
                 style={{
                   padding: '2px 8px',
-                  background: 'rgba(245,158,11,0.15)',
-                  color: '#D97706',
+                  background: tab.badgeBg,
+                  color: tab.badgeColor,
                   borderRadius: 20,
                   fontSize: 11,
                   fontWeight: 700,
@@ -86,124 +113,152 @@ export default function MyLobbiesPage({
       {/* ── TAB 1: CREATED LOBBIES ── */}
       {activeTab === 'created' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {createdLobbies.map(lobby => {
-            const pendingApplicants = applicants.filter(
-              a => a.lobbyId === lobby.id && a.status === 'pending'
-            )
-            const acceptedApplicants = applicants.filter(
-              a => a.lobbyId === lobby.id && a.status === 'accepted'
-            )
+          {createdLobbies.length === 0 ? (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '60px 20px',
+                background: 'var(--bg-card)',
+                borderRadius: 16,
+                border: '1px dashed var(--border-strong)',
+              }}
+            >
+              <div style={{ fontSize: 36, marginBottom: 12 }}>👑</div>
+              <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 800, color: 'var(--text-primary)' }}>
+                You haven't posted any lobbies yet
+              </h3>
+              <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--text-muted)' }}>
+                Start a team-up session for gaming, coding, sports, or study in seconds.
+              </p>
+              {onCreateLobby && (
+                <Button v="primary" onClick={onCreateLobby}>
+                  + Create Your First Lobby
+                </Button>
+              )}
+            </div>
+          ) : (
+            createdLobbies.map((lobby) => {
+              const pendingApplicants = applicants.filter(
+                (a) => a.lobbyId === lobby.id && a.status === 'pending'
+              )
+              const acceptedApplicants = applicants.filter(
+                (a) => a.lobbyId === lobby.id && a.status === 'accepted'
+              )
 
-            return (
-              <div
-                key={lobby.id}
-                style={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 16,
-                  padding: 22,
-                  display: 'flex',
-                  gap: 18,
-                  alignItems: 'flex-start',
-                  boxShadow: 'var(--card-shadow)',
-                }}
-              >
-                <Avatar initials={lobby.avatar} size={46} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>
-                        {lobby.title}
+              return (
+                <div
+                  key={lobby.id}
+                  style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 16,
+                    padding: 22,
+                    display: 'flex',
+                    gap: 18,
+                    alignItems: 'flex-start',
+                    boxShadow: 'var(--card-shadow)',
+                  }}
+                >
+                  <Avatar initials={lobby.avatar || 'AN'} size={46} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                      <div>
+                        <div
+                          onClick={() => navigate(`/lobby/${lobby.id}`)}
+                          style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4, cursor: 'pointer' }}
+                        >
+                          {lobby.title}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 10 }}>
+                          Posted {lobby.time} · {lobby.joined}/{lobby.max} members · {lobby.location}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {lobby.tags?.map((t) => (
+                            <Tag key={t} t={t} small />
+                          ))}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 10 }}>
-                        Posted {lobby.time}
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {lobby.tags?.map(t => (
-                          <Tag key={t} t={t} small />
-                        ))}
+
+                      {/* Status switcher */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                        <StatusBadge status={lobby.status} />
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          {['Open', 'Full', 'Completed', 'Closed'].map((st) => (
+                            <button
+                              key={st}
+                              onClick={() => {
+                                if (st === 'Completed' && onCompleteLobby) {
+                                  onCompleteLobby(lobby.id)
+                                } else {
+                                  onStatusChange(lobby.id, st)
+                                }
+                              }}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                background: lobby.status === st ? 'var(--primary-light)' : 'var(--bg-surface)',
+                                border: `1px solid ${lobby.status === st ? 'var(--primary-border)' : 'var(--border-subtle)'}`,
+                                color: lobby.status === st ? 'var(--primary-text)' : 'var(--text-muted)',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontFamily: 'var(--font-inter)',
+                              }}
+                            >
+                              {st}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Status switcher */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                      <StatusBadge status={lobby.status} />
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                        {['Open', 'Full', 'Completed', 'Closed'].map(st => (
-                          <button
-                            key={st}
-                            onClick={() => {
-                              if (st === 'Completed' && onCompleteLobby) {
-                                onCompleteLobby(lobby.id);
-                              } else {
-                                onStatusChange(lobby.id, st);
-                              }
-                            }}
+                    {/* Pending / Review row */}
+                    <div style={{ marginTop: 18, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {pendingApplicants.length > 0 ? (
+                        <>
+                          <div
                             style={{
-                              padding: '4px 10px',
-                              borderRadius: 6,
-                              background: lobby.status === st ? 'var(--primary-light)' : 'var(--bg-surface)',
-                              border: `1px solid ${lobby.status === st ? 'var(--primary-border)' : 'var(--border-subtle)'}`,
-                              color: lobby.status === st ? 'var(--primary-text)' : 'var(--text-muted)',
-                              fontSize: 11,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '4px 12px',
+                              background: 'rgba(245,158,11,0.1)',
+                              border: '1px solid rgba(245,158,11,0.25)',
+                              borderRadius: 20,
+                              fontSize: 12,
+                              color: '#D97706',
                               fontWeight: 700,
-                              cursor: 'pointer',
-                              fontFamily: 'var(--font-inter)',
                             }}
                           >
-                            {st}
-                          </button>
-                        ))}
-                      </div>
+                            ⏳ {pendingApplicants.length} Pending
+                          </div>
+                          <Button v="ghost" sm onClick={() => onReviewApplicants(lobby.id, lobby.title)}>
+                            Review Applicants ({pendingApplicants.length}) →
+                          </Button>
+                        </>
+                      ) : (
+                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                          No pending applicants · {acceptedApplicants.length} accepted
+                        </div>
+                      )}
+                      <Button v="line" sm onClick={() => onOpenChat(lobby.id)}>
+                        💬 Group Chat
+                      </Button>
+                      <Button
+                        v={lobby.status === 'Completed' ? 'ghost' : 'line'}
+                        sm
+                        onClick={() => {
+                          if (onCompleteLobby) onCompleteLobby(lobby.id)
+                        }}
+                      >
+                        {lobby.status === 'Completed' ? '⭐ Rate Teammates' : '🏆 Complete Session'}
+                      </Button>
                     </div>
                   </div>
-
-                  {/* Pending / Review row */}
-                  <div style={{ marginTop: 18, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {pendingApplicants.length > 0 ? (
-                      <>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            padding: '4px 12px',
-                            background: 'rgba(245,158,11,0.1)',
-                            border: '1px solid rgba(245,158,11,0.25)',
-                            borderRadius: 20,
-                            fontSize: 12,
-                            color: '#D97706',
-                            fontWeight: 700,
-                          }}
-                        >
-                          ⏳ {pendingApplicants.length} Pending
-                        </div>
-                        <Button v="ghost" sm onClick={() => onReviewApplicants(lobby.id, lobby.title)}>
-                          Review Applicants →
-                        </Button>
-                      </>
-                    ) : (
-                      <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                        No pending applicants · {acceptedApplicants.length} accepted
-                      </div>
-                    )}
-                    <Button v="line" sm onClick={() => onOpenChat(lobby.id)}>
-                      💬 Chat
-                    </Button>
-                    <Button
-                      v={lobby.status === 'Completed' ? 'ghost' : 'primary'}
-                      sm
-                      onClick={() => {
-                        if (onCompleteLobby) onCompleteLobby(lobby.id);
-                      }}
-                    >
-                      {lobby.status === 'Completed' ? '⭐ Rate Teammates' : '🏆 Complete & Rate'}
-                    </Button>
-                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })
+          )}
         </div>
       )}
 
@@ -211,11 +266,28 @@ export default function MyLobbiesPage({
       {activeTab === 'joined' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {joinedLobbies.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', fontSize: 14 }}>
-              You haven't joined any teams yet. Apply to a lobby to get started!
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '60px 20px',
+                background: 'var(--bg-card)',
+                borderRadius: 16,
+                border: '1px dashed var(--border-strong)',
+              }}
+            >
+              <div style={{ fontSize: 36, marginBottom: 12 }}>🤝</div>
+              <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 800, color: 'var(--text-primary)' }}>
+                You haven't joined any teams yet
+              </h3>
+              <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--text-muted)' }}>
+                Explore active lobbies and request to join a squad.
+              </p>
+              <Button v="primary" onClick={() => navigate('/feed')}>
+                Explore Active Lobbies →
+              </Button>
             </div>
           ) : (
-            joinedLobbies.map(lobby => (
+            joinedLobbies.map((lobby) => (
               <div
                 key={lobby.id}
                 style={{
@@ -237,12 +309,22 @@ export default function MyLobbiesPage({
                   <Avatar initials={lobby.avatar} size={46} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>
+                  <div
+                    onClick={() => navigate(`/lobby/${lobby.id}`)}
+                    style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4, cursor: 'pointer' }}
+                  >
                     {lobby.title}
                   </div>
                   <div
                     onClick={() => navigate(`/profile/${lobby.handle}`)}
-                    style={{ fontSize: 12, color: 'var(--text-faint)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    style={{
+                      fontSize: 12,
+                      color: 'var(--text-faint)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
                   >
                     <span>Hosted by <strong style={{ color: 'var(--text-primary)' }}>{lobby.host}</strong></span>
                     <span style={{ color: 'var(--primary-text)', fontWeight: 700 }}>Profile ↗</span>
@@ -257,7 +339,7 @@ export default function MyLobbiesPage({
                   v="line"
                   sm
                   onClick={() => {
-                    if (onCompleteLobby) onCompleteLobby(lobby.id);
+                    if (onCompleteLobby) onCompleteLobby(lobby.id)
                   }}
                 >
                   ⭐ Rate Teammates
@@ -271,46 +353,75 @@ export default function MyLobbiesPage({
       {/* ── TAB 3: PENDING REQUESTS ── */}
       {activeTab === 'pending' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {pendingLobbies.map(lobby => (
+          {pendingLobbies.length === 0 ? (
             <div
-              key={lobby.id}
               style={{
+                textAlign: 'center',
+                padding: '60px 20px',
                 background: 'var(--bg-card)',
-                border: '1px solid rgba(245,158,11,0.25)',
                 borderRadius: 16,
-                padding: 22,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 16,
-                boxShadow: 'var(--card-shadow)',
+                border: '1px dashed var(--border-strong)',
               }}
             >
-              <Avatar initials={lobby.avatar} size={46} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>
-                  {lobby.title}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
-                  Applied {lobby.time}
-                </div>
-              </div>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>⏳</div>
+              <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 800, color: 'var(--text-primary)' }}>
+                No pending requests
+              </h3>
+              <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--text-muted)' }}>
+                When you click "I'm In" on a lobby, your request will appear here while waiting for the host.
+              </p>
+              <Button v="primary" onClick={() => navigate('/feed')}>
+                Find a Lobby to Join →
+              </Button>
+            </div>
+          ) : (
+            pendingLobbies.map((lobby) => (
               <div
+                key={lobby.id}
                 style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid rgba(245,158,11,0.25)',
+                  borderRadius: 16,
+                  padding: 22,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 6,
-                  padding: '6px 14px',
-                  background: 'rgba(245,158,11,0.1)',
-                  borderRadius: 20,
-                  fontSize: 12,
-                  color: '#D97706',
-                  fontWeight: 700,
+                  gap: 16,
+                  boxShadow: 'var(--card-shadow)',
                 }}
               >
-                ⏳ Awaiting Host
+                <Avatar initials={lobby.avatar} size={46} />
+                <div style={{ flex: 1 }}>
+                  <div
+                    onClick={() => navigate(`/lobby/${lobby.id}`)}
+                    style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4, cursor: 'pointer' }}
+                  >
+                    {lobby.title}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+                    Hosted by {lobby.host} · {lobby.time} · {lobby.location}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 14px',
+                    background: 'rgba(245,158,11,0.1)',
+                    borderRadius: 20,
+                    fontSize: 12,
+                    color: '#D97706',
+                    fontWeight: 700,
+                  }}
+                >
+                  ⏳ Awaiting Host Approval
+                </div>
+                <Button v="line" sm onClick={() => navigate(`/lobby/${lobby.id}`)}>
+                  View Lobby →
+                </Button>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
     </div>

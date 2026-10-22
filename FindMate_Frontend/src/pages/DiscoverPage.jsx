@@ -15,6 +15,7 @@ export default function DiscoverPage({
   onCreateLobby,
   onApply,
   appliedLobbies = [],
+  acceptedLobbyIds = new Set(),
   onOpenChat,
   onSelectLobby,
 }) {
@@ -198,6 +199,8 @@ export default function DiscoverPage({
             onSelect={() => onSelectLobby(lobby)}
             onApply={onApply}
             applied={appliedLobbies.includes(lobby.id)}
+            isAccepted={acceptedLobbyIds instanceof Set ? acceptedLobbyIds.has(lobby.id) : (acceptedLobbyIds || []).includes(lobby.id)}
+            onOpenChat={onOpenChat}
             onViewProfile={(h) => navigate(`/profile/${h}`)}
           />
         ))}
@@ -220,7 +223,7 @@ export default function DiscoverPage({
   )
 }
 
-function LobbyCard({ lobby, onSelect, onApply, applied, onViewProfile }) {
+function LobbyCard({ lobby, onSelect, onApply, applied, isAccepted, onOpenChat, onViewProfile }) {
   const [hovered, setHovered] = useState(false)
   const isFull = lobby.joined >= lobby.max
 
@@ -312,7 +315,37 @@ function LobbyCard({ lobby, onSelect, onApply, applied, onViewProfile }) {
 
       {/* Action Button */}
       <div onClick={e => e.stopPropagation()}>
-        {applied ? (
+        {isAccepted ? (
+          <button
+            onClick={() => onOpenChat && onOpenChat(lobby.id)}
+            style={{
+              width: '100%',
+              padding: '11px 16px',
+              borderRadius: 10,
+              background: 'rgba(16,185,129,0.12)',
+              color: '#059669',
+              border: '1px solid rgba(16,185,129,0.3)',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.opacity = '0.85'
+              e.currentTarget.style.transform = 'translateY(-1px)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.opacity = '1'
+              e.currentTarget.style.transform = 'translateY(0)'
+            }}
+          >
+            💬 Joined · Open Chat
+          </button>
+        ) : applied ? (
           <div
             style={{
               display: 'flex',
