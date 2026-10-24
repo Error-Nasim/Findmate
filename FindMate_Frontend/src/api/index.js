@@ -7,6 +7,7 @@ import { lobbies as initialLobbies } from "../data/lobbies.js";
 import { applicants as initialApplicants } from "../data/applicants.js";
 import { dmThreads as initialDMThreads } from "../data/dmThreads.js";
 import { notifications as initialNotifications } from "../data/notifications.js";
+import { initialUsers } from "../data/users.js";
 
 // Axios client ready for Go Gin server
 export const apiClient = axios.create({
@@ -23,6 +24,9 @@ const STORAGE_KEYS = {
   NOTIFS: "findmate_notifications",
   REPORTS: "findmate_reports",
   TAGS: "findmate_platform_tags",
+  USERS: "findmate_users",
+  AUDIT_LOGS: "findmate_audit_logs",
+  ANNOUNCEMENTS: "findmate_announcements",
   PENDING_IDS: "findmate_pending_lobby_ids",
   ACCEPTED_IDS: "findmate_accepted_lobby_ids",
 };
@@ -35,7 +39,9 @@ const initialReports = [
     targetId: "5",
     reporter: "Zara Kim",
     reason: "Spam",
+    details: "Host is not hosting a study session, just promoting external Discord crypto server.",
     time: "5 min ago",
+    status: "pending",
   },
   {
     id: 2,
@@ -44,7 +50,9 @@ const initialReports = [
     targetId: "u_fake",
     reporter: "Abu Nasim",
     reason: "Inappropriate Behavior",
+    details: "User is sending repeated copy-paste spam messages in DM threads.",
     time: "22 min ago",
+    status: "pending",
   },
   {
     id: 3,
@@ -53,7 +61,86 @@ const initialReports = [
     targetId: "fake_robux",
     reporter: "Marcus J.",
     reason: "Fake Lobby",
+    details: "Phishing link and malicious Discord invites in lobby description.",
     time: "1 hr ago",
+    status: "pending",
+  },
+  {
+    id: 4,
+    type: "user",
+    name: "@ragequitter",
+    targetId: "u_rage",
+    reporter: "Priya Rao",
+    reason: "Toxic Behavior",
+    details: "Insulted teammates in group chat before quitting mid-match.",
+    time: "Yesterday",
+    status: "resolved",
+    actionTaken: "Banned User",
+    adminNote: "Confirmed toxic chat logs. 7-day ban applied.",
+    resolvedBy: "Abu Nasim",
+    resolvedAt: "Yesterday",
+  },
+  {
+    id: 5,
+    type: "lobby",
+    name: "Duplicate Valorant Comp",
+    targetId: "dup_val",
+    reporter: "Eli Torres",
+    reason: "Duplicate Posting",
+    details: "User created two identical lobbies within 1 minute.",
+    time: "2 days ago",
+    status: "dismissed",
+    actionTaken: "Dismissed",
+    adminNote: "Host cancelled the second lobby manually. No infraction.",
+    resolvedBy: "Rimon Chandra Bhowmik",
+    resolvedAt: "2 days ago",
+  },
+];
+
+const initialAuditLogs = [
+  {
+    id: "log_1",
+    admin: "Abu Nasim (@Error-nasim)",
+    action: "BAN_USER",
+    target: "@ragequitter",
+    details: "Banned for toxic chat behavior in Elden Ring Co-op lobby",
+    timestamp: "Yesterday, 4:15 PM",
+  },
+  {
+    id: "log_2",
+    admin: "Abu Nasim (@Error-nasim)",
+    action: "DELETE_LOBBY",
+    target: "Lobby #8 (Free Robux Grind)",
+    details: "Deleted due to verified phishing link",
+    timestamp: "2 days ago, 11:30 AM",
+  },
+  {
+    id: "log_3",
+    admin: "Rimon Chandra Bhowmik (@rimon21)",
+    action: "ADD_TAG",
+    target: "#hackathon",
+    details: "Created official taxonomy tag for SBU Hackathon 2026",
+    timestamp: "3 days ago, 2:10 PM",
+  },
+  {
+    id: "log_4",
+    admin: "Abu Nasim (@Error-nasim)",
+    action: "BROADCAST",
+    target: "System Announcement",
+    details: "Broadcasted: 'Welcome to FindMate Spring 2026!'",
+    timestamp: "5 days ago, 9:00 AM",
+  },
+];
+
+const initialAnnouncements = [
+  {
+    id: "ann_1",
+    title: "⚡ Welcome to FindMate Spring 2026!",
+    message: "Find teammates instantly across Gaming, Coding, Sports, and Study lobbies. Have fun and be respectful!",
+    type: "info",
+    icon: "⚡",
+    createdAt: "Today",
+    isActive: true,
   },
 ];
 
@@ -319,11 +406,131 @@ export const api = {
     return Promise.resolve(newReport);
   },
 
-  resolveReport: async (reportId) => {
+  resolveReport: async (reportId, actionData = {}) => {
     const reports = readStorage(STORAGE_KEYS.REPORTS, initialReports);
-    const updated = reports.filter((r) => r.id !== reportId);
+    const updated = reports.map((r) =>
+      r.id === reportId
+        ? {
+            ...r,
+            status: actionData.status || "resolved",
+            actionTaken: actionData.actionTaken || "Resolved",
+            adminNote: actionData.adminNote || "",
+            resolvedBy: actionData.resolvedBy || "Admin",
+            resolvedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          }
+        : r,
+    );
     writeStorage(STORAGE_KEYS.REPORTS, updated);
-    return Promise.resolve({ success: true, reportId });
+    return Promise.resolve({ success: true, reportId, ...actionData });
+  },
+
+  dismissReport: async (reportId, adminNote = "", resolvedBy = "Admin") => {
+    return api.resolveReport(reportId, {
+      status: "dismissed",
+      actionTaken: "Dismissed",
+      adminNote,
+      resolvedBy,
+    });
+  },
+
+  // ── Users Management ──
+  getUsers: async () => {
+    const raw = readStorage(STORAGE_KEYS.USERS, null);
+    if (raw && Array.isArray(raw) && raw.length > 0) {
+      return Promise.resolve([...raw]);
+    }
+    const normalized = initialUsers.map((u) => ({
+      ...u,
+      role: u.handle === "Error-nasim" || u.handle === "rimon21" ? "admin" : (u.role || "member"),
+      isBanned: Boolean(u.isBanned),
+    }));
+    writeStorage(STORAGE_KEYS.USERS, normalized);
+    return Promise.resolve(normalized);
+  },
+
+  updateUser: async (userQuery, updates) => {
+    const users = readStorage(STORAGE_KEYS.USERS, initialUsers);
+    const cleanQuery = String(userQuery).replace(/^@/, "").toLowerCase();
+    const updated = users.map((u) => {
+      if (
+        u.id === userQuery ||
+        u.handle.toLowerCase() === cleanQuery ||
+        u.name.toLowerCase() === cleanQuery
+      ) {
+        return { ...u, ...updates };
+      }
+      return u;
+    });
+    writeStorage(STORAGE_KEYS.USERS, updated);
+    return Promise.resolve(
+      updated.find(
+        (u) =>
+          u.id === userQuery ||
+          u.handle.toLowerCase() === cleanQuery ||
+          u.name.toLowerCase() === cleanQuery
+      )
+    );
+  },
+
+  // ── Lobby Updates ──
+  updateLobby: async (lobbyId, updates) => {
+    const lobbies = readStorage(STORAGE_KEYS.LOBBIES, initialLobbies);
+    const updated = lobbies.map((l) =>
+      l.id === lobbyId ? { ...l, ...updates } : l,
+    );
+    writeStorage(STORAGE_KEYS.LOBBIES, updated);
+    return Promise.resolve(updated.find((l) => l.id === lobbyId));
+  },
+
+  // ── Admin Audit Logs ──
+  getAuditLogs: async () => {
+    const data = readStorage(STORAGE_KEYS.AUDIT_LOGS, initialAuditLogs);
+    return Promise.resolve([...data]);
+  },
+
+  addAuditLog: async (entry) => {
+    const logs = readStorage(STORAGE_KEYS.AUDIT_LOGS, initialAuditLogs);
+    const newEntry = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toLocaleString([], {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      ...entry,
+    };
+    const updated = [newEntry, ...logs];
+    writeStorage(STORAGE_KEYS.AUDIT_LOGS, updated);
+    return Promise.resolve(newEntry);
+  },
+
+  // ── Announcements & Broadcasts ──
+  getAnnouncements: async () => {
+    const data = readStorage(STORAGE_KEYS.ANNOUNCEMENTS, initialAnnouncements);
+    return Promise.resolve([...data]);
+  },
+
+  createAnnouncement: async (data) => {
+    const current = readStorage(STORAGE_KEYS.ANNOUNCEMENTS, initialAnnouncements);
+    const newAnn = {
+      id: `ann_${Date.now()}`,
+      createdAt: "Just now",
+      isActive: true,
+      type: "info",
+      icon: "📢",
+      ...data,
+    };
+    const updated = [newAnn, ...current];
+    writeStorage(STORAGE_KEYS.ANNOUNCEMENTS, updated);
+    return Promise.resolve(newAnn);
+  },
+
+  deleteAnnouncement: async (id) => {
+    const current = readStorage(STORAGE_KEYS.ANNOUNCEMENTS, initialAnnouncements);
+    const updated = current.filter((a) => a.id !== id);
+    writeStorage(STORAGE_KEYS.ANNOUNCEMENTS, updated);
+    return Promise.resolve({ success: true, id });
   },
 
   // ── Platform Tags ──

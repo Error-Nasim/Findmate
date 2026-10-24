@@ -53,6 +53,9 @@ export default function DiscoverPage({
     filtered = [...filtered].sort((a, b) => (b.max - b.joined) - (a.max - a.joined))
   }
 
+  // Admin pinned lobbies float to top
+  filtered = [...filtered].sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))
+
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px 80px' }}>
       {/* ── Top Header Row ── */}
@@ -276,7 +279,27 @@ function LobbyCard({ lobby, onSelect, onApply, applied, isAccepted, onOpenChat, 
             </div>
           </div>
         </div>
-        <StatusBadge status={lobby.status} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {lobby.isPinned && (
+            <span
+              style={{
+                fontSize: 11,
+                padding: '2px 8px',
+                borderRadius: 10,
+                background: 'rgba(99, 102, 241, 0.12)',
+                color: '#6366F1',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+              }}
+              title="Featured by administrator"
+            >
+              📌 Featured
+            </span>
+          )}
+          <StatusBadge status={lobby.status} />
+        </div>
       </div>
 
       {/* Title */}

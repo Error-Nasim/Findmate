@@ -158,6 +158,9 @@ export default function App() {
   const [reportsList, setReportsList] = useState([]);
   const [platformTags, setPlatformTags] = useState([]);
   const [usersList, setUsersList] = useState(initialUsers);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [dismissedAnnouncements, setDismissedAnnouncements] = useState(new Set());
 
   // Sets of lobby IDs
   const [pendingLobbyIds, setPendingLobbyIds] = useState(new Set());
@@ -171,6 +174,9 @@ export default function App() {
     api.getNotifications().then(setNotifsList);
     api.getReports().then(setReportsList);
     api.getTags().then(setPlatformTags);
+    api.getUsers().then(setUsersList);
+    api.getAuditLogs().then(setAuditLogs);
+    api.getAnnouncements().then(setAnnouncements);
     api.getPendingLobbyIds().then(setPendingLobbyIds);
     api.getAcceptedLobbyIds().then((ids) => {
       if (ids && ids.size > 0) setAcceptedLobbyIds(ids);
@@ -629,40 +635,199 @@ export default function App() {
   };
 
   const handleDismissReport = (id) => {
-    setReportsList((prev) => prev.filter((r) => r.id !== id));
-    api.resolveReport(id);
+    handleResolveReport(id, {
+      status: "dismissed",
+      actionTaken: "Dismissed without penalty",
+      adminNote: "Report reviewed and dismissed.",
+    });
   };
 
-  const handleAdminDeleteLobby = (lobbyIdOrTarget, name) => {
+  const handleResolveReport = (reportId, actionData = {}) => {
+    api.resolveReport(reportId, actionData);
+    setReportsList((prev) =>
+      prev.map((r) =>
+        r.id === reportId
+          ? {
+              ...r,
+              status: actionData.status || "resolved",
+              actionTaken: actionData.actionTaken || "Resolved",
+              adminNote: actionData.adminNote || "",
+              resolvedBy: currentUser.name,
+              resolvedAt: "Just now",
+            }
+          : r,
+      ),
+    );
+    const log = {
+      admin: `${currentUser.name} (@${currentUser.handle})`,
+      action: actionData.status === "dismissed" ? "DISMISS_REPORT" : "RESOLVE_REPORT",
+      target: `Report #${reportId}`,
+      details: actionData.actionTaken || actionData.adminNote || "Actioned",
+    };
+    api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+    showToast(`Report #${reportId} ${actionData.status === "dismissed" ? "dismissed" : "resolved"}.`);
+  };
+
+  const handleAdminDeleteLobby = (lobbyIdOrTarget, name, reason = "Deleted by administrator") => {
     setLobbiesList((prev) =>
       prev.filter(
         (l) => l.id !== lobbyIdOrTarget && l.title !== name && l.title !== lobbyIdOrTarget,
       ),
     );
     api.deleteLobby(lobbyIdOrTarget);
+    const log = {
+      admin: `${currentUser.name} (@${currentUser.handle})`,
+      action: "DELETE_LOBBY",
+      target: name || `Lobby #${lobbyIdOrTarget}`,
+      details: reason,
+    };
+    api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
     showToast(`Lobby "${name || lobbyIdOrTarget}" deleted and removed from feed.`);
   };
 
-  const handleAdminBanUser = (userHandle, name) => {
+  const handleAdminForceCompleteLobby = (lobbyId) => {
+    api.updateLobbyStatus(lobbyId, "Completed");
+    setLobbiesList((prev) =>
+      prev.map((l) => (l.id === lobbyId ? { ...l, status: "Completed" } : l)),
+    );
+    const log = {
+      admin: `${currentUser.name} (@${currentUser.handle})`,
+      action: "FORCE_COMPLETE",
+      target: `Lobby #${lobbyId}`,
+      details: "Admin marked session as Completed",
+    };
+    api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+    showToast(`Lobby #${lobbyId} force-completed.`);
+  };
+
+  const handleAdminTogglePinLobby = (lobbyId) => {
+    const target = lobbiesList.find((l) => l.id === lobbyId);
+    if (!target) return;
+    const nextPinned = !target.isPinned;
+    setLobbiesList((prev) =>
+      prev.map((l) => (l.id === lobbyId ? { ...l, isPinned: nextPinned } : l)),
+    );
+    api.updateLobby(lobbyId, { isPinned: nextPinned });
+    const log = {
+      admin: `${currentUser.name} (@${currentUser.handle})`,
+      action: nextPinned ? "PIN_LOBBY" : "UNPIN_LOBBY",
+      target: target.title,
+      details: nextPinned ? "Pinned to top of live feed" : "Unpinned from top of live feed",
+    };
+    api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+    showToast(nextPinned ? `Pinned "${target.title}" to top of feed` : `Unpinned "${target.title}"`);
+  };
+
+  const handleAdminBanUser = (userHandle, name, reason = "Violating platform guidelines") => {
+    const cleanHandle = String(userHandle).replace(/^@/, "").toLowerCase();
     setUsersList((prev) =>
       prev.map((u) =>
-        u.handle === userHandle || u.name === name
+        u.handle.toLowerCase() === cleanHandle || u.name === name || u.id === userHandle
           ? { ...u, isBanned: true }
           : u,
       ),
     );
+    api.updateUser(userHandle, { isBanned: true });
     setLobbiesList((prev) =>
-      prev.filter((l) => l.handle !== userHandle && l.host !== name),
+      prev.filter((l) => l.handle.toLowerCase() !== cleanHandle && l.host !== name),
     );
-    showToast(`User @${userHandle} banned from FindMate.`);
+    const log = {
+      admin: `${currentUser.name} (@${currentUser.handle})`,
+      action: "BAN_USER",
+      target: `@${cleanHandle}`,
+      details: reason,
+    };
+    api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+    showToast(`User @${cleanHandle} banned from FindMate.`);
+  };
+
+  const handleAdminUnbanUser = (userHandle, name) => {
+    const cleanHandle = String(userHandle).replace(/^@/, "").toLowerCase();
+    setUsersList((prev) =>
+      prev.map((u) =>
+        u.handle.toLowerCase() === cleanHandle || u.name === name || u.id === userHandle
+          ? { ...u, isBanned: false }
+          : u,
+      ),
+    );
+    api.updateUser(userHandle, { isBanned: false });
+    const log = {
+      admin: `${currentUser.name} (@${currentUser.handle})`,
+      action: "UNBAN_USER",
+      target: `@${cleanHandle}`,
+      details: "Account reinstated by admin",
+    };
+    api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+    showToast(`User @${cleanHandle} unbanned.`);
+  };
+
+  const handleAdminUpdateUserRole = (userId, newRole) => {
+    setUsersList((prev) =>
+      prev.map((u) => (u.id === userId || u.handle === userId ? { ...u, role: newRole } : u)),
+    );
+    api.updateUser(userId, { role: newRole });
+    const log = {
+      admin: `${currentUser.name} (@${currentUser.handle})`,
+      action: "UPDATE_ROLE",
+      target: `User ID: ${userId}`,
+      details: `Role updated to ${newRole.toUpperCase()}`,
+    };
+    api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+    showToast(`User role updated to ${newRole}`);
+  };
+
+  const handleAdminUpdateUserReliability = (userId, newScore) => {
+    setUsersList((prev) =>
+      prev.map((u) => (u.id === userId || u.handle === userId ? { ...u, reliability: newScore } : u)),
+    );
+    api.updateUser(userId, { reliability: newScore });
+    showToast(`Reliability score updated to ${newScore}%`);
   };
 
   const handleAddPlatformTag = (tag) => {
-    api.addTag(tag).then(setPlatformTags);
+    api.addTag(tag).then((updatedTags) => {
+      setPlatformTags(updatedTags);
+      const log = {
+        admin: `${currentUser.name} (@${currentUser.handle})`,
+        action: "ADD_TAG",
+        target: tag,
+        details: "Added official platform tag to taxonomy",
+      };
+      api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+    });
   };
 
   const handleRemovePlatformTag = (tag) => {
-    api.removeTag(tag).then(setPlatformTags);
+    api.removeTag(tag).then((updatedTags) => {
+      setPlatformTags(updatedTags);
+      const log = {
+        admin: `${currentUser.name} (@${currentUser.handle})`,
+        action: "REMOVE_TAG",
+        target: tag,
+        details: "Removed tag from official platform taxonomy",
+      };
+      api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+    });
+  };
+
+  const handleCreateAnnouncement = (annData) => {
+    api.createAnnouncement(annData).then((newAnn) => {
+      setAnnouncements((prev) => [newAnn, ...prev]);
+      const log = {
+        admin: `${currentUser.name} (@${currentUser.handle})`,
+        action: "BROADCAST",
+        target: newAnn.title,
+        details: newAnn.message,
+      };
+      api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+    });
+  };
+
+  const handleDeleteAnnouncement = (id) => {
+    api.deleteAnnouncement(id).then(() => {
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+      showToast("Announcement broadcast deleted.");
+    });
   };
 
   const isAdminRoute = location.pathname.startsWith("/admin");
@@ -678,6 +843,64 @@ export default function App() {
         transition: "background-color 0.2s ease, color 0.2s ease",
       }}
     >
+      {/* ── Global Announcement Banner ── */}
+      {announcements
+        .filter((a) => a.isActive && !dismissedAnnouncements.has(a.id))
+        .slice(0, 1)
+        .map((ann) => (
+          <div
+            key={ann.id}
+            style={{
+              background:
+                ann.type === "alert"
+                  ? "linear-gradient(90deg, #E11D48, #BE123C)"
+                  : ann.type === "warning"
+                  ? "linear-gradient(90deg, #D97706, #B45309)"
+                  : ann.type === "success"
+                  ? "linear-gradient(90deg, #059669, #047857)"
+                  : "linear-gradient(90deg, #4F46E5, #6366F1)",
+              color: "#FFFFFF",
+              padding: "9px 20px",
+              fontSize: 13,
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+              position: "sticky",
+              top: 0,
+              zIndex: 1000,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 auto" }}>
+              <span>{ann.icon || "📢"}</span>
+              <span>
+                <strong>{ann.title}</strong> — {ann.message}
+              </span>
+            </div>
+            <button
+              onClick={() => setDismissedAnnouncements((prev) => new Set([...prev, ann.id]))}
+              style={{
+                background: "rgba(255,255,255,0.2)",
+                border: "none",
+                borderRadius: "50%",
+                width: 22,
+                height: 22,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#fff",
+                cursor: "pointer",
+                fontSize: 14,
+                lineHeight: 1,
+              }}
+              title="Dismiss announcement"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+
       {/* ── Top Navbar ── */}
       <Navbar
         isAuthed={isAuthed}
@@ -874,38 +1097,32 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <div>
-              <div
-                style={{
-                  maxWidth: 1200,
-                  margin: "16px auto 0",
-                  padding: "0 20px",
-                }}
-              >
-                <Link
-                  to="/feed"
-                  style={{
-                    color: "var(--primary-text)",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    fontFamily: "var(--font-inter)",
-                  }}
-                >
-                  ← Back to Main App
-                </Link>
-              </div>
-              <AdminPage
-                toast={showToast}
+            <AdminPage
+              toast={showToast}
+                currentUser={currentUser}
+                users={usersList}
+                lobbies={lobbiesList}
                 reports={reportsList}
+                tags={platformTags}
+                auditLogs={auditLogs}
+                announcements={announcements}
+                onResolveReport={handleResolveReport}
                 onDismissReport={handleDismissReport}
                 onDeleteLobby={handleAdminDeleteLobby}
+                onForceCompleteLobby={handleAdminForceCompleteLobby}
+                onTogglePinLobby={handleAdminTogglePinLobby}
                 onBanUser={handleAdminBanUser}
-                tags={platformTags}
+                onUnbanUser={handleAdminUnbanUser}
+                onUpdateUserRole={handleAdminUpdateUserRole}
+                onUpdateUserReliability={handleAdminUpdateUserReliability}
                 onAddTag={handleAddPlatformTag}
                 onRemoveTag={handleRemovePlatformTag}
+                onCreateAnnouncement={handleCreateAnnouncement}
+                onDeleteAnnouncement={handleDeleteAnnouncement}
+                onAddAuditLog={(entry) =>
+                  api.addAuditLog(entry).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]))
+                }
               />
-            </div>
           }
         />
       </Routes>

@@ -133,3 +133,15 @@ textarea::placeholder {
 .progress-bar {
   transition: width 0.4s;
 }
+
+/* ─── Admin Dashboard Sidebar Responsive ─── */
+@media (max-width: 960px) {
+  .admin-layout {
+    flex-direction: column !important;
+  }
+  .admin-sidebar {
+    width: 100% !important;
+    position: static !important;
+    top: auto !important;
+  }
+}

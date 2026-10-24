@@ -59,11 +59,16 @@ Traditional platforms force users through cumbersome event planning tools, rigid
 - **1-on-1 Direct Messaging (DMs)**: Private direct chat threads with unread message badges and instant navigation.
 - **Interactive Notifications**: Real-time alerts for incoming applications, approvals, and message requests.
 
-### 🛡️ 4. Administration & Platform Moderation
+### 🛡️ 4. Full-Featured Admin Control Center (`/admin`)
 
-- **Report Submission**: Community-driven reporting for spam, inappropriate behavior, or fraudulent lobbies.
-- **Admin Dashboard (`/admin`)**: Dedicated moderation queue allowing administrators to review reports, ban offending accounts, or delete infringing lobbies.
-- **Tag Management**: Administrative control to curate official platform interest tags.
+- **Dedicated Sidebar Navigation**: Sleek, sticky left-hand sidebar with live counter badges for pending reports, total users, active lobbies, tags, and broadcast announcements.
+- **Real-Time Executive KPIs**: Live platform metric cards tracking total users (active vs. banned), open vs. completed lobbies, squad completion percentage, and average user reliability score.
+- **Multi-Status Moderation Queue**: Triage community incident reports across `Pending`, `Resolved`, and `Dismissed` tabs with target inspection, evidence previews, and action execution (`Delete Lobby`, `Ban User`, `Dismiss`).
+- **User Management & Access Control**: Searchable user directory with role assignment (`Admin` / `Member`), dynamic star ratings (`calculateUserRating()`), reliability adjustments, and instant ban/unban toggles.
+- **Lobby & Squad Oversight**: Filter and inspect all hosted lobbies, preview live squad chat messages, force-complete abandoned rooms, and pin featured lobbies to the top of the feed (`📌 Featured`).
+- **Tag & Taxonomy Governance**: Curate official hashtags classified by domain with live usage counters (active lobbies and interested users per tag).
+- **System Announcements & Broadcasts**: Real-time global announcement banners with severity themes (`Info`, `Warning`, `Alert`, `Celebration`) displaying at the top of all user sessions.
+- **Administrative Audit Trail**: Immutable, searchable audit log of all admin operations with one-click JSON export.
 
 ### 🎨 5. Modern UI & Theme Synchronization
 
@@ -155,6 +160,7 @@ Findmate/
 │   ├── tailwind.config.js
 │   └── vite.config.js
 ├── FindMate_Backend/                     # Go backend service
+│   ├── README.md                         # Complete Go Gin REST API specifications, structs & router wiring
 │   └── main.go                           # Server bootstrap entry point
 ├── .gitignore
 └── README.md
