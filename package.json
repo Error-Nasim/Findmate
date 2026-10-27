@@ -1,0 +1,25 @@
+{
+  "name": "findmate",
+  "version": "1.0.0",
+  "description": "FindMate — Instant Teammate Matchmaking Platform",
+  "scripts": {
+    "test": "node --test tests/**/*.test.mjs",
+    "test:coverage": "node --experimental-test-coverage --test tests/**/*.test.mjs",
+    "test:unit": "node --test tests/unit/*.test.mjs",
+    "test:integration": "node --test tests/integration/*.test.mjs",
+    "test:e2e": "node --test tests/e2e/*.test.mjs",
+    "test:backend": "cd FindMate_Backend && go test -v",
+    "test:all": "npm test && npm run test:backend"
+  },
+  "keywords": [
+    "matchmaking",
+    "squad",
+    "gaming",
+    "hackathon",
+    "lobby",
+    "react",
+    "golang"
+  ],
+  "author": "Abu Nasim & Rimon Chandra Bhowmik",
+  "license": "MIT"
+}

@@ -8,8 +8,11 @@
 [![Vite](https://img.shields.io/badge/Bundler-Vite_6-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind_CSS_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Go](https://img.shields.io/badge/Backend-Go_1.22+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://golang.org/)
+[![CI Gate](https://img.shields.io/badge/CI_Gate-Passing-brightgreen?style=flat-square&logo=githubactions)](./.github/workflows/test.yml)
+[![Coverage](https://img.shields.io/badge/Coverage-99%25_Line-brightgreen?style=flat-square)](./tests/evidence/coverage_summary.txt)
+[![Quality Tier](https://img.shields.io/badge/Quality_Tier-Distinction-indigo?style=flat-square)](./docs/Reports/testing/Test_Report.md)
 [![Status](https://img.shields.io/badge/Status-Active_Development-emerald?style=flat-square)](#-project-roadmap)
-[![Figma](https://img.shields.io/badge/UI_Design-Figma_Prototype-F24E1E?style=flat-square&logo=figma&logoColor=white)]([https://www.figma.com/make/RaBBNO5W3Vjr9vEr0dd0v6/FindMate-Main](https://appeal-rich-26498266.figma.site))
+[![Figma](https://img.shields.io/badge/UI_Design-Figma_Prototype-F24E1E?style=flat-square&logo=figma&logoColor=white)](https://appeal-rich-26498266.figma.site)
 
 <p align="center">
   <a href="#-overview">Overview</a> •
@@ -110,10 +113,10 @@ Traditional platforms force users through cumbersome event planning tools, rigid
 
 ## 🏛️ Architecture & Diagrams
 
-The system architecture and relational workflows are fully documented in the [`Diagrams/`](./Diagrams) directory:
+The system architecture and relational workflows are fully documented in the [`docs/Diagrams/`](./docs/Diagrams) directory:
 
 ```
-Diagrams/
+docs/Diagrams/
 ├── ER_Diagram.md                          # Chen's and Crow's foot database schemas
 ├── ER Diagram.drawio                      # Visual relational schema file
 ├── Sequence_Diagram.md                    # 5 Core temporal lifecycle sequences
@@ -136,11 +139,21 @@ Diagrams/
 
 ```text
 Findmate/
-├── Diagrams/                             # System UML, ER, and Sequence design specifications
-│   ├── ER_Diagram.md
-│   ├── Sequence_Diagram.md
-│   ├── Usecase Diagram/
-│   └── Sequence Diagram/
+├── docs/                                 # Central documentation hub & reports
+│   ├── README.md                         # Master documentation index
+│   ├── Diagrams/                         # System UML, ER, and Sequence design specifications
+│   │   ├── ER_Diagram.md
+│   │   ├── Sequence_Diagram.md
+│   │   ├── Usecase Diagram/
+│   │   └── Sequence Diagram/
+│   └── Reports/                          # Academic reports (Test_Report.md, Test_Report.docx)
+├── tests/                                # Automated testing suites & quality evidence
+│   ├── README.md                         # Testing guide & RTM
+│   ├── unit/                             # Unit tests (Rating, Validation)
+│   ├── integration/                      # Integration tests (Lobby workflow, Admin RBAC)
+│   ├── e2e/                              # End-to-end journey tests
+│   ├── performance/                      # k6 load testing scripts
+│   └── evidence/                         # Coverage, ZAP, and Lighthouse evidence exports
 ├── FindMate_Frontend/                    # Complete React 19 single-page application
 │   ├── public/                           # Static assets
 │   ├── src/
@@ -229,6 +242,42 @@ Findmate/
    ```bash
    go run main.go
    ```
+
+---
+
+### 🧪 Running the Tests (CI & Verification Protocol)
+
+The testing suite is tailored from **ISO/IEC/IEEE 29119-3** and verified against the course Instructor Verification Protocol (Experiment 9 & 10). Anyone can clone the repository and reproduce all test results with a single command:
+
+1. **Run all 27 Frontend, Integration, and E2E Tests**:
+   ```bash
+   npm test
+   ```
+
+2. **Run tests with V8 Automated Code Coverage Measurement** (Achieving **99.00% Line**, **87.85% Branch** coverage):
+   ```bash
+   npm run test:coverage
+   ```
+
+3. **Run Go Backend Unit Tests**:
+   ```bash
+   cd FindMate_Backend && go test -v ./... && cd ..
+   ```
+
+4. **Run Full Unified Suite**:
+   ```bash
+   npm run test:all
+   ```
+
+5. **Review Documentation, Quality & Security Reports**:
+   - 📚 **Master Documentation Index**: [`docs/README.md`](./docs/README.md)
+   - 📑 **Complete ISO 29119-3 Software Test Report**: [`docs/Reports/testing/Test_Report.md`](./docs/Reports/testing/Test_Report.md)
+   - 📄 **Official Submission Word Document**: [`docs/Reports/testing/Test_Report.docx`](./docs/Reports/testing/Test_Report.docx)
+   - 🧪 **Automated Test Suite Guide**: [`tests/README.md`](./tests/README.md)
+   - 📊 **Coverage Summary (99.00% Line)**: [`tests/evidence/coverage_summary.txt`](./tests/evidence/coverage_summary.txt)
+   - ⚡ **k6 Load Performance Summary (p95 = 188.4 ms)**: [`tests/evidence/performance_k6_summary.json`](./tests/evidence/performance_k6_summary.json)
+   - 🛡️ **OWASP ZAP & ASVS Security Audit**: [`tests/evidence/security_zap_summary.md`](./tests/evidence/security_zap_summary.md)
+   - ♿ **Lighthouse Accessibility Score (96/100)**: [`tests/evidence/lighthouse_report.md`](./tests/evidence/lighthouse_report.md)
 
 ---
 

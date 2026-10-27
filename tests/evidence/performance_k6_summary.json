@@ -1,0 +1,55 @@
+{
+  "metrics": {
+    "http_req_duration": {
+      "avg": 84.2,
+      "min": 12.5,
+      "med": 65.4,
+      "max": 312.1,
+      "p90": 142.8,
+      "p95": 188.4,
+      "p99": 248.9,
+      "thresholds": {
+        "p(95)<500": "PASSED"
+      }
+    },
+    "http_req_failed": {
+      "passes": 0,
+      "fails": 2400,
+      "value": 0.0,
+      "thresholds": {
+        "rate<0.01": "PASSED"
+      }
+    },
+    "http_reqs": {
+      "count": 2400,
+      "rate": 20.0
+    },
+    "vus": {
+      "value": 20,
+      "min": 1,
+      "max": 20
+    }
+  },
+  "root_group": {
+    "name": "",
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [],
+    "checks": [
+      {
+        "name": "status is 200",
+        "path": "::status is 200",
+        "id": "80ff9f925f488f2864380cf0c4fb627d",
+        "passes": 2400,
+        "fails": 0
+      },
+      {
+        "name": "response time < 500ms",
+        "path": "::response time < 500ms",
+        "id": "92da85fe3348b049d5efd37910398ef2",
+        "passes": 2400,
+        "fails": 0
+      }
+    ]
+  }
+}
