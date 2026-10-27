@@ -2,137 +2,137 @@ TAP version 13
 # Subtest: TC-E2E-01: Full Seeker Journey — Discover -> Filter -> Pitch -> Applied state
 ok 1 - TC-E2E-01: Full Seeker Journey — Discover -> Filter -> Pitch -> Applied state
   ---
-  duration_ms: 3.120359
+  duration_ms: 4.28157
   ...
 # Subtest: TC-E2E-02: Full Host Journey — Review Applicant -> Approve -> Squad Chat Unlocked
 ok 2 - TC-E2E-02: Full Host Journey — Review Applicant -> Approve -> Squad Chat Unlocked
   ---
-  duration_ms: 1.425522
+  duration_ms: 1.336458
   ...
 # Subtest: TC-E2E-03: Community Incident Report & Admin Resolution Journey
 ok 3 - TC-E2E-03: Community Incident Report & Admin Resolution Journey
   ---
-  duration_ms: 0.438466
+  duration_ms: 0.791923
   ...
 # Subtest: TC-SEC-01: Admin user successfully deletes infringing lobby and generates audit log
 ok 4 - TC-SEC-01: Admin user successfully deletes infringing lobby and generates audit log
   ---
-  duration_ms: 4.856669
+  duration_ms: 8.18382
   ...
 # Subtest: TC-SEC-02: Non-admin member cannot delete lobby (403 Forbidden)
 ok 5 - TC-SEC-02: Non-admin member cannot delete lobby (403 Forbidden)
   ---
-  duration_ms: 1.087179
+  duration_ms: 2.118225
   ...
 # Subtest: TC-SEC-03: Admin bans malicious user; user status toggles to isBanned=true
 ok 6 - TC-SEC-03: Admin bans malicious user; user status toggles to isBanned=true
   ---
-  duration_ms: 1.903365
+  duration_ms: 4.380058
   ...
 # Subtest: TC-SEC-04: Non-admin cannot ban another user (403 Forbidden)
 ok 7 - TC-SEC-04: Non-admin cannot ban another user (403 Forbidden)
   ---
-  duration_ms: 0.4548
+  duration_ms: 0.842363
   ...
 # Subtest: TC-SEC-05: Admin resolves pending moderation report with action note
 ok 8 - TC-SEC-05: Admin resolves pending moderation report with action note
   ---
-  duration_ms: 0.451535
+  duration_ms: 0.910985
   ...
 # Subtest: TC-INT-01: End-to-end lobby creation initializes with 1/max members and system chat
 ok 9 - TC-INT-01: End-to-end lobby creation initializes with 1/max members and system chat
   ---
-  duration_ms: 4.317989
+  duration_ms: 8.014184
   ...
 # Subtest: TC-INT-02: Member applies to lobby with pitch note; lobby pending count increments
 ok 10 - TC-INT-02: Member applies to lobby with pitch note; lobby pending count increments
   ---
-  duration_ms: 0.579577
+  duration_ms: 1.237323
   ...
 # Subtest: TC-INT-03: Host accepts applicant; slots update, chat message broadcasts, auto-DM created (Seq 3)
 ok 11 - TC-INT-03: Host accepts applicant; slots update, chat message broadcasts, auto-DM created (Seq 3)
   ---
-  duration_ms: 2.061819
+  duration_ms: 5.40015
   ...
 # Subtest: TC-INT-04: Cannot apply to a Full lobby (Negative test case)
 ok 12 - TC-INT-04: Cannot apply to a Full lobby (Negative test case)
   ---
-  duration_ms: 0.98528
+  duration_ms: 2.286736
   ...
 # Subtest: TC-INT-05: Host marks lobby session as Completed (triggers post-lobby ratings)
 ok 13 - TC-INT-05: Host marks lobby session as Completed (triggers post-lobby ratings)
   ---
-  duration_ms: 0.402813
+  duration_ms: 0.944594
   ...
 # Subtest: TC-RATE-01: calculateUserRating with empty ratings array returns default 5.0 and zero distribution
 ok 14 - TC-RATE-01: calculateUserRating with empty ratings array returns default 5.0 and zero distribution
   ---
-  duration_ms: 7.292698
+  duration_ms: 21.302277
   ...
 # Subtest: TC-RATE-02: calculateUserRating with null or undefined returns default 5.0
 ok 15 - TC-RATE-02: calculateUserRating with null or undefined returns default 5.0
   ---
-  duration_ms: 0.527987
+  duration_ms: 0.77548
   ...
 # Subtest: TC-RATE-03: calculateUserRating calculates exact average and distribution for single review (EP valid)
 ok 16 - TC-RATE-03: calculateUserRating calculates exact average and distribution for single review (EP valid)
   ---
-  duration_ms: 0.65521
+  duration_ms: 0.919431
   ...
 # Subtest: TC-RATE-04: calculateUserRating accurately computes weighted average across diverse star scores (BVA 1-5)
 ok 17 - TC-RATE-04: calculateUserRating accurately computes weighted average across diverse star scores (BVA 1-5)
   ---
-  duration_ms: 0.460299
+  duration_ms: 0.797847
   ...
 # Subtest: TC-RATE-05: calculateUserRating rounds average to one decimal place
 ok 18 - TC-RATE-05: calculateUserRating rounds average to one decimal place
   ---
-  duration_ms: 1.36242
+  duration_ms: 0.685891
   ...
 # Subtest: TC-USER-01: findUserByQuery correctly resolves user by exact handle or with @ prefix
 ok 19 - TC-USER-01: findUserByQuery correctly resolves user by exact handle or with @ prefix
   ---
-  duration_ms: 0.843156
+  duration_ms: 1.473288
   ...
 # Subtest: TC-VAL-01: BVA on min capacity boundary (1=invalid, 2=valid, 3=valid)
 ok 20 - TC-VAL-01: BVA on min capacity boundary (1=invalid, 2=valid, 3=valid)
   ---
-  duration_ms: 2.853971
+  duration_ms: 4.817513
   ...
 # Subtest: TC-VAL-02: BVA on max capacity boundary (9=valid, 10=valid, 11=invalid)
 ok 21 - TC-VAL-02: BVA on max capacity boundary (9=valid, 10=valid, 11=invalid)
   ---
-  duration_ms: 0.381601
+  duration_ms: 0.65233
   ...
 # Subtest: TC-VAL-03: EP invalid non-numeric capacity partition
 ok 22 - TC-VAL-03: EP invalid non-numeric capacity partition
   ---
-  duration_ms: 0.32345
+  duration_ms: 0.713874
   ...
 # Subtest: TC-PITCH-01: BVA on min pitch note length (4=invalid, 5=valid)
 ok 23 - TC-PITCH-01: BVA on min pitch note length (4=invalid, 5=valid)
   ---
-  duration_ms: 0.359006
+  duration_ms: 0.745566
   ...
 # Subtest: TC-PITCH-02: BVA on max pitch note length (300=valid, 301=invalid)
 ok 24 - TC-PITCH-02: BVA on max pitch note length (300=valid, 301=invalid)
   ---
-  duration_ms: 0.283706
+  duration_ms: 0.595718
   ...
 # Subtest: TC-PITCH-03: EP whitespace-only pitch note is rejected
 ok 25 - TC-PITCH-03: EP whitespace-only pitch note is rejected
   ---
-  duration_ms: 0.217385
+  duration_ms: 0.41165
   ...
 # Subtest: TC-TAG-01: formatTaxonomyTag formats bare string into lowercased hashtag
 ok 26 - TC-TAG-01: formatTaxonomyTag formats bare string into lowercased hashtag
   ---
-  duration_ms: 0.407009
+  duration_ms: 0.829181
   ...
 # Subtest: TC-TAG-02: formatTaxonomyTag rejects empty or single-character tags
 ok 27 - TC-TAG-02: formatTaxonomyTag rejects empty or single-character tags
   ---
-  duration_ms: 0.217969
+  duration_ms: 0.470097
   ...
 1..27
 # tests 27
@@ -142,7 +142,7 @@ ok 27 - TC-TAG-02: formatTaxonomyTag rejects empty or single-character tags
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 165.106855
+# duration_ms 367.158021
 # start of coverage report
 # ------------------------------------------------------------------------------------------
 # file                                      | line % | branch % | funcs % | uncovered lines

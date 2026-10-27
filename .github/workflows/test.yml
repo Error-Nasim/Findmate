@@ -2,9 +2,10 @@ name: Test Suite & Quality Gate
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, master, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, master, develop ]
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
 
 jobs:
   test-frontend:
@@ -19,18 +20,20 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
 
-      - name: Install Frontend Dependencies
+      - name: Install Dependencies
         run: |
-          cd FindMate_Frontend
           npm ci
+          cd FindMate_Frontend && npm ci && cd ..
 
       - name: Run Test Suite with Coverage
         run: |
-          npm run test:coverage
+          node --experimental-test-coverage --test tests/**/*.test.mjs | tee tests/evidence/coverage_summary.txt
 
       - name: Upload Test Coverage Artifact
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: test-coverage-report
           path: tests/evidence/coverage_summary.txt
