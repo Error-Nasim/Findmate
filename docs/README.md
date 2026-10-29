@@ -24,7 +24,7 @@ docs/
 │
 ├── Diagrams/                              # System UML, Database Schemas & Visual Modeling
 │   ├── ER_Diagram.md                      # Chen's ER Model & Crow's Foot Relational Schema
-│   ├── ER Diagram.drawio                  # Visual relational schema file (draw.io)
+│   ├── ER Diagram.drawio                  # Native editable schema diagram file (draw.io)
 │   ├── Sequence_Diagram.md                # 5 Core temporal workflows (Auth, Lobby, Pitch, Chat, Mod)
 │   ├── Sequence Diagram/                  # Source .drawio files for all 5 lifelines
 │   │   ├── User Auth Sequence.drawio
@@ -40,50 +40,48 @@ docs/
 │       ├── Aplication Usecase.drawio
 │       └── Communication Usecase.drawio
 │
-├── Reports/                               # Formal academic experiment & capstone reports
+├── Reports/                               # Formal academic & laboratory reports
+│   ├── final/                             # Official Capstone Project Final Report
+│   │   ├── Final_Report.md                # Interactive Markdown companion with UML models & tables
+│   │   └── Final_Report.docx              # Official Word submission report conforming to BAETE/OBE format
 │   └── testing/                           # Experiment 9 & 10 Testing & Security Deliverables
 │       ├── Test_Report.md                 # Full ISO 29119-3 Software Test Report (Markdown)
 │       └── Test_Report.docx               # Official Word Report ready for PDF export (Team04_Exp9.pdf)
 │
-├── Specifications/                        # Requirements engineering & SRS (Experiment 2)
-│   ├── SRS.md                             # Software Requirements Specification
-│   └── User_Stories.md                    # User stories with Gherkin acceptance criteria
-│
-├── API/                                   # REST API contracts & endpoint specifications
-│   └── Backend_API_Spec.md                # Go Gin endpoints, request/response DTOs, & status codes
-│
-├── Schedule/                              # 14-Week Work Breakdown Schedule & Gantt Deliverables
-│   ├── FindMate_14_Week_Gantt_Schedule.xlsx # Interactive Excel Gantt Chart with frozen panes & KPIs
-│   ├── FindMate_14_Week_Gantt_Schedule.csv  # Universal CSV format of the WBS timeline
-│   └── Project_Schedule_Gantt.md          # Comprehensive WBS matrix & visual flowcharts
-│
-└── Manuals/                               # Onboarding, deployment, and operation guides
-    ├── Setup_Guide.md                     # Local development environment bootstrap
-    └── Deployment_Guide.md                # Production hosting, Docker, and CI/CD operations
+└── Schedule/                              # 14-Week Work Breakdown Schedule & Gantt Deliverables
+    ├── FindMate_14_Week_Gantt_Schedule.xlsx # Interactive Excel Gantt Chart with frozen panes & KPIs
+    ├── FindMate_14_Week_Gantt_Schedule.csv  # Universal CSV format of the WBS timeline
+    └── Project_Schedule_Gantt.md          # Comprehensive WBS matrix & visual flowcharts
 ```
+
+> **Requirements, API & Setup Links**:
+> - **Software Requirements Specification (SRS)**: Fully detailed in [Final Report Section 3](./Reports/final/Final_Report.md#3-software-requirements-specification-srs) and [Test Report Section 4](./Reports/testing/Test_Report.md#4-requirements-traceability-matrix-rtm).
+> - **REST API Contracts**: Fully documented in [FindMate Backend Documentation](../FindMate_Backend/README.md).
+> - **Setup & Deployment Manuals**: Fully documented in the [Root Project README](../README.md#-getting-started).
 
 ---
 
 ## 📑 Complete Document Inventory
 
 | Category | Deliverable | Status | Location / Reference | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| **Testing & QA** | **Official Software Test Report (Markdown)** | Completed | [`Reports/testing/Test_Report.md`](./Reports/testing/Test_Report.md) | 13-section ISO 29119-3 report covering RTM, BVA/EP, state transitions, CI, coverage, and sign-offs. |
+| :--- | :--- | :---: | :--- | :--- |
+| **Final Capstone** | **Official Final Project Report (Word)** | Completed | [`Reports/final/Final_Report.docx`](./Reports/final/Final_Report.docx) | Fully populated long-format OBE/BAETE project report with aligned formatting (271 KB). |
+| **Final Capstone** | **Official Final Project Report (Markdown)** | Completed | [`Reports/final/Final_Report.md`](./Reports/final/Final_Report.md) | Complete long-format report with interactive Mermaid UML models and centered figures. |
+| **Project Schedule** | **14-Week Milestone Gantt Chart (Excel)** | Completed | [`Schedule/FindMate_14_Week_Gantt_Schedule.xlsx`](./Schedule/FindMate_14_Week_Gantt_Schedule.xlsx) | Interactive color-coded spreadsheet with frozen panes, WBS, and milestone quality gates. |
+| **Project Schedule** | **14-Week WBS & Schedule Report** | Completed | [`Schedule/Project_Schedule_Gantt.md`](./Schedule/Project_Schedule_Gantt.md) | Complete 14-week WBS matrix, Mermaid flowcharts, and milestone quality gate dictionary. |
 | **Testing & QA** | **Official Software Test Report (Word)** | Completed | [`Reports/testing/Test_Report.docx`](./Reports/testing/Test_Report.docx) | Populated `.docx` document conforming to course template for Exp 9 & 10 grading. |
+| **Testing & QA** | **Official Software Test Report (Markdown)** | Completed | [`Reports/testing/Test_Report.md`](./Reports/testing/Test_Report.md) | 13-section ISO 29119-3 report covering RTM, BVA/EP, state transitions, CI, coverage, and sign-offs. |
 | **Testing & QA** | **Automated Testing Suite & QA Guide** | Completed | [`tests/README.md`](../tests/README.md) | Guide to running all 31 automated test cases, coverage measurement, and k6 performance scripts. |
 | **Testing Evidence** | **V8 Automated Code Coverage (99%)** | Completed | [`tests/evidence/coverage_summary.txt`](../tests/evidence/coverage_summary.txt) | Detailed line (99%), branch (87.85%), and function (98.44%) coverage report. |
 | **Testing Evidence** | **k6 Performance Report (p95 = 188ms)** | Completed | [`tests/evidence/performance_k6_summary.json`](../tests/evidence/performance_k6_summary.json) | High-concurrency load testing metrics under 20 concurrent virtual users. |
 | **Testing Evidence** | **OWASP Security & ASVS Audit** | Completed | [`tests/evidence/security_zap_summary.md`](../tests/evidence/security_zap_summary.md) | DAST scan findings, `npm audit` zero-vulnerability report, and RBAC security checks. |
 | **Testing Evidence** | **Lighthouse Accessibility Audit** | Completed | [`tests/evidence/lighthouse_report.md`](../tests/evidence/lighthouse_report.md) | WCAG 2.2 AA evaluation scoring 96/100 on primary discovery feeds. |
 | **Architecture** | **Entity-Relationship Model (ERD)** | Completed | [`Diagrams/ER_Diagram.md`](./Diagrams/ER_Diagram.md) | Chen's modular ER model and standard Crow's Foot relational database schema. |
+| **Architecture** | **Native Vector ER Schema (.drawio)** | Completed | [`Diagrams/ER Diagram.drawio`](./Diagrams/ER%20Diagram.drawio) | Native editable vector diagram file ready for diagrams.net (draw.io). |
 | **Architecture** | **System Sequence Diagrams** | Completed | [`Diagrams/Sequence_Diagram.md`](./Diagrams/Sequence_Diagram.md) | 5 end-to-end temporal lifelines covering Auth, Lobby CRUD, Vetting, DMs, and Moderation. |
 | **Architecture** | **Use Case Diagrams & Specifications** | Completed | [`Diagrams/Usecase Diagram/UseCase_Diagram.md`](./Diagrams/Usecase%20Diagram/UseCase_Diagram.md) | High-level system boundary diagram and 4 subsystem-level use case models. |
-| **Project Schedule** | **14-Week Milestone Gantt Chart (Excel)** | Completed | [`Schedule/FindMate_14_Week_Gantt_Schedule.xlsx`](./Schedule/FindMate_14_Week_Gantt_Schedule.xlsx) | Interactive color-coded spreadsheet with frozen panes, WBS, and milestone quality gates. |
-| **Project Schedule** | **14-Week WBS & Schedule Report** | Completed | [`Schedule/Project_Schedule_Gantt.md`](./Schedule/Project_Schedule_Gantt.md) | Complete 14-week WBS matrix, Mermaid flowcharts, and milestone quality gate dictionary. |
-| **Backend** | **Go Gin REST API Architecture** | Completed | [`FindMate_Backend/README.md`](../FindMate_Backend/README.md) | Endpoint catalog, Go struct definitions, database mappings, and middleware requirements. |
+| **Backend** | **Go Gin REST API Architecture** | Completed | [`FindMate_Backend/README.md`](../FindMate_Backend/README.md) | Endpoint catalog, Go struct definitions, database mappings, and 4 passing backend unit tests. |
 | **Frontend** | **React 19 Frontend Architecture** | Completed | [`FindMate_Frontend/README.md`](../FindMate_Frontend/README.md) | Component hierarchy, client-side routes, mock persistence engine, and theme tokens. |
-| **Final Capstone** | **Official Final Project Report (Word)** | Completed | [`Reports/final/Final_Report.docx`](./Reports/final/Final_Report.docx) | Fully populated long-format OBE/BAETE project report with aligned formatting. |
-| **Final Capstone** | **Official Final Project Report (Markdown)** | Completed | [`Reports/final/Final_Report.md`](./Reports/final/Final_Report.md) | Complete long-format report with interactive Mermaid UML models and centered figures. |
 
 ---
 
@@ -105,7 +103,6 @@ When adding or revising documents in this directory, please adhere to these team
 
 ## 👥 Project Authors & Supervisors
 
-- **Abu Nasim** (ID: 211014022) — Project Lead & Full-Stack Developer
-- **Rimon Chandra Bhowmik** (ID: 211014035) — Documentation Lead & Backend Developer
-- **Al Imtiaz** — Project Supervisor & Course Instructor
-- **Department of Computer Science & Engineering**, University of Information Technology and Sciences (UITS), Dhaka, Bangladesh
+- **Abu Nasim** (Registration ID: `0432320005101033`, Student ID: `211014022`, GitHub: [`@Error-nasim`](https://github.com/Error-nasim)) — Project Lead & Full-Stack Architect
+- **Rimon Chandra Bhowmik** (Registration ID: `0432320005101001`, Student ID: `211014035`) — Documentation Lead & Quality Assurance Engineer
+- **Course Supervisor**: **Al Imtiaz**, Associate Professor, Department of Computer Science & Engineering, University of Information Technology and Sciences (UITS), Dhaka, Bangladesh

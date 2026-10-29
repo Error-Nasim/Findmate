@@ -187,12 +187,9 @@ Findmate/
 │   │   ├── testing/                      # Experiment 9 & 10 QA deliverables
 │   │   │   ├── Test_Report.md            # ISO 29119-3 software test report
 │   │   │   └── Test_Report.docx          # Official Word submission report
-│   │   └── final/                        # Course capstone final report
-│   │       ├── Final_Report.md           # Interactive companion with all diagrams & tables
-│   │       └── Final_Report.docx         # Formatted Word submission report
-│   ├── Specifications/                   # SRS and user acceptance stories
-│   ├── API/                              # REST API contracts & endpoint specifications
-│   └── Manuals/                          # Developer setup and production deployment guides
+│   │   └── final/                        # Course capstone final report (OBE/BAETE)
+│   │       ├── Final_Report.md           # Interactive companion with SRS, diagrams & tables
+│   │       └── Final_Report.docx         # Formatted Word submission report (271 KB)
 ├── tests/                                # Automated testing suite & quality evidence
 │   ├── README.md                         # Verification protocol & reproduction guide
 │   ├── unit/                             # Rating calculation & validation boundary tests
@@ -285,6 +282,6 @@ npm run test:all
 
 ## 👥 Team & Acknowledgments
 
-- **Abu Nasim** (ID: `0432320005101033`, GitHub: [`@Error-nasim`](https://github.com/Error-nasim)) — Project Lead & Full-Stack Architect
-- **Rimon Chandra Bhowmik** (ID: `0432320005101001`) — Documentation Lead & Quality Assurance Engineer
+- **Abu Nasim** (Registration ID: `0432320005101033`, Student ID: `211014022`, GitHub: [`@Error-nasim`](https://github.com/Error-nasim)) — Project Lead & Full-Stack Architect
+- **Rimon Chandra Bhowmik** (Registration ID: `0432320005101001`, Student ID: `211014035`) — Documentation Lead & Quality Assurance Engineer
 - **Course Supervisor**: **Al Imtiaz**, Associate Professor, Department of Computer Science & Engineering, University of Information Technology and Sciences (UITS), Dhaka.

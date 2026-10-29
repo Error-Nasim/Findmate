@@ -1,99 +1,184 @@
-# FindMate Frontend Documentation & Architecture
+# 🎨 FindMate Frontend — React 19 Architecture & Component Guide
 
-Figma Specification: https://appeal-rich-26498266.figma.site
-Stack: React 19, Vite 6, Tailwind CSS 3, CSS variables (dark/light), React Router v6, Axios.
-Backend: Golang Gin REST API (planned; currently equipped with full asynchronous mock persistence via `localStorage`).
+[![React 19](https://img.shields.io/badge/Frontend-React_19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![Vite 6](https://img.shields.io/badge/Bundler-Vite_6-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind_CSS_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![React Router](https://img.shields.io/badge/Routing-React_Router_v6-CA4245?style=flat-square&logo=reactrouter&logoColor=white)](https://reactrouter.com/)
+[![Figma Prototype](https://img.shields.io/badge/UI_Design-Figma_Prototype-F24E1E?style=flat-square&logo=figma&logoColor=white)](https://appeal-rich-26498266.figma.site)
+[![Tests Passing](https://img.shields.io/badge/Tests-31%2F31_Passed-brightgreen?style=flat-square)](../tests/README.md)
+
+This directory houses the single-page web client for **FindMate**, built with **React 19**, **Vite 6**, and **Tailwind CSS 3**. The frontend implements the official [FindMate Figma UI Specification](https://appeal-rich-26498266.figma.site) with zero-dependency local storage persistence and full readiness for the [Go Gin Backend](../FindMate_Backend/README.md).
 
 ---
 
-## 🧭 Routes & Pages
+## ⚡ Quick Start
 
-* `/` — LandingPage (unauthenticated) / DiscoverPage (authenticated).
-* `/feed` — DiscoverPage (all live lobbies, search, category/tag filters, match score calculation, apply modal, featured pinned lobbies).
-* `/lobby/:id` — LobbyDetailView (expanded lobby card with deep link support, pitch notes, group chat shortcut).
-* `/activities` — MyLobbiesPage (hosted lobby applicant review queue + joined squad chats + completion triggers).
-* `/messages` — MessagesPage (1-on-1 direct message threads with unread counters).
-* `/profile` — ProfilePage (own profile: edit bio, tags, connected accounts, admin panel link).
-* `/profile/:handle` & `/user/:handle` — Public ProfilePage (view user stats, active lobbies, calculated rating, submit teammate reviews, report user).
-* `/admin` — Full Admin Control Center (two-column sidebar layout covering 7 management modules).
+```bash
+# Navigate to frontend directory
+cd FindMate_Frontend
+
+# Install dependencies
+npm install
+
+# Start development server (HMR enabled)
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+> **Development URL**: `http://localhost:5173`  
+> The client is pre-loaded with comprehensive seed data (`src/data/`), so all features (feed, lobby creation, vetting queue, squad chat, direct messaging, user profiles, and the admin control center) are fully interactive out of the box.
+
+---
+
+## 🧭 Routes & Page Catalog
+
+| Route | Component | Access | Key Capabilities |
+| :--- | :--- | :---: | :--- |
+| `/` | `LandingPage.jsx` | Public | Unauthenticated hero section, feature highlights, and interactive product demo. |
+| `/feed` | `DiscoverPage.jsx` | Public / Auth | Live lobby discovery, keyword search, category filters (`Gaming`, `Coding`, `Sports`, `Study`, `Fitness`), hashtag pills, match score ranking, and pinned featured lobbies. |
+| `/lobby/:id` | `LobbyDetailView.jsx` | Public / Auth | Deep-linkable expanded lobby view, host banner, approved member roster, pending count, and squad chat trigger. |
+| `/activities` | `MyLobbiesPage.jsx` | Authenticated | Dual-panel workspace: review pending applicants for hosted lobbies + access squad chats for joined rooms + complete sessions. |
+| `/messages` | `MessagesPage.jsx` | Authenticated | 1-on-1 direct messaging (DM) threads with active status, unread counters, and instant bilateral messaging. |
+| `/profile` | `ProfilePage.jsx` | Authenticated | Authenticated user profile: edit bio, customize skill tags, manage connected accounts, view dynamic star ratings, and access the Admin Panel. |
+| `/profile/:handle`<br>`/user/:handle` | `ProfilePage.jsx` | Public | Public user dossier: view reliability score, room history, tags, submit teammate reviews (`1-5 ★`), or report user. |
+| `/admin` | `AdminPage.jsx` | Admin | Executive platform dashboard with sticky sidebar navigation and 7 governance modules. |
 
 ---
 
 ## 🏗️ Architecture & Component Hierarchy
 
-* `src/App.jsx`: Master coordinator; owns global entities (`lobbiesList`, `usersList`, `reportsList`, `auditLogs`, `announcements`, `platformTags`, `dmList`, `notifsList`), active modals/panels, global announcement banner, and router.
-* `src/api/index.js`: Axios client (`VITE_API_URL` || `http://localhost:8080/api`) with full `localStorage` persistence, pre-wired for 1:1 Go Gin integration.
-* `src/data/`: Seed data repositories (`users.js`, `lobbies.js`, `applicants.js`, `dmThreads.js`, `notifications.js`).
-* `src/components/`:
-  * `layout/`: Navbar (pill navigation capsule, theme toggle, profile avatar), BottomNav (mobile drawer).
-  * `modals/`: AuthModal, CreateLobbyModal, ApplyModal (pitch note), ApplicantModal (review/accept/decline), AcceptedModal, ReportModal, RateUserModal, PostLobbyRatingModal.
-  * `panels/`: ApplicantsPanel, DMPanel, LobbyChatPanel, NotificationsPanel.
-  * `ui/`: Button (primary/ghost/line/bad), Avatar, Tag, StatusBadge, CapacityBar, Toast, LobbyDetailView.
-* `src/pages/`:
-  * `AdminPage.jsx`: Executive platform dashboard with sticky sidebar navigation and 7 tabs.
-  * `DiscoverPage.jsx`: Lobby feed with search, category filtering, hashtag pills, match sorting, and featured pins.
-  * `MyLobbiesPage.jsx`: Hosted & joined lobby management.
-  * `LandingPage.jsx`: Unauthenticated landing hero, testimonials, and features.
-  * `MessagesPage.jsx`: 1-on-1 direct messaging threads.
-  * `ProfilePage.jsx`: Profiles with dynamic rating calculation (`calculateUserRating()`).
+```text
+FindMate_Frontend/
+├── public/                       # Static public assets (icons, favicon, manifest)
+├── src/
+│   ├── main.jsx                  # React 19 entry point and DOM root mounter
+│   ├── App.jsx                   # Central state coordinator, router, modals & global announcements
+│   ├── index.css                 # CSS custom property design tokens (light & dark theme)
+│   ├── api/
+│   │   └── index.js              # Axios HTTP client + localStorage mock persistence engine
+│   ├── data/                     # Seed data repositories
+│   │   ├── users.js              # User profiles & calculateUserRating() algorithm
+│   │   ├── lobbies.js            # Initial lobby fixtures across all categories
+│   │   ├── applicants.js         # Pitch note fixtures & application states
+│   │   ├── dmThreads.js          # Direct messaging conversations
+│   │   └── notifications.js      # System alerts and application notices
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── Navbar.jsx        # Pill navigation capsule, theme toggle & avatar dropdown
+│   │   │   └── BottomNav.jsx     # Mobile drawer navigation for small viewports
+│   │   ├── modals/
+│   │   │   ├── AuthModal.jsx     # Authentication modal (Sign In / Register / OAuth)
+│   │   │   ├── CreateLobbyModal.jsx # New lobby modal (category, capacity bounds [2,10], tags)
+│   │   │   ├── ApplyModal.jsx    # Application modal with custom pitch note ([5,300] chars)
+│   │   │   ├── ApplicantModal.jsx # Host review drawer: applicant reliability & vetting decisions
+│   │   │   ├── AcceptedModal.jsx # Congratulatory prompt upon host acceptance
+│   │   │   ├── ReportModal.jsx   # Community incident filing modal (lobby or user)
+│   │   │   ├── RateUserModal.jsx # 1-5 star teammate review modal with feedback text
+│   │   │   └── PostLobbyRatingModal.jsx # Post-session team rating flow
+│   │   ├── panels/
+│   │   │   ├── ApplicantsPanel.jsx # Slide-out applicant queue
+│   │   │   ├── DMPanel.jsx       # Direct messaging thread panel
+│   │   │   ├── LobbyChatPanel.jsx # Squad group chat with auto system welcome messages
+│   │   │   └── NotificationsPanel.jsx # Unread notification dropdown
+│   │   └── ui/
+│   │       ├── Avatar.jsx        # Circular avatar with initials & stacking isolation
+│   │       ├── Button.jsx        # Standardized button variants (primary, ghost, line, bad)
+│   │       ├── CapacityBar.jsx   # Progress indicator for room capacity (joined/max)
+│   │       ├── LobbyDetailView.jsx # Dedicated card view with host banner & member grid
+│   │       ├── StatusBadge.jsx   # Status indicator pill (Open, Full, Completed)
+│   │       ├── Tag.jsx           # Taxonomy hashtag chip with category styling
+│   │       └── Toast.jsx         # Ephemeral feedback alerts
+│   └── pages/
+│       ├── AdminPage.jsx         # 7-module administrative control center
+│       ├── DiscoverPage.jsx      # Feed explorer with live filtering and search
+│       ├── LandingPage.jsx       # Public landing page with hero & testimonials
+│       ├── MessagesPage.jsx      # Bilateral DM conversations
+│       ├── MyLobbiesPage.jsx     # Hosted and joined lobby workspace
+│       └── ProfilePage.jsx       # Profile dossiers with dynamic ratings and banner
+├── package.json                  # Scripts & dependencies
+├── vite.config.js                # Vite build & plugin configuration
+└── tailwind.config.js            # Tailwind CSS theme & typography tokens
+```
 
 ---
 
 ## 🛡️ Admin Control Center (`/admin`)
 
-The `/admin` route is a full-featured management suite built with a **sticky vertical sidebar** and 7 core modules:
+The `/admin` route is a dedicated executive control suite protected by role checks (`role: 'admin'`) featuring a **sticky sidebar** and 7 core modules:
 
 1. **📊 Overview**:
-   - 4 Live KPI metric cards: Total Registered Users (Active/Banned/Admins), Active Lobbies (Hosted/Completed), Completion Rate %, and Platform Avg Reliability.
-   - Category distribution progress bars across all domains (`Gaming`, `Coding`, `Sports`, `Study`, `Fitness`, `Music`).
-   - Live activity stream showing recent administrative actions and incident filings.
+   - 4 live KPI cards: Registered Users (Active / Banned / Admins), Active Lobbies (Open / Completed), Squad Completion Rate %, and Platform Avg Reliability.
+   - Category distribution progress bars across `Gaming`, `Coding`, `Sports`, `Study`, and `Fitness`.
+   - Real-time audit activity stream.
 2. **🛡️ Moderation Queue**:
-   - Sub-filters: `All Incidents`, `Pending` (red alert badge), `Resolved`, and `Dismissed`.
-   - Inspection Drawer: Click **"🔍 Inspect Target"** to inspect the reported user or lobby.
-   - Enforcement Actions: `Dismiss Report` (with audit note), `Delete Lobby` (removes from feed), and `Ban Offending User`.
+   - Status filters: `All`, `Pending` (alert count badge), `Resolved`, and `Dismissed`.
+   - Incident inspection drawer: inspect reported lobby or user details and reporter notes.
+   - One-click actions: `Dismiss Report`, `Delete Lobby`, and `Ban Offending User`.
 3. **👥 User Directory & Access Control**:
-   - Search by name, `@handle`, or bio keyword. Filter by Role (`Admin` / `Member`) and Status (`Active` / `Banned`).
-   - One-click role promotion/demotion.
-   - Reliability Score adjustments (`+2%` boost / `-5%` penalty).
-   - Instant Ban / Re-instate toggle with confirmation dialog.
-   - User Profile Modal: View bio, tags, connected accounts (Google, Discord, GitHub), rooms joined/completed, and full teammate review history.
+   - Search by name, `@handle`, or bio keyword. Filter by role and status.
+   - Role promotion / demotion (`Admin` $\leftrightarrow$ `Member`).
+   - Reliability score adjustments (`+2%` boost / `-5%` penalty).
+   - Instant account ban and reinstatement.
 4. **🎮 Lobby & Squad Oversight**:
    - Global searchable table across all categories and statuses.
-   - **Inspect Squad Modal**: View approved members, pending applicants, and the live lobby squad chat log.
-   - **Pin / Feature**: Toggle `isPinned` to feature lobbies at the top of `/feed` with a `📌 Featured` pill.
-   - **Force Complete**: Mark stuck lobbies as `Completed`.
+   - **Inspect Squad Modal**: view roster, pending applicants, and squad chat history.
+   - **Pin / Feature**: Toggle `isPinned` to float lobbies to the top of `/feed` with a `📌 Featured` pill.
+   - **Force Complete**: Gracefully close inactive sessions.
    - **Delete Lobby**: Permanently purge violating lobbies.
 5. **🏷️ Tags & Taxonomy Governance**:
-   - Add official tags with automatic `#` prefixing and duplicate prevention.
-   - Real-time usage analytics: Displays how many active lobbies and users currently use each tag.
-   - Remove deprecated tags.
+   - Curate platform hashtags with automatic `#` prefixing and duplicate prevention.
+   - Real-time usage analytics: live counts of lobbies and users using each tag.
+   - Deprecate / delete outdated tags.
 6. **📢 System Broadcasts**:
-   - Create real-time announcement banners with severity themes (`Info`, `Warning`, `Alert`, `Celebration`).
-   - Live Banner: Immediately renders above the top `Navbar` across all user sessions with a dismiss button.
-   - Active broadcasts manager to review and delete live announcements.
+   - Create real-time platform announcement banners with severity themes (`Info`, `Warning`, `Alert`, `Celebration`).
+   - Global banner mounts above `Navbar` across all active browser sessions with dismiss tracking.
 7. **📜 Administrative Audit Trail**:
-   - Immutable log recording all operations (`BAN_USER`, `UNBAN_USER`, `DELETE_LOBBY`, `FORCE_COMPLETE`, `PIN_LOBBY`, `RESOLVE_REPORT`, `ADD_TAG`, `BROADCAST`).
-   - Search and filter by operation type.
-   - One-click **"Export Audit Log (JSON)"** for records and backend synchronization.
+   - Append-only log recording every administrative action (`BAN_USER`, `DELETE_LOBBY`, `PIN_LOBBY`, `RESOLVE_REPORT`, `BROADCAST`, etc.).
+   - Search and filter by action type.
+   - **Export Audit Log (JSON)** for archival and backend synchronization.
 
 ---
 
-## ⚡ Critical Rules & Behaviors
+## 🎨 UI & UX Design Highlights
 
-1. **Global Announcement Banner**: Placed above the Navbar in `App.jsx`, immediately visible across all pages when an admin broadcasts a message.
-2. **Featured Pinned Lobbies**: Lobbies pinned by administrators (`isPinned: true`) automatically float to the top of the `/feed` list and display a `📌 Featured` badge.
-3. **Admin Panel Navigation**: Access `/admin` directly via URL, Profile page (`🛡️ Admin Panel`), or Landing footer (`Admin Panel →`). Sidebar includes an instant `← Return to Main App` button.
-4. **User Ratings Calculation**: Ratings are calculated dynamically via `calculateUserRating(ratings)`:
-   - Average score (`X.X ★`)
-   - Total review count
-   - 1-to-5 star distribution breakdown
-5. **Theme Synchronization**: Dual-theme (`light` / `[data-theme="dark"]`) controlled via CSS custom properties in `src/index.css` and persisted in `localStorage`.
-6. **Mock Persistence**: Uses `STORAGE_KEYS` in `src/api/index.js` (`findmate_users`, `findmate_lobbies`, `findmate_reports`, `findmate_audit_logs`, `findmate_announcements`, `findmate_platform_tags`).
+1. **Dual Theme Engine**: Full light and dark theme support via CSS variables (`--bg-body`, `--bg-card`, `--text-primary`, `--primary-indigo`, `--border-subtle`). Preferences are automatically persisted to `localStorage`.
+2. **Avatar Stacking Context**: Profile and lobby banners use isolated stacking contexts (`position: relative`, `zIndex: 10`, and circular ring shadow `boxShadow: '0 0 0 4px var(--bg-card)'`), preventing banner borders from slicing across avatar badges.
+3. **Dynamic Reputation Engine**: Teammate ratings are calculated on-the-fly via [`calculateUserRating(ratings)`](./src/data/users.js), providing accurate averages rounded to 1 decimal place, total review counts, and 1-to-5 star breakdowns.
+4. **Responsive Pill Navigation**: Navigation adapts gracefully from desktop capsule bars to mobile bottom drawer controls.
 
 ---
 
-## 🔌 Golang Backend REST Integration
+## 🔌 Connecting to the Go Gin Backend
 
-When activating the Go backend (`FindMate_Backend`):
-* Configure `VITE_API_URL=http://localhost:8080/api` in `.env`.
-* Full endpoint contract and Go structs are documented in [`FindMate_Backend/README.md`](../FindMate_Backend/README.md).
+By default, the client runs with zero-setup `localStorage` mock persistence. When connecting to the [FindMate Go Backend](../FindMate_Backend/README.md):
+
+1. Create or edit `.env` in `FindMate_Frontend/`:
+   ```env
+   VITE_API_URL=http://localhost:8080/api
+   ```
+2. Start the Go backend server:
+   ```bash
+   cd ../FindMate_Backend && go run main.go
+   ```
+3. Restart the frontend dev server (`npm run dev`). Requests from `src/api/index.js` seamlessly route to the Go Gin REST API.
+
+---
+
+## 🧪 Testing
+
+Frontend unit algorithms and user journeys are tested as part of the unified 31-test suite:
+
+```bash
+# Run tests from frontend directory
+npm test
+
+# Run tests with V8 coverage measurement
+npm run test:coverage
+```
+
+See the [Tests Documentation](../tests/README.md) for full test specifications and quality reports.

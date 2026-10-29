@@ -219,7 +219,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: test-coverage-report
-          path: docs/testing/evidence/coverage_summary.txt
+          path: tests/evidence/coverage_summary.txt
 
   test-backend:
     runs-on: ubuntu-latest
@@ -235,8 +235,18 @@ jobs:
 ## 📑 Related Reports & Evidence
 
 - 📄 **Full ISO 29119-3 Software Test Report**: [`docs/Reports/testing/Test_Report.md`](../docs/Reports/testing/Test_Report.md)
-- 📝 **Official Word Submission File**: [`docs/Reports/testing/Test_Report.docx`](../docs/Reports/testing/Test_Report.docx)
+- 📝 **Official Word Test Report**: [`docs/Reports/testing/Test_Report.docx`](../docs/Reports/testing/Test_Report.docx)
+- 🎓 **Final Capstone Project Report**: [`docs/Reports/final/Final_Report.md`](../docs/Reports/final/Final_Report.md)
+- 📅 **14-Week Milestone Gantt Schedule**: [`docs/Schedule/FindMate_14_Week_Gantt_Schedule.xlsx`](../docs/Schedule/FindMate_14_Week_Gantt_Schedule.xlsx)
 - 📊 **Automated V8 Coverage Log**: [`tests/evidence/coverage_summary.txt`](./evidence/coverage_summary.txt)
 - ⚡ **k6 Load Performance Export (p95 = 188.4 ms)**: [`tests/evidence/performance_k6_summary.json`](./evidence/performance_k6_summary.json)
 - 🛡️ **OWASP ZAP & Security Audit Summary**: [`tests/evidence/security_zap_summary.md`](./evidence/security_zap_summary.md)
 - ♿ **Lighthouse Accessibility Report (96/100)**: [`tests/evidence/lighthouse_report.md`](./evidence/lighthouse_report.md)
+
+---
+
+## 👥 Authors & Sign-Off
+
+- **Abu Nasim** (Registration ID: `0432320005101033`, Student ID: `211014022`, GitHub: [`@Error-nasim`](https://github.com/Error-nasim)) — Test Lead & Full-Stack Architect
+- **Rimon Chandra Bhowmik** (Registration ID: `0432320005101001`, Student ID: `211014035`) — Documentation Lead & Quality Assurance Engineer
+- **Course Supervisor**: **Al Imtiaz**, Associate Professor, Department of Computer Science & Engineering, UITS
