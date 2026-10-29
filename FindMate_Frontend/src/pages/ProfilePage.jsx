@@ -247,7 +247,6 @@ export default function ProfilePage({
             background: isSelf
               ? 'linear-gradient(135deg, rgba(99,102,241,0.22), rgba(139,92,246,0.14))'
               : 'linear-gradient(135deg, rgba(16,185,129,0.18), rgba(99,102,241,0.15))',
-            borderBottom: '1px solid var(--border-subtle)',
             position: 'relative',
           }}
         >
@@ -278,6 +277,8 @@ export default function ProfilePage({
             style={{
               marginTop: -46,
               marginBottom: 18,
+              position: 'relative',
+              zIndex: 10,
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'flex-end',
@@ -290,7 +291,10 @@ export default function ProfilePage({
                 background: 'var(--bg-card)',
                 borderRadius: '50%',
                 padding: 4,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                position: 'relative',
+                zIndex: 10,
+                display: 'inline-flex',
+                boxShadow: '0 0 0 4px var(--bg-card), 0 4px 16px rgba(0,0,0,0.12)',
               }}
             >
               <Avatar initials={displayedUser.avatar || 'AN'} size={82} />

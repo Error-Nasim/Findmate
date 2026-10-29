@@ -42,6 +42,8 @@ export default function Avatar({ initials = 'ME', size = 36 }) {
         fontWeight: 700,
         fontFamily: 'var(--font-inter)',
         flexShrink: 0,
+        position: 'relative',
+        zIndex: 2,
       }}
     >
       {initials}

@@ -107,7 +107,6 @@ export default function LobbyDetailView({
             height: 90,
             background: `linear-gradient(135deg, ${hostColor}22, ${hostColor}08)`,
             position: "relative",
-            borderBottom: "1px solid var(--border-subtle)",
           }}
         >
           <div
@@ -117,10 +116,12 @@ export default function LobbyDetailView({
               position: "absolute",
               bottom: -24,
               left: 24,
+              zIndex: 10,
+              display: "inline-flex",
               background: "var(--bg-card)",
               borderRadius: "50%",
               padding: 4,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              boxShadow: "0 0 0 3px var(--bg-card), 0 2px 8px rgba(0,0,0,0.08)",
               cursor: "pointer",
               transition: "transform 0.15s ease",
             }}
