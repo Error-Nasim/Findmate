@@ -52,6 +52,11 @@ docs/
 ├── API/                                   # REST API contracts & endpoint specifications
 │   └── Backend_API_Spec.md                # Go Gin endpoints, request/response DTOs, & status codes
 │
+├── Schedule/                              # 14-Week Work Breakdown Schedule & Gantt Deliverables
+│   ├── FindMate_14_Week_Gantt_Schedule.xlsx # Interactive Excel Gantt Chart with frozen panes & KPIs
+│   ├── FindMate_14_Week_Gantt_Schedule.csv  # Universal CSV format of the WBS timeline
+│   └── Project_Schedule_Gantt.md          # Comprehensive WBS matrix & visual flowcharts
+│
 └── Manuals/                               # Onboarding, deployment, and operation guides
     ├── Setup_Guide.md                     # Local development environment bootstrap
     └── Deployment_Guide.md                # Production hosting, Docker, and CI/CD operations
@@ -73,9 +78,12 @@ docs/
 | **Architecture** | **Entity-Relationship Model (ERD)** | Completed | [`Diagrams/ER_Diagram.md`](./Diagrams/ER_Diagram.md) | Chen's modular ER model and standard Crow's Foot relational database schema. |
 | **Architecture** | **System Sequence Diagrams** | Completed | [`Diagrams/Sequence_Diagram.md`](./Diagrams/Sequence_Diagram.md) | 5 end-to-end temporal lifelines covering Auth, Lobby CRUD, Vetting, DMs, and Moderation. |
 | **Architecture** | **Use Case Diagrams & Specifications** | Completed | [`Diagrams/Usecase Diagram/UseCase_Diagram.md`](./Diagrams/Usecase%20Diagram/UseCase_Diagram.md) | High-level system boundary diagram and 4 subsystem-level use case models. |
+| **Project Schedule** | **14-Week Milestone Gantt Chart (Excel)** | Completed | [`Schedule/FindMate_14_Week_Gantt_Schedule.xlsx`](./Schedule/FindMate_14_Week_Gantt_Schedule.xlsx) | Interactive color-coded spreadsheet with frozen panes, WBS, and milestone quality gates. |
+| **Project Schedule** | **14-Week WBS & Schedule Report** | Completed | [`Schedule/Project_Schedule_Gantt.md`](./Schedule/Project_Schedule_Gantt.md) | Complete 14-week WBS matrix, Mermaid flowcharts, and milestone quality gate dictionary. |
 | **Backend** | **Go Gin REST API Architecture** | Completed | [`FindMate_Backend/README.md`](../FindMate_Backend/README.md) | Endpoint catalog, Go struct definitions, database mappings, and middleware requirements. |
 | **Frontend** | **React 19 Frontend Architecture** | Completed | [`FindMate_Frontend/README.md`](../FindMate_Frontend/README.md) | Component hierarchy, client-side routes, mock persistence engine, and theme tokens. |
-| **Roadmap** | **Final Capstone Project Report** | Scheduled | `Reports/Final_Report.pdf` | Consolidated project report for final defense and thesis submission. |
+| **Final Capstone** | **Official Final Project Report (Word)** | Completed | [`Reports/final/Final_Report.docx`](./Reports/final/Final_Report.docx) | Fully populated long-format OBE/BAETE project report with aligned formatting. |
+| **Final Capstone** | **Official Final Project Report (Markdown)** | Completed | [`Reports/final/Final_Report.md`](./Reports/final/Final_Report.md) | Complete long-format report with interactive Mermaid UML models and centered figures. |
 
 ---
 
