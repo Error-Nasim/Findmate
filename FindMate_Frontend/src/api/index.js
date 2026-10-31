@@ -1,6 +1,5 @@
 // Centralized API Layer for FindMate
-// Pre-Go Stage: Simulates real REST endpoints with localStorage persistence
-// Future Go Integration: Simply toggle VITE_USE_REAL_BACKEND=true to hit the Go Gin/REST server!
+// Connected directly to Go REST Backend (http://localhost:8080/api) with graceful offline fallback
 
 import axios from "axios";
 import { lobbies as initialLobbies } from "../data/lobbies.js";
@@ -9,13 +8,25 @@ import { dmThreads as initialDMThreads } from "../data/dmThreads.js";
 import { notifications as initialNotifications } from "../data/notifications.js";
 import { initialUsers } from "../data/users.js";
 
-// Axios client ready for Go Gin server
+// Axios client ready for Go REST server
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+// Attach JWT token automatically to every request if present
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("findmate_jwt_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 const STORAGE_KEYS = {
   LOBBIES: "findmate_lobbies",
@@ -30,119 +41,6 @@ const STORAGE_KEYS = {
   PENDING_IDS: "findmate_pending_lobby_ids",
   ACCEPTED_IDS: "findmate_accepted_lobby_ids",
 };
-
-const initialReports = [
-  {
-    id: 1,
-    type: "lobby",
-    name: "CS Study Session",
-    targetId: "5",
-    reporter: "Zara Kim",
-    reason: "Spam",
-    details: "Host is not hosting a study session, just promoting external Discord crypto server.",
-    time: "5 min ago",
-    status: "pending",
-  },
-  {
-    id: 2,
-    type: "user",
-    name: "@spambot99",
-    targetId: "u_fake",
-    reporter: "Abu Nasim",
-    reason: "Inappropriate Behavior",
-    details: "User is sending repeated copy-paste spam messages in DM threads.",
-    time: "22 min ago",
-    status: "pending",
-  },
-  {
-    id: 3,
-    type: "lobby",
-    name: "Free Robux Grind",
-    targetId: "fake_robux",
-    reporter: "Marcus J.",
-    reason: "Fake Lobby",
-    details: "Phishing link and malicious Discord invites in lobby description.",
-    time: "1 hr ago",
-    status: "pending",
-  },
-  {
-    id: 4,
-    type: "user",
-    name: "@ragequitter",
-    targetId: "u_rage",
-    reporter: "Priya Rao",
-    reason: "Toxic Behavior",
-    details: "Insulted teammates in group chat before quitting mid-match.",
-    time: "Yesterday",
-    status: "resolved",
-    actionTaken: "Banned User",
-    adminNote: "Confirmed toxic chat logs. 7-day ban applied.",
-    resolvedBy: "Abu Nasim",
-    resolvedAt: "Yesterday",
-  },
-  {
-    id: 5,
-    type: "lobby",
-    name: "Duplicate Valorant Comp",
-    targetId: "dup_val",
-    reporter: "Eli Torres",
-    reason: "Duplicate Posting",
-    details: "User created two identical lobbies within 1 minute.",
-    time: "2 days ago",
-    status: "dismissed",
-    actionTaken: "Dismissed",
-    adminNote: "Host cancelled the second lobby manually. No infraction.",
-    resolvedBy: "Rimon Chandra Bhowmik",
-    resolvedAt: "2 days ago",
-  },
-];
-
-const initialAuditLogs = [
-  {
-    id: "log_1",
-    admin: "Abu Nasim (@Error-nasim)",
-    action: "BAN_USER",
-    target: "@ragequitter",
-    details: "Banned for toxic chat behavior in Elden Ring Co-op lobby",
-    timestamp: "Yesterday, 4:15 PM",
-  },
-  {
-    id: "log_2",
-    admin: "Abu Nasim (@Error-nasim)",
-    action: "DELETE_LOBBY",
-    target: "Lobby #8 (Free Robux Grind)",
-    details: "Deleted due to verified phishing link",
-    timestamp: "2 days ago, 11:30 AM",
-  },
-  {
-    id: "log_3",
-    admin: "Rimon Chandra Bhowmik (@rimon21)",
-    action: "ADD_TAG",
-    target: "#hackathon",
-    details: "Created official taxonomy tag for SBU Hackathon 2026",
-    timestamp: "3 days ago, 2:10 PM",
-  },
-  {
-    id: "log_4",
-    admin: "Abu Nasim (@Error-nasim)",
-    action: "BROADCAST",
-    target: "System Announcement",
-    details: "Broadcasted: 'Welcome to FindMate Spring 2026!'",
-    timestamp: "5 days ago, 9:00 AM",
-  },
-];
-
-const initialAnnouncements = [
-  {
-    id: "ann_1",
-    title: "⚡ Welcome to FindMate Spring 2026!",
-    message: "Find teammates instantly across Gaming, Coding, Sports, and Study lobbies. Have fun and be respectful!",
-    type: "info",
-    icon: "⚡",
-    createdAt: "Today",
-    isActive: true,
-  },
-];
 
 const initialTags = [
   "#gaming",
@@ -183,13 +81,56 @@ function writeStorage(key, val) {
 }
 
 export const api = {
+  // ── Authentication ──
+  login: async (credentials) => {
+    try {
+      const res = await apiClient.post("/auth/login", credentials);
+      if (res.data?.token) {
+        localStorage.setItem("findmate_jwt_token", res.data.token);
+      }
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Login failed";
+      throw new Error(msg);
+    }
+  },
+
+  register: async (userData) => {
+    try {
+      const res = await apiClient.post("/auth/register", userData);
+      if (res.data?.token) {
+        localStorage.setItem("findmate_jwt_token", res.data.token);
+      }
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Registration failed";
+      throw new Error(msg);
+    }
+  },
+
   // ── Lobbies ──
   getLobbies: async () => {
+    try {
+      const res = await apiClient.get("/lobbies");
+      if (Array.isArray(res.data)) {
+        return res.data;
+      }
+    } catch (err) {
+      console.warn("[API] getLobbies fallback to local storage:", err.message);
+    }
     const data = readStorage(STORAGE_KEYS.LOBBIES, initialLobbies);
     return Promise.resolve([...data]);
   },
 
   createLobby: async (newLobby) => {
+    try {
+      const res = await apiClient.post("/lobbies", newLobby);
+      if (res.data) {
+        return res.data;
+      }
+    } catch (err) {
+      console.warn("[API] createLobby fallback to local storage:", err.message);
+    }
     const lobbies = readStorage(STORAGE_KEYS.LOBBIES, initialLobbies);
     const created = {
       id: String(Date.now()),
@@ -214,6 +155,12 @@ export const api = {
   },
 
   updateLobbyStatus: async (lobbyId, newStatus) => {
+    try {
+      const res = await apiClient.patch(`/lobbies/${lobbyId}/status`, { status: newStatus });
+      return res.data || { success: true, lobbyId, status: newStatus };
+    } catch (err) {
+      console.warn("[API] updateLobbyStatus fallback:", err.message);
+    }
     const lobbies = readStorage(STORAGE_KEYS.LOBBIES, initialLobbies);
     const updated = lobbies.map((l) =>
       l.id === lobbyId ? { ...l, status: newStatus } : l,
@@ -223,6 +170,12 @@ export const api = {
   },
 
   deleteLobby: async (lobbyId) => {
+    try {
+      await apiClient.delete(`/lobbies/${lobbyId}`);
+      return { success: true, lobbyId };
+    } catch (err) {
+      console.warn("[API] deleteLobby fallback:", err.message);
+    }
     const lobbies = readStorage(STORAGE_KEYS.LOBBIES, initialLobbies);
     const updated = lobbies.filter((l) => l.id !== lobbyId);
     writeStorage(STORAGE_KEYS.LOBBIES, updated);
@@ -230,73 +183,101 @@ export const api = {
   },
 
   // ── Applicants ──
-  getApplicants: async () => {
+  getApplicants: async (lobbyId) => {
+    try {
+      const url = lobbyId ? `/lobbies/${lobbyId}/applicants` : `/applicants`;
+      const res = await apiClient.get(url);
+      if (Array.isArray(res.data)) return res.data;
+    } catch (err) {
+      console.warn("[API] getApplicants fallback:", err.message);
+    }
     const data = readStorage(STORAGE_KEYS.APPLICANTS, initialApplicants);
     return Promise.resolve([...data]);
   },
 
   addApplicant: async (applicantData) => {
+    try {
+      const res = await apiClient.post(`/lobbies/${applicantData.lobbyId}/apply`, {
+        pitchNote: applicantData.message || applicantData.pitchNote || "Hey, I would like to join!",
+      });
+      if (res.data) return res.data;
+    } catch (err) {
+      console.warn("[API] addApplicant fallback:", err.message);
+    }
     const applicants = readStorage(STORAGE_KEYS.APPLICANTS, initialApplicants);
     const newApplicant = {
       id: `app_${Date.now()}`,
       status: "pending",
-      reliability: 96,
-      teamUps: 14,
+      reliability: 100,
+      teamUps: 0,
       ...applicantData,
     };
     const updated = [newApplicant, ...applicants];
     writeStorage(STORAGE_KEYS.APPLICANTS, updated);
-
-    // Also increment lobby pending count
-    const lobbies = readStorage(STORAGE_KEYS.LOBBIES, initialLobbies);
-    const updatedLobbies = lobbies.map((l) =>
-      l.id === applicantData.lobbyId ? { ...l, pending: (l.pending || 0) + 1 } : l,
-    );
-    writeStorage(STORAGE_KEYS.LOBBIES, updatedLobbies);
-
     return Promise.resolve(newApplicant);
   },
 
   updateApplicantStatus: async (applicantId, status) => {
-    const applicants = readStorage(STORAGE_KEYS.APPLICANTS, initialApplicants);
-    const target = applicants.find((a) => a.id === applicantId);
-    const updatedApplicants = applicants.map((a) =>
-      a.id === applicantId ? { ...a, status } : a,
-    );
-    writeStorage(STORAGE_KEYS.APPLICANTS, updatedApplicants);
-
-    if (target && status === "accepted") {
-      const lobbies = readStorage(STORAGE_KEYS.LOBBIES, initialLobbies);
-      const updatedLobbies = lobbies.map((l) => {
-        if (l.id === target.lobbyId) {
-          const nextJoined = Math.min(l.joined + 1, l.max);
-          const nextPending = Math.max(0, (l.pending || 1) - 1);
-          return {
-            ...l,
-            joined: nextJoined,
-            pending: nextPending,
-            status: nextJoined >= l.max ? "Full" : l.status,
-            chatMessages: [
-              ...(l.chatMessages || []),
-              {
-                id: `sys_${Date.now()}`,
-                type: "system",
-                text: `${target.name} was accepted and joined the team! 🎉`,
-                time: "Just now",
-              },
-            ],
-          };
-        }
-        return l;
-      });
-      writeStorage(STORAGE_KEYS.LOBBIES, updatedLobbies);
+    try {
+      const res = await apiClient.put(`/applicants/${applicantId}/status`, { status });
+      const serverData = res.data;
+      const applicants = readStorage(STORAGE_KEYS.APPLICANTS, initialApplicants);
+      const updatedApplicants = applicants.map((a) =>
+        a.id === applicantId ? { ...a, status } : a,
+      );
+      writeStorage(STORAGE_KEYS.APPLICANTS, updatedApplicants);
+      return serverData || { success: true, applicantId, status };
+    } catch (err) {
+      console.warn("[API] updateApplicantStatus error:", err.message);
+      const applicants = readStorage(STORAGE_KEYS.APPLICANTS, initialApplicants);
+      const updatedApplicants = applicants.map((a) =>
+        a.id === applicantId ? { ...a, status } : a,
+      );
+      writeStorage(STORAGE_KEYS.APPLICANTS, updatedApplicants);
+      return { success: true, applicantId, status, fallback: true };
     }
-
-    return Promise.resolve({ success: true, applicantId, status });
   },
 
   // ── Chat & DMs ──
-  sendLobbyMessage: async (lobbyId, text, sender = "You", avatar = "AN") => {
+  getChatMessages: async (lobbyId) => {
+    try {
+      const res = await apiClient.get(`/lobbies/${lobbyId}/messages`);
+      if (Array.isArray(res.data)) {
+        return res.data.map((m) => ({
+          ...m,
+          time:
+            m.time ||
+            (m.sentAt
+              ? new Date(m.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+              : "Just now"),
+        }));
+      }
+    } catch (err) {
+      console.warn("[API] getChatMessages fallback:", err.message);
+    }
+    const lobbies = readStorage(STORAGE_KEYS.LOBBIES, initialLobbies);
+    const lobby = lobbies.find((l) => String(l.id) === String(lobbyId));
+    return Promise.resolve(lobby?.chatMessages || []);
+  },
+
+  sendLobbyMessage: async (lobbyId, text, sender = "You", avatar = "ME") => {
+    try {
+      const res = await apiClient.post(`/lobbies/${lobbyId}/messages`, {
+        text,
+        sender,
+        avatar,
+        type: "user",
+      });
+      if (res.data) {
+        const msg = res.data;
+        if (!msg.time) {
+          msg.time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        }
+        return msg;
+      }
+    } catch (err) {
+      console.warn("[API] sendLobbyMessage fallback:", err.message);
+    }
     const lobbies = readStorage(STORAGE_KEYS.LOBBIES, initialLobbies);
     const newMsg = {
       id: `msg_${Date.now()}`,
@@ -306,7 +287,7 @@ export const api = {
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
     const updated = lobbies.map((l) =>
-      l.id === lobbyId
+      String(l.id) === String(lobbyId)
         ? { ...l, chatMessages: [...(l.chatMessages || []), newMsg] }
         : l,
     );
@@ -315,11 +296,54 @@ export const api = {
   },
 
   getDMThreads: async () => {
+    try {
+      const res = await apiClient.get("/dm/threads");
+      if (Array.isArray(res.data)) return res.data;
+    } catch (err) {
+      console.warn("[API] getDMThreads fallback:", err.message);
+    }
     const data = readStorage(STORAGE_KEYS.DMS, initialDMThreads);
     return Promise.resolve([...data]);
   },
 
+  getDMMessages: async (threadId) => {
+    try {
+      const res = await apiClient.get(`/dm/${threadId}/messages`);
+      if (Array.isArray(res.data)) {
+        return res.data.map((m) => ({
+          ...m,
+          time:
+            m.time ||
+            (m.sentAt
+              ? new Date(m.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+              : "Just now"),
+        }));
+      }
+    } catch (err) {
+      console.warn("[API] getDMMessages fallback:", err.message);
+    }
+    const threads = readStorage(STORAGE_KEYS.DMS, initialDMThreads);
+    const thread = threads.find((t) => t.id === threadId);
+    return Promise.resolve(thread?.messages || []);
+  },
+
   sendDMMessage: async (threadId, text, sender = "You", avatar = "ME") => {
+    try {
+      const res = await apiClient.post(`/dm/${threadId}/messages`, {
+        text,
+        sender,
+        avatar,
+      });
+      if (res.data) {
+        const msg = res.data;
+        if (!msg.time) {
+          msg.time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        }
+        return msg;
+      }
+    } catch (err) {
+      console.warn("[API] sendDMMessage fallback:", err.message);
+    }
     const threads = readStorage(STORAGE_KEYS.DMS, initialDMThreads);
     const newMsg = {
       id: `dm_${Date.now()}`,
@@ -343,6 +367,12 @@ export const api = {
   },
 
   createDMThread: async (threadData) => {
+    try {
+      const res = await apiClient.post("/dm/threads", threadData);
+      if (res.data) return res.data;
+    } catch (err) {
+      console.warn("[API] createDMThread fallback:", err.message);
+    }
     const threads = readStorage(STORAGE_KEYS.DMS, initialDMThreads);
     const existing = threads.find((t) => t.id === threadData.id);
     if (existing) return Promise.resolve(existing);
@@ -352,13 +382,35 @@ export const api = {
     return Promise.resolve(threadData);
   },
 
+  markDMThreadRead: async (threadId) => {
+    try {
+      await apiClient.patch(`/dm/${threadId}/read`);
+      return { success: true };
+    } catch (err) {
+      console.warn("[API] markDMThreadRead fallback:", err.message);
+    }
+    return Promise.resolve({ success: true });
+  },
+
   // ── Notifications ──
   getNotifications: async () => {
+    try {
+      const res = await apiClient.get("/notifications");
+      if (Array.isArray(res.data)) return res.data;
+    } catch (err) {
+      console.warn("[API] getNotifications fallback:", err.message);
+    }
     const data = readStorage(STORAGE_KEYS.NOTIFS, initialNotifications);
     return Promise.resolve([...data]);
   },
 
   addNotification: async (notif) => {
+    try {
+      const res = await apiClient.post("/notifications", notif);
+      if (res.data) return res.data;
+    } catch (err) {
+      console.warn("[API] addNotification fallback:", err.message);
+    }
     const notifs = readStorage(STORAGE_KEYS.NOTIFS, initialNotifications);
     const newNotif = {
       id: String(Date.now()),
@@ -372,6 +424,12 @@ export const api = {
   },
 
   markNotificationRead: async (notifId) => {
+    try {
+      await apiClient.patch(`/notifications/${notifId}/read`);
+      return { success: true };
+    } catch (err) {
+      console.warn("[API] markNotificationRead fallback:", err.message);
+    }
     const notifs = readStorage(STORAGE_KEYS.NOTIFS, initialNotifications);
     const updated = notifs.map((n) =>
       n.id === notifId ? { ...n, unread: false } : n,
@@ -381,20 +439,62 @@ export const api = {
   },
 
   markAllNotificationsRead: async () => {
+    try {
+      await apiClient.patch("/notifications/read-all");
+      return { success: true };
+    } catch (err) {
+      console.warn("[API] markAllNotificationsRead fallback:", err.message);
+    }
     const notifs = readStorage(STORAGE_KEYS.NOTIFS, initialNotifications);
     const updated = notifs.map((n) => ({ ...n, unread: false }));
     writeStorage(STORAGE_KEYS.NOTIFS, updated);
     return Promise.resolve({ success: true });
   },
 
+  deleteNotification: async (notifId) => {
+    try {
+      const res = await apiClient.delete(`/notifications/${notifId}`);
+      if (res.data) return res.data;
+    } catch (err) {
+      console.warn("[API] deleteNotification fallback:", err.message);
+    }
+    const notifs = readStorage(STORAGE_KEYS.NOTIFS, initialNotifications);
+    const updated = notifs.filter((n) => String(n.id) !== String(notifId));
+    writeStorage(STORAGE_KEYS.NOTIFS, updated);
+    return Promise.resolve({ success: true, id: notifId });
+  },
+
+  clearAllNotifications: async (recipientId = "") => {
+    try {
+      const res = await apiClient.delete(`/notifications${recipientId ? `?recipientId=${recipientId}` : ""}`);
+      if (res.data) return res.data;
+    } catch (err) {
+      console.warn("[API] clearAllNotifications fallback:", err.message);
+    }
+    writeStorage(STORAGE_KEYS.NOTIFS, []);
+    return Promise.resolve({ success: true });
+  },
+
   // ── Reports & Moderation ──
   getReports: async () => {
-    const data = readStorage(STORAGE_KEYS.REPORTS, initialReports);
+    try {
+      const res = await apiClient.get("/reports");
+      if (Array.isArray(res.data)) return res.data;
+    } catch (err) {
+      console.warn("[API] getReports fallback:", err.message);
+    }
+    const data = readStorage(STORAGE_KEYS.REPORTS, []);
     return Promise.resolve([...data]);
   },
 
   createReport: async (reportData) => {
-    const reports = readStorage(STORAGE_KEYS.REPORTS, initialReports);
+    try {
+      const res = await apiClient.post("/reports", reportData);
+      if (res.data) return res.data;
+    } catch (err) {
+      console.warn("[API] createReport fallback:", err.message);
+    }
+    const reports = readStorage(STORAGE_KEYS.REPORTS, []);
     const newReport = {
       id: Date.now(),
       time: "Just now",
@@ -407,7 +507,13 @@ export const api = {
   },
 
   resolveReport: async (reportId, actionData = {}) => {
-    const reports = readStorage(STORAGE_KEYS.REPORTS, initialReports);
+    try {
+      const res = await apiClient.patch(`/reports/${reportId}`, actionData);
+      return res.data || { success: true, reportId, ...actionData };
+    } catch (err) {
+      console.warn("[API] resolveReport fallback:", err.message);
+    }
+    const reports = readStorage(STORAGE_KEYS.REPORTS, []);
     const updated = reports.map((r) =>
       r.id === reportId
         ? {
@@ -435,13 +541,19 @@ export const api = {
 
   // ── Users Management ──
   getUsers: async () => {
+    try {
+      const res = await apiClient.get("/users");
+      if (Array.isArray(res.data) && res.data.length > 0) return res.data;
+    } catch (err) {
+      console.warn("[API] getUsers fallback:", err.message);
+    }
     const raw = readStorage(STORAGE_KEYS.USERS, null);
     if (raw && Array.isArray(raw) && raw.length > 0) {
       return Promise.resolve([...raw]);
     }
     const normalized = initialUsers.map((u) => ({
       ...u,
-      role: u.handle === "Error-nasim" || u.handle === "rimon21" ? "admin" : (u.role || "member"),
+      role: u.handle === "Error-nasim" ? "admin" : (u.role || "member"),
       isBanned: Boolean(u.isBanned),
     }));
     writeStorage(STORAGE_KEYS.USERS, normalized);
@@ -449,6 +561,13 @@ export const api = {
   },
 
   updateUser: async (userQuery, updates) => {
+    try {
+      const cleanHandle = String(userQuery).replace(/^@/, "");
+      const res = await apiClient.put(`/users/${cleanHandle}`, updates);
+      if (res.data) return res.data;
+    } catch (err) {
+      console.warn("[API] updateUser fallback:", err.message);
+    }
     const users = readStorage(STORAGE_KEYS.USERS, initialUsers);
     const cleanQuery = String(userQuery).replace(/^@/, "").toLowerCase();
     const updated = users.map((u) => {
@@ -472,24 +591,36 @@ export const api = {
     );
   },
 
-  // ── Lobby Updates ──
-  updateLobby: async (lobbyId, updates) => {
-    const lobbies = readStorage(STORAGE_KEYS.LOBBIES, initialLobbies);
-    const updated = lobbies.map((l) =>
-      l.id === lobbyId ? { ...l, ...updates } : l,
-    );
-    writeStorage(STORAGE_KEYS.LOBBIES, updated);
-    return Promise.resolve(updated.find((l) => l.id === lobbyId));
+  rateUser: async (userId, ratingData) => {
+    try {
+      const res = await apiClient.post(`/users/${userId}/rate`, ratingData);
+      return res.data;
+    } catch (err) {
+      console.warn("[API] rateUser fallback:", err.message);
+      return { success: true };
+    }
   },
 
   // ── Admin Audit Logs ──
   getAuditLogs: async () => {
-    const data = readStorage(STORAGE_KEYS.AUDIT_LOGS, initialAuditLogs);
+    try {
+      const res = await apiClient.get("/admin/audit-logs");
+      if (Array.isArray(res.data)) return res.data;
+    } catch (err) {
+      console.warn("[API] getAuditLogs fallback:", err.message);
+    }
+    const data = readStorage(STORAGE_KEYS.AUDIT_LOGS, []);
     return Promise.resolve([...data]);
   },
 
   addAuditLog: async (entry) => {
-    const logs = readStorage(STORAGE_KEYS.AUDIT_LOGS, initialAuditLogs);
+    try {
+      const res = await apiClient.post("/admin/audit-logs", entry);
+      if (res.data) return res.data;
+    } catch (err) {
+      console.warn("[API] addAuditLog fallback:", err.message);
+    }
+    const logs = readStorage(STORAGE_KEYS.AUDIT_LOGS, []);
     const newEntry = {
       id: `log_${Date.now()}`,
       timestamp: new Date().toLocaleString([], {
@@ -507,12 +638,24 @@ export const api = {
 
   // ── Announcements & Broadcasts ──
   getAnnouncements: async () => {
-    const data = readStorage(STORAGE_KEYS.ANNOUNCEMENTS, initialAnnouncements);
+    try {
+      const res = await apiClient.get("/admin/announcements");
+      if (Array.isArray(res.data)) return res.data;
+    } catch (err) {
+      console.warn("[API] getAnnouncements fallback:", err.message);
+    }
+    const data = readStorage(STORAGE_KEYS.ANNOUNCEMENTS, []);
     return Promise.resolve([...data]);
   },
 
   createAnnouncement: async (data) => {
-    const current = readStorage(STORAGE_KEYS.ANNOUNCEMENTS, initialAnnouncements);
+    try {
+      const res = await apiClient.post("/admin/announcements", data);
+      if (res.data) return res.data;
+    } catch (err) {
+      console.warn("[API] createAnnouncement fallback:", err.message);
+    }
+    const current = readStorage(STORAGE_KEYS.ANNOUNCEMENTS, []);
     const newAnn = {
       id: `ann_${Date.now()}`,
       createdAt: "Just now",
@@ -527,7 +670,13 @@ export const api = {
   },
 
   deleteAnnouncement: async (id) => {
-    const current = readStorage(STORAGE_KEYS.ANNOUNCEMENTS, initialAnnouncements);
+    try {
+      await apiClient.delete(`/admin/announcements/${id}`);
+      return { success: true, id };
+    } catch (err) {
+      console.warn("[API] deleteAnnouncement fallback:", err.message);
+    }
+    const current = readStorage(STORAGE_KEYS.ANNOUNCEMENTS, []);
     const updated = current.filter((a) => a.id !== id);
     writeStorage(STORAGE_KEYS.ANNOUNCEMENTS, updated);
     return Promise.resolve({ success: true, id });
@@ -535,11 +684,24 @@ export const api = {
 
   // ── Platform Tags ──
   getTags: async () => {
+    try {
+      const res = await apiClient.get("/tags");
+      if (Array.isArray(res.data)) return res.data.map((t) => t.name || t);
+    } catch (err) {
+      console.warn("[API] getTags fallback:", err.message);
+    }
     const data = readStorage(STORAGE_KEYS.TAGS, initialTags);
     return Promise.resolve([...data]);
   },
 
   addTag: async (tag) => {
+    try {
+      const formatted = tag.startsWith("#") ? tag.trim() : `#${tag.trim()}`;
+      await apiClient.post("/tags", { tag: formatted });
+      return api.getTags();
+    } catch (err) {
+      console.warn("[API] addTag fallback:", err.message);
+    }
     const tags = readStorage(STORAGE_KEYS.TAGS, initialTags);
     const formatted = tag.startsWith("#") ? tag.trim() : `#${tag.trim()}`;
     if (!tags.includes(formatted)) {
@@ -551,6 +713,13 @@ export const api = {
   },
 
   removeTag: async (tag) => {
+    try {
+      const formatted = tag.startsWith("#") ? tag.trim() : `#${tag.trim()}`;
+      await apiClient.delete(`/tags/${encodeURIComponent(formatted)}`);
+      return api.getTags();
+    } catch (err) {
+      console.warn("[API] removeTag fallback:", err.message);
+    }
     const tags = readStorage(STORAGE_KEYS.TAGS, initialTags);
     const updated = tags.filter((t) => t !== tag);
     writeStorage(STORAGE_KEYS.TAGS, updated);
@@ -569,7 +738,7 @@ export const api = {
   },
 
   getAcceptedLobbyIds: async () => {
-    const data = readStorage(STORAGE_KEYS.ACCEPTED_IDS, ["1", "2", "3"]);
+    const data = readStorage(STORAGE_KEYS.ACCEPTED_IDS, []);
     return Promise.resolve(new Set(data));
   },
 

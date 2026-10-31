@@ -62,11 +62,13 @@ Traditional platforms force users through cumbersome event planning tools, rigid
 - **Host Review Queue**: Hosts inspect applicant reliability percentages, past team-ups, and connected accounts.
 - **Atomic Slot Locking**: Approvals automatically update lobby capacity, broadcast a squad announcement, and spawn a direct messaging thread.
 
-### 💬 3. Integrated Messaging System
+### 💬 3. Integrated Real-Time Messaging System
 
-- **Lobby Squad Chat**: Dedicated group chat room automatically provisioned for host and approved teammates.
-- **1-on-1 Direct Messaging (DMs)**: Private bilateral chat threads with unread message badges and active conversations.
-- **Real-Time Notifications**: Interactive notification panel for incoming applications, approvals, and messages.
+- **Zero-Refresh Real-Time Engine**: Built-in reactive synchronization polls active chat and DM channels every 1.5 seconds and global state every 3 seconds, delivering real-time messages and notifications without page reloads.
+- **Lobby Squad Chat**: Dedicated group chat room automatically provisioned for host and approved teammates upon admission.
+- **1-on-1 Direct Messaging (DMs)**: Private bilateral chat threads with auto-updating unread badges and instant slide-in panel from user profiles.
+- **Navbar Unread Message Red Dot**: High-visibility red dot and unread badge on both Desktop and Mobile navigation bars whenever incoming messages arrive.
+- **Interactive Notification Center**: Dropdown notification panel for incoming applications, approvals, and messages with single-click individual deletion (`🗑️`) and a "Clear all" option.
 
 ### 🛡️ 4. Full-Featured Admin Control Center (`/admin`)
 
@@ -154,13 +156,15 @@ The project was executed across a 14-week lifecycle adhering to Agile Scrum prin
 | **React Router** | `v6.28.0` | Declarative client-side routing with nested layouts          |
 | **Axios**        | `v1.7.9`  | Promise-based HTTP client with environment-aware baseURL     |
 
-### Backend (`/FindMate_Backend`)
+### Backend ([`/FindMate_Backend`](./FindMate_Backend/README.md))
 
-| Technology      | Version   | Description                                           |
-| :-------------- | :-------- | :---------------------------------------------------- |
-| **Go (Golang)** | `1.22+`   | High-throughput, low-latency compiled backend runtime |
-| **Gin Gonic**   | `v1.10.0` | Lightweight HTTP web framework and router             |
-| **PostgreSQL**  | `16.0+`   | Relational ACID database with UUIDs and JSONB support |
+| Technology | Version | Description |
+| :--- | :--- | :--- |
+| **Go (Golang)** | `1.22+` | High-throughput, low-latency compiled runtime with DDD architecture |
+| **Standard Router** | `Go 1.22 http.ServeMux` | Native enhanced verb and pattern-based HTTP routing |
+| **sqlx** | `v1.4.0` | Ergonomic extensions to Go's standard `database/sql` library |
+| **PostgreSQL** | `16.0+` | Relational ACID database with automated SQL migrations |
+| **JWT & Bcrypt** | `golang-jwt/v5`, `bcrypt` | Stateless bearer token authentication & salted password hashing |
 
 ---
 
@@ -197,8 +201,8 @@ Findmate/
 │   ├── e2e/                              # Multi-role user journey tests (Seeker, Host, Admin)
 │   ├── performance/                      # k6 high-concurrency load testing scripts
 │   └── evidence/                         # V8 coverage, OWASP ZAP, and Lighthouse exports
-├── FindMate_Frontend/                    # React 19 single-page application
-└── FindMate_Backend/                     # Go Gin backend microservice
+├── FindMate_Frontend/                    # React 19 single-page application (see FindMate_Frontend/README.md)
+└── FindMate_Backend/                     # Go 1.22 DDD REST API microservice (see FindMate_Backend/README.md)
 ```
 
 ---
@@ -209,7 +213,8 @@ Findmate/
 
 - **Node.js**: `v18.0.0` or higher (tested with `v20.x`)
 - **npm**: `v9.0.0` or higher
-- **Go**: `v1.22` or higher _(for backend verification)_
+- **Go**: `v1.22` or higher
+- **PostgreSQL**: `16.x` active on `localhost:5432`
 
 ### 1. Clone the Repository
 
@@ -218,21 +223,30 @@ git clone https://github.com/Error-nasim/Findmate.git
 cd Findmate
 ```
 
-### 2. Frontend Launch
+### 2. Launch Go Backend & PostgreSQL
+
+```bash
+# Ensure PostgreSQL database exists
+psql -U postgres -c "CREATE DATABASE findmate;"
+
+# Start Go REST API (automatically runs migrations & seeds real accounts)
+cd FindMate_Backend
+go run main.go
+# Server starts on http://localhost:8080
+```
+
+> **Pre-Seeded Real Users (Password: `1234`)**:
+> - `@Error-nasim` (Abu Nasim — Main Admin)
+> - `@rimon21` (Rimon Chandra Bhowmik — Member)
+> - `@imtiaz11` (Al Imtiaz — Member)
+
+### 3. Launch React Frontend
 
 ```bash
 cd FindMate_Frontend
 npm install
 npm run dev
-```
-
-> The development server starts at `http://localhost:5173`. The frontend features an integrated mock persistence engine, enabling complete exploration (Discover, Lobbies, Squad Chat, DMs, Admin Center) out-of-the-box.
-
-### 3. Backend Launch
-
-```bash
-cd FindMate_Backend
-go run main.go
+# Frontend starts on http://localhost:5173
 ```
 
 ---

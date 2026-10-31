@@ -1,0 +1,55 @@
+-- +migrate Up
+
+CREATE TABLE IF NOT EXISTS chat_rooms (
+    id VARCHAR(64) PRIMARY KEY,
+    lobby_id VARCHAR(64) NOT NULL REFERENCES lobbies(id) ON DELETE CASCADE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id VARCHAR(64) PRIMARY KEY,
+    lobby_id VARCHAR(64) NOT NULL REFERENCES lobbies(id) ON DELETE CASCADE,
+    sender VARCHAR(100) NOT NULL DEFAULT '',
+    avatar VARCHAR(10) NOT NULL DEFAULT 'AN',
+    text TEXT NOT NULL,
+    type VARCHAR(20) NOT NULL DEFAULT 'user',
+    sent_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS dm_threads (
+    id VARCHAR(64) PRIMARY KEY,
+    user_name VARCHAR(100) NOT NULL,
+    handle VARCHAR(60) NOT NULL,
+    avatar VARCHAR(10) NOT NULL DEFAULT 'AN',
+    lobby_context VARCHAR(150) NOT NULL DEFAULT '',
+    unread INT NOT NULL DEFAULT 0,
+    last_message TEXT NOT NULL DEFAULT '',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS dm_messages (
+    id VARCHAR(64) PRIMARY KEY,
+    thread_id VARCHAR(64) NOT NULL REFERENCES dm_threads(id) ON DELETE CASCADE,
+    sender VARCHAR(100) NOT NULL,
+    avatar VARCHAR(10) NOT NULL DEFAULT 'AN',
+    text TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    sent_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id VARCHAR(64) PRIMARY KEY,
+    recipient_id VARCHAR(64) NOT NULL DEFAULT '',
+    icon VARCHAR(10) NOT NULL DEFAULT '🔔',
+    text TEXT NOT NULL,
+    unread BOOLEAN NOT NULL DEFAULT TRUE,
+    type VARCHAR(30) NOT NULL DEFAULT 'reminder',
+    applicant_id VARCHAR(64) NOT NULL DEFAULT '',
+    dm_thread_id VARCHAR(64) NOT NULL DEFAULT '',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_lobby ON chat_messages(lobby_id);
+CREATE INDEX IF NOT EXISTS idx_dm_messages_thread ON dm_messages(thread_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id);

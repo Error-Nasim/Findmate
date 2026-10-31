@@ -13,7 +13,7 @@ export default function MyLobbiesPage({
   applicants = [],
   acceptedLobbyIds = new Set(),
   pendingLobbyIds = new Set(),
-  currentUser = { name: 'Abu Nasim', handle: 'Error-nasim' },
+  currentUser = null,
   onReviewApplicants,
   onOpenChat,
   onStatusChange,
@@ -23,23 +23,36 @@ export default function MyLobbiesPage({
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('created') // 'created' | 'joined' | 'pending'
 
+  const userHandle = currentUser?.handle?.toLowerCase()
+  const userName = currentUser?.name?.toLowerCase()
+
+  const isHost = (l) =>
+    (userHandle && l.handle?.toLowerCase() === userHandle) ||
+    (userName && l.host?.toLowerCase() === userName)
+
   // 1. Created Lobbies: Hosted by current user
-  const createdLobbies = lobbies.filter(
-    (l) => l.host === currentUser.name || l.handle === currentUser.handle
-  )
+  const createdLobbies = lobbies.filter(isHost)
+
+  const hasAccepted = (id) =>
+    acceptedLobbyIds instanceof Set
+      ? acceptedLobbyIds.has(String(id)) || acceptedLobbyIds.has(id)
+      : (acceptedLobbyIds || []).includes(String(id)) || (acceptedLobbyIds || []).includes(id)
+
+  const hasPending = (id) =>
+    pendingLobbyIds instanceof Set
+      ? pendingLobbyIds.has(String(id)) || pendingLobbyIds.has(id)
+      : (pendingLobbyIds || []).includes(String(id)) || (pendingLobbyIds || []).includes(id)
 
   // 2. Joined Teams: Accepted lobbies excluding user's own hosted lobbies
-  const joinedLobbies = lobbies.filter(
-    (l) => acceptedLobbyIds.has(l.id) && l.host !== currentUser.name
-  )
+  const joinedLobbies = lobbies.filter((l) => hasAccepted(l.id) && !isHost(l))
 
   // 3. Pending Requests: Lobbies the user applied to and awaiting host response
-  const pendingLobbies = lobbies.filter((l) => pendingLobbyIds.has(l.id))
+  const pendingLobbies = lobbies.filter((l) => hasPending(l.id) && !isHost(l))
 
   // Badge metrics
-  const createdLobbyIds = new Set(createdLobbies.map((l) => l.id))
+  const createdLobbyIds = new Set(createdLobbies.map((l) => String(l.id)))
   const incomingReviewCount = applicants.filter(
-    (a) => createdLobbyIds.has(a.lobbyId) && a.status === 'pending'
+    (a) => createdLobbyIds.has(String(a.lobbyId)) && a.status === 'pending'
   ).length
   const outgoingPendingCount = pendingLobbies.length
 
@@ -139,10 +152,10 @@ export default function MyLobbiesPage({
           ) : (
             createdLobbies.map((lobby) => {
               const pendingApplicants = applicants.filter(
-                (a) => a.lobbyId === lobby.id && a.status === 'pending'
+                (a) => String(a.lobbyId) === String(lobby.id) && a.status === 'pending'
               )
               const acceptedApplicants = applicants.filter(
-                (a) => a.lobbyId === lobby.id && a.status === 'accepted'
+                (a) => String(a.lobbyId) === String(lobby.id) && a.status === 'accepted'
               )
 
               return (

@@ -113,9 +113,9 @@ export default function PostLobbyRatingModal({
       if (state && onRateUser) {
         onRateUser(c.handle, {
           id: `post_lobby_${Date.now()}_${c.handle}`,
-          rater: currentUser?.name || "Abu Nasim",
-          raterHandle: currentUser?.handle || "Error-nasim",
-          raterAvatar: currentUser?.avatar || "AN",
+          rater: currentUser?.name || "Player",
+          raterHandle: currentUser?.handle || "player",
+          raterAvatar: currentUser?.avatar || (currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : "ME"),
           score: state.score,
           comment:
             state.comment.trim() ||

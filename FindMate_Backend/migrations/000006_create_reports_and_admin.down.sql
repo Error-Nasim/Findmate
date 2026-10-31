@@ -1,0 +1,5 @@
+-- +migrate Down
+
+DROP TABLE IF EXISTS announcements CASCADE;
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS reports CASCADE;

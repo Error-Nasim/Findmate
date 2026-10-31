@@ -12,6 +12,7 @@ import { categories, hashtagFilterPills } from '../data/lobbies.js'
 
 export default function DiscoverPage({
   lobbies = [],
+  currentUser = null,
   onCreateLobby,
   onApply,
   appliedLobbies = [],
@@ -199,6 +200,7 @@ export default function DiscoverPage({
           <LobbyCard
             key={lobby.id}
             lobby={lobby}
+            currentUser={currentUser}
             onSelect={() => onSelectLobby(lobby)}
             onApply={onApply}
             applied={appliedLobbies.includes(lobby.id)}
@@ -214,11 +216,26 @@ export default function DiscoverPage({
               gridColumn: '1 / -1',
               textAlign: 'center',
               padding: '60px 20px',
-              color: 'var(--text-muted)',
-              fontSize: 14,
+              background: 'var(--bg-card)',
+              border: '1px dashed var(--border-subtle)',
+              borderRadius: 20,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 12,
+              margin: '20px 0',
             }}
           >
-            No lobbies match your search or filters.
+            <div style={{ fontSize: 36 }}>⚡</div>
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>
+              No Lobbies Currently Active
+            </h3>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)', maxWidth: 360, lineHeight: 1.5 }}>
+              Be the first to gather teammates! Create a lobby for Gaming, Coding, Sports, or Study.
+            </p>
+            <Button v="primary" onClick={onCreateLobby} style={{ marginTop: 8 }}>
+              + Create First Squad
+            </Button>
           </div>
         )}
       </div>
@@ -226,9 +243,12 @@ export default function DiscoverPage({
   )
 }
 
-function LobbyCard({ lobby, onSelect, onApply, applied, isAccepted, onOpenChat, onViewProfile }) {
+function LobbyCard({ lobby, currentUser, onSelect, onApply, applied, isAccepted, onOpenChat, onViewProfile }) {
   const [hovered, setHovered] = useState(false)
   const isFull = lobby.joined >= lobby.max
+  const isHost =
+    (currentUser?.handle && lobby.handle?.toLowerCase() === currentUser.handle.toLowerCase()) ||
+    (currentUser?.name && lobby.host?.toLowerCase() === currentUser.name.toLowerCase())
 
   return (
     <div
@@ -338,7 +358,37 @@ function LobbyCard({ lobby, onSelect, onApply, applied, isAccepted, onOpenChat, 
 
       {/* Action Button */}
       <div onClick={e => e.stopPropagation()}>
-        {isAccepted ? (
+        {isHost ? (
+          <button
+            onClick={() => onOpenChat && onOpenChat(lobby.id)}
+            style={{
+              width: '100%',
+              padding: '11px 16px',
+              borderRadius: 10,
+              background: 'rgba(99,102,241,0.12)',
+              color: '#6366F1',
+              border: '1px solid rgba(99,102,241,0.3)',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.opacity = '0.85'
+              e.currentTarget.style.transform = 'translateY(-1px)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.opacity = '1'
+              e.currentTarget.style.transform = 'translateY(0)'
+            }}
+          >
+            👑 Your Lobby · Open Chat
+          </button>
+        ) : isAccepted ? (
           <button
             onClick={() => onOpenChat && onOpenChat(lobby.id)}
             style={{

@@ -6,7 +6,7 @@ import Avatar from "../ui/Avatar.jsx";
 import Tag from "../ui/Tag.jsx";
 import Button from "../ui/Button.jsx";
 
-export default function ApplyModal({ lobby, onClose, onSubmit, currentUser = { name: "Abu Nasim", handle: "Error-nasim" } }) {
+export default function ApplyModal({ lobby, onClose, onSubmit, currentUser = null }) {
   const [pitchMessage, setPitchMessage] = useState("");
 
   if (!lobby) return null;

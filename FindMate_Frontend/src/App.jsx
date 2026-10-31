@@ -1,7 +1,7 @@
 // App.jsx — Master Root Component with Centralized State, API Persistence, and Clean Routes
 // Routes: / (landing/feed), /feed, /activities, /messages, /profile, /admin, /lobby/:id
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Routes,
   Route,
@@ -68,6 +68,8 @@ function useIsMobile(breakpoint = 768) {
 // Helper wrapper for Lobby Detail route (/lobby/:id)
 function LobbyRouteWrapper({
   lobbies,
+  applicants = [],
+  currentUser = null,
   pendingIds,
   acceptedIds,
   onJoin,
@@ -112,8 +114,10 @@ function LobbyRouteWrapper({
   return (
     <LobbyDetailView
       lobby={lobby}
-      isPending={pendingIds.has(lobby.id)}
-      isAccepted={acceptedIds.has(lobby.id)}
+      applicants={applicants}
+      currentUser={currentUser}
+      isPending={pendingIds.has(lobby.id) || pendingIds.has(String(lobby.id))}
+      isAccepted={acceptedIds.has(lobby.id) || acceptedIds.has(String(lobby.id))}
       onBack={() => navigate("/feed")}
       onJoin={onJoin}
       onReport={() => onReport({ type: "lobby", id: lobby.id, name: lobby.title })}
@@ -164,19 +168,19 @@ export default function App() {
 
   // Sets of lobby IDs
   const [pendingLobbyIds, setPendingLobbyIds] = useState(new Set());
-  const [acceptedLobbyIds, setAcceptedLobbyIds] = useState(new Set(["1", "2", "3"]));
+  const [acceptedLobbyIds, setAcceptedLobbyIds] = useState(new Set());
 
   // Load persistent state from API
   useEffect(() => {
-    api.getLobbies().then(setLobbiesList);
-    api.getApplicants().then(setApplicantsList);
-    api.getDMThreads().then(setDmList);
-    api.getNotifications().then(setNotifsList);
-    api.getReports().then(setReportsList);
-    api.getTags().then(setPlatformTags);
-    api.getUsers().then(setUsersList);
-    api.getAuditLogs().then(setAuditLogs);
-    api.getAnnouncements().then(setAnnouncements);
+    api.getLobbies().then((data) => setLobbiesList(Array.isArray(data) ? data : []));
+    api.getApplicants().then((data) => setApplicantsList(Array.isArray(data) ? data : []));
+    api.getDMThreads().then((data) => setDmList(Array.isArray(data) ? data : []));
+    api.getNotifications().then((data) => setNotifsList(Array.isArray(data) ? data : []));
+    api.getReports().then((data) => setReportsList(Array.isArray(data) ? data : []));
+    api.getTags().then((data) => setPlatformTags(Array.isArray(data) ? data : []));
+    api.getUsers().then((data) => setUsersList(Array.isArray(data) ? data : []));
+    api.getAuditLogs().then((data) => setAuditLogs(Array.isArray(data) ? data : []));
+    api.getAnnouncements().then((data) => setAnnouncements(Array.isArray(data) ? data : []));
     api.getPendingLobbyIds().then(setPendingLobbyIds);
     api.getAcceptedLobbyIds().then((ids) => {
       if (ids && ids.size > 0) setAcceptedLobbyIds(ids);
@@ -184,15 +188,82 @@ export default function App() {
   }, []);
 
   // Current user info
-  const currentUser = {
-    id: user?.id || "u_nasim",
-    name: user?.name || "Abu Nasim",
-    handle: user?.username || "Error-nasim",
-    avatar: user?.avatar || "AN",
-    tags: user?.tags || ["#gaming", "#valorant", "#competitive"],
-    reliability: user?.reliability || 98,
-    teamUps: user?.teamUps || 24,
-  };
+  const isNasim =
+    user?.handle?.toLowerCase() === "error-nasim" ||
+    (user?.name && user.name.toLowerCase().includes("nasim"));
+  const currentUserAvatar =
+    user?.avatar && (isNasim || user.avatar !== "AN")
+      ? user.avatar
+      : user?.name
+        ? user.name
+            .trim()
+            .split(/\s+/)
+            .map((w) => w[0])
+            .join("")
+            .toUpperCase()
+            .substring(0, 2)
+        : user?.handle
+          ? user.handle.substring(0, 2).toUpperCase()
+          : "ME";
+
+  const currentUser =
+    isAuthed && user
+      ? {
+          id: user.id || "u1",
+          name: user.name || "Member",
+          handle: user.handle || user.username || "member",
+          avatar: currentUserAvatar,
+          role: user.role || "member",
+          tags: user.tags || [],
+          reliability: user.reliability ?? 98,
+          teamUps: user.teamUps ?? 0,
+          bio: user.bio || "",
+        }
+      : null;
+
+  // Dynamically compute accepted and pending lobby IDs from applicantsList and currentUser
+  const currentUserHandle = currentUser?.handle?.toLowerCase();
+  const currentUserId = currentUser?.id;
+
+  const computedAcceptedLobbyIds = useMemo(() => {
+    const ids = new Set();
+    if (acceptedLobbyIds instanceof Set) {
+      acceptedLobbyIds.forEach((id) => ids.add(String(id)));
+    }
+    if (currentUserHandle || currentUserId) {
+      applicantsList.forEach((a) => {
+        const match =
+          (currentUserHandle && a.handle?.toLowerCase() === currentUserHandle) ||
+          (currentUserId && a.userId === currentUserId);
+        if (match && a.status === "accepted") {
+          ids.add(String(a.lobbyId));
+        }
+      });
+    }
+    return ids;
+  }, [acceptedLobbyIds, applicantsList, currentUserHandle, currentUserId]);
+
+  const computedPendingLobbyIds = useMemo(() => {
+    const ids = new Set();
+    if (pendingLobbyIds instanceof Set) {
+      pendingLobbyIds.forEach((id) => ids.add(String(id)));
+    }
+    if (currentUserHandle || currentUserId) {
+      applicantsList.forEach((a) => {
+        const match =
+          (currentUserHandle && a.handle?.toLowerCase() === currentUserHandle) ||
+          (currentUserId && a.userId === currentUserId);
+        if (match) {
+          if (a.status === "pending") {
+            ids.add(String(a.lobbyId));
+          } else if (a.status === "accepted" || a.status === "declined") {
+            ids.delete(String(a.lobbyId));
+          }
+        }
+      });
+    }
+    return ids;
+  }, [pendingLobbyIds, applicantsList, currentUserHandle, currentUserId]);
 
   // Modal controls
   const [showNotifsDropdown, setShowNotifsDropdown] = useState(false);
@@ -212,9 +283,159 @@ export default function App() {
 
   // Derived counts
   const unreadNotifCount = notifsList.filter((n) => n.unread).length;
-  const unreadDMCount = dmList.reduce((acc, t) => acc + (t.unread || 0), 0);
+  const unreadDMCount = useMemo(() => {
+    if (!currentUser) return 0;
+    const myName = (currentUser.name || "").toLowerCase();
+    const myHandle = (currentUser.handle || "").replace(/^@/, "").toLowerCase();
+
+    return dmList.reduce((acc, thread) => {
+      if (thread.id === activeDMThreadId) return acc;
+
+      const msgs = thread.messages || [];
+      const unreadMsgs = msgs.filter((m) => {
+        const sender = (m.sender || "").replace(/^@/, "").toLowerCase();
+        const isFromMe = sender === myHandle || sender === myName || sender === "you";
+        return !isFromMe && m.isRead === false;
+      });
+
+      if (unreadMsgs.length > 0) {
+        return acc + unreadMsgs.length;
+      }
+      return acc + (thread.unread || 0);
+    }, 0);
+  }, [dmList, currentUser, activeDMThreadId]);
+
   const activeDMThread = dmList.find((t) => t.id === activeDMThreadId);
-  const activeChatLobby = lobbiesList.find((l) => l.id === activeChatLobbyId);
+  const activeChatLobby = lobbiesList.find((l) => String(l.id) === String(activeChatLobbyId));
+
+  // ── Real-Time Reactive Polling Engine ──
+  // Keeps active DM, active Lobby Group Chat, notifications, unread counters, lobbies & applicants in sync in real-time with zero manual page refreshes
+  useEffect(() => {
+    // 1. High-frequency sync (every 1.5s) for open active conversations (Chat & DM)
+    const fastInterval = setInterval(() => {
+      if (activeChatLobbyId) {
+        api.getChatMessages(activeChatLobbyId).then((newMsgs) => {
+          if (!Array.isArray(newMsgs)) return;
+          setLobbiesList((prev) =>
+            prev.map((l) => {
+              if (String(l.id) === String(activeChatLobbyId)) {
+                const currentMsgs = l.chatMessages || [];
+                if (
+                  currentMsgs.length !== newMsgs.length ||
+                  (newMsgs.length > 0 &&
+                    newMsgs[newMsgs.length - 1].id !== currentMsgs[currentMsgs.length - 1]?.id)
+                ) {
+                  return { ...l, chatMessages: newMsgs };
+                }
+              }
+              return l;
+            }),
+          );
+        });
+      }
+
+      if (activeDMThreadId) {
+        api.getDMMessages(activeDMThreadId).then((newMsgs) => {
+          if (!Array.isArray(newMsgs)) return;
+          setDmList((prev) =>
+            prev.map((t) => {
+              if (t.id === activeDMThreadId) {
+                const currentMsgs = t.messages || [];
+                if (
+                  currentMsgs.length !== newMsgs.length ||
+                  (newMsgs.length > 0 &&
+                    newMsgs[newMsgs.length - 1].id !== currentMsgs[currentMsgs.length - 1]?.id)
+                ) {
+                  return { ...t, messages: newMsgs, unread: 0 };
+                }
+              }
+              return t;
+            }),
+          );
+        });
+      }
+    }, 1500);
+
+    // 2. Medium-frequency sync (every 3s) for global state (Notifications, DM threads, Lobbies, Applicants)
+    const normalInterval = setInterval(() => {
+      // Real-time notifications
+      api.getNotifications().then((freshNotifs) => {
+        if (!Array.isArray(freshNotifs)) return;
+        setNotifsList((prev) => {
+          if (
+            prev.length !== freshNotifs.length ||
+            (freshNotifs.length > 0 && freshNotifs[0].id !== prev[0]?.id)
+          ) {
+            return freshNotifs;
+          }
+          return prev;
+        });
+      });
+
+      // Real-time DM threads & unread status
+      api.getDMThreads().then((freshThreads) => {
+        if (!Array.isArray(freshThreads)) return;
+        setDmList((prev) => {
+          let changed = false;
+          const merged = freshThreads.map((ft) => {
+            const existing = prev.find((t) => t.id === ft.id);
+            if (!existing) {
+              changed = true;
+              return ft;
+            }
+            if (
+              existing.lastMessage !== ft.lastMessage ||
+              existing.unread !== ft.unread ||
+              (ft.messages && ft.messages.length > (existing.messages?.length || 0))
+            ) {
+              changed = true;
+              return { ...existing, ...ft, messages: ft.messages || existing.messages || [] };
+            }
+            return existing;
+          });
+          return changed || merged.length !== prev.length ? merged : prev;
+        });
+      });
+
+      // Real-time lobbies
+      api.getLobbies().then((freshLobbies) => {
+        if (!Array.isArray(freshLobbies)) return;
+        setLobbiesList((prev) => {
+          if (prev.length !== freshLobbies.length) return freshLobbies;
+          const hasDiff = freshLobbies.some((fl) => {
+            const cur = prev.find((l) => String(l.id) === String(fl.id));
+            return !cur || cur.joined !== fl.joined || cur.status !== fl.status || cur.pending !== fl.pending;
+          });
+          if (hasDiff) {
+            return freshLobbies.map((fl) => {
+              const cur = prev.find((l) => String(l.id) === String(fl.id));
+              return cur ? { ...fl, chatMessages: cur.chatMessages || [] } : fl;
+            });
+          }
+          return prev;
+        });
+      });
+
+      // Real-time applicants
+      api.getApplicants().then((freshApps) => {
+        if (!Array.isArray(freshApps)) return;
+        setApplicantsList((prev) => {
+          if (
+            prev.length !== freshApps.length ||
+            freshApps.some((fa, idx) => fa.status !== prev[idx]?.status)
+          ) {
+            return freshApps;
+          }
+          return prev;
+        });
+      });
+    }, 3000);
+
+    return () => {
+      clearInterval(fastInterval);
+      clearInterval(normalInterval);
+    };
+  }, [activeChatLobbyId, activeDMThreadId]);
 
   // Auth triggers
   const openAuth = (view = "signin") => {
@@ -222,11 +443,16 @@ export default function App() {
     setShowAuthModal(true);
   };
 
-  const handleLoginSuccess = (userData) => {
-    login(userData);
+  const handleLoginSuccess = (userData, token) => {
+    login(userData, token);
     setShowAuthModal(false);
     navigate("/feed");
-    showToast(`Welcome back, ${userData?.name || "Abu Nasim"}!`);
+    showToast(`Welcome back, ${userData?.name || "Player"}!`);
+    // Refresh entities from backend
+    api.getLobbies().then((data) => setLobbiesList(Array.isArray(data) ? data : []));
+    api.getApplicants().then((data) => setApplicantsList(Array.isArray(data) ? data : []));
+    api.getNotifications().then((data) => setNotifsList(Array.isArray(data) ? data : []));
+    api.getDMThreads().then((data) => setDmList(Array.isArray(data) ? data : []));
   };
 
   const handleLogout = () => {
@@ -241,33 +467,60 @@ export default function App() {
       openAuth("signin");
       return;
     }
-    if (pendingLobbyIds.has(lobbyId)) {
+    const strId = String(lobbyId);
+    if (computedPendingLobbyIds.has(strId)) {
       showToast("You've already applied to this lobby.");
       return;
     }
-    if (acceptedLobbyIds.has(lobbyId)) {
+    if (computedAcceptedLobbyIds.has(strId)) {
       showToast("You are already a member of this lobby!");
       return;
     }
 
-    const lobby = lobbiesList.find((l) => l.id === lobbyId);
+    const lobby = lobbiesList.find((l) => String(l.id) === strId);
     if (!lobby) return;
+
+    // Host cannot join or pitch to own lobby
+    const isHost =
+      (currentUser?.handle && lobby.handle?.toLowerCase() === currentUser.handle.toLowerCase()) ||
+      (currentUser?.name && lobby.host?.toLowerCase() === currentUser.name.toLowerCase());
+    if (isHost) {
+      showToast("You are the host of this lobby.");
+      return;
+    }
+
     setApplyingLobby(lobby);
   };
 
   const handleConfirmApply = ({ lobbyId, message }) => {
-    const lobby = lobbiesList.find((l) => l.id === lobbyId);
+    const strId = String(lobbyId);
+    const lobby = lobbiesList.find((l) => String(l.id) === strId);
     if (!lobby) return;
 
+    if (!currentUser) {
+      openAuth("signin");
+      return;
+    }
+
+    // Host check
+    const isHost =
+      (currentUser?.handle && lobby.handle?.toLowerCase() === currentUser.handle.toLowerCase()) ||
+      (currentUser?.name && lobby.host?.toLowerCase() === currentUser.name.toLowerCase());
+    if (isHost) {
+      showToast("You are the host of this lobby.");
+      setApplyingLobby(null);
+      return;
+    }
+
     setPendingLobbyIds((prev) => {
-      const next = new Set([...prev, lobbyId]);
+      const next = new Set([...prev, strId]);
       api.savePendingLobbyIds(next);
       return next;
     });
 
     const newApp = {
       id: `app_${Date.now()}`,
-      lobbyId,
+      lobbyId: strId,
       name: currentUser.name,
       handle: currentUser.handle,
       avatar: currentUser.avatar,
@@ -279,11 +532,23 @@ export default function App() {
     };
 
     setApplicantsList((prev) => [newApp, ...prev]);
-    api.addApplicant(newApp);
+    api.addApplicant(newApp).then((saved) => {
+      if (saved && saved.id) {
+        setApplicantsList((prev) =>
+          prev.map((a) => (a.id === newApp.id ? { ...newApp, ...saved } : a)),
+        );
+      }
+      api.getApplicants().then((data) => {
+        if (Array.isArray(data)) setApplicantsList(data);
+      });
+      api.getLobbies().then((data) => {
+        if (Array.isArray(data)) setLobbiesList(data);
+      });
+    });
 
     setLobbiesList((prev) =>
       prev.map((l) =>
-        l.id === lobbyId ? { ...l, pending: (l.pending || 0) + 1 } : l,
+        String(l.id) === strId ? { ...l, pending: (l.pending || 0) + 1 } : l,
       ),
     );
 
@@ -304,51 +569,53 @@ export default function App() {
 
   // Accept applicant (Sequence Diagram 3)
   const handleAcceptApplicant = (applicant) => {
-    api.updateApplicantStatus(applicant.id, "accepted");
+    const lobby = lobbiesList.find((l) => String(l.id) === String(applicant.lobbyId));
+    const hostHandle = lobby?.handle || currentUser?.handle || "host";
+    const appHandle = applicant.handle || "player";
+    const threadId = `dm_${hostHandle}_${appHandle}`;
+
     setApplicantsList((prev) =>
       prev.map((a) =>
-        a.id === applicant.id ? { ...a, status: "accepted" } : a,
+        String(a.id) === String(applicant.id) ? { ...a, status: "accepted" } : a,
       ),
     );
 
-    const lobby = lobbiesList.find((l) => l.id === applicant.lobbyId);
-    if (!lobby) {
-      setReviewingApplicant(null);
-      return;
+    if (lobby) {
+      setLobbiesList((prev) =>
+        prev.map((l) =>
+          String(l.id) === String(applicant.lobbyId)
+            ? {
+                ...l,
+                joined: Math.min(l.joined + 1, l.max),
+                pending: Math.max(0, (l.pending || 1) - 1),
+                chatMessages: [
+                  ...(l.chatMessages || []),
+                  {
+                    id: `sys_${Date.now()}`,
+                    type: "system",
+                    text: `${applicant.name} was accepted and joined the team! 🎉`,
+                  },
+                ],
+              }
+            : l,
+        ),
+      );
     }
 
-    setLobbiesList((prev) =>
-      prev.map((l) =>
-        l.id === applicant.lobbyId
-          ? {
-              ...l,
-              joined: Math.min(l.joined + 1, l.max),
-              chatMessages: [
-                ...(l.chatMessages || []),
-                {
-                  id: `sys_${Date.now()}`,
-                  type: "system",
-                  text: `${applicant.name} was accepted and joined the team! 🎉`,
-                },
-              ],
-            }
-          : l,
-      ),
-    );
-
-    setAcceptedLobbyIds((prev) => {
-      const next = new Set([...prev, applicant.lobbyId]);
-      api.saveAcceptedLobbyIds(next);
-      return next;
+    api.updateApplicantStatus(applicant.id, "accepted").then(() => {
+      api.getApplicants().then((data) => setApplicantsList(Array.isArray(data) ? data : []));
+      api.getLobbies().then((data) => setLobbiesList(Array.isArray(data) ? data : []));
+      api.getDMThreads().then((data) => setDmList(Array.isArray(data) ? data : []));
+    }).catch((err) => {
+      console.warn("Failed to accept applicant:", err);
     });
 
-    const threadId = `dm-new-${applicant.handle}`;
     const newDM = {
       id: threadId,
       user: applicant.name,
       handle: applicant.handle,
       avatar: applicant.avatar,
-      lobbyContext: lobby.title,
+      lobbyContext: lobby?.title || "Lobby",
       unread: 1,
       messages: [
         {
@@ -369,12 +636,12 @@ export default function App() {
     // Update notification
     setNotifsList((prev) =>
       prev.map((n) =>
-        n.applicantId === applicant.id
+        String(n.applicantId) === String(applicant.id)
           ? {
               ...n,
               unread: false,
               icon: "✅",
-              text: `✅ You approved ${applicant.name}'s request to join "${lobby.title}"`,
+              text: `✅ You approved ${applicant.name}'s request to join "${lobby?.title || "lobby"}"`,
             }
           : n,
       ),
@@ -385,7 +652,7 @@ export default function App() {
       icon: "🎉",
       unread: true,
       type: "accepted",
-      text: `🎉 ${applicant.name} was accepted into your "${lobby.title}" lobby!`,
+      text: `🎉 ${applicant.name} was accepted into your "${lobby?.title || "lobby"}" lobby!`,
       time: "Just now",
     };
     setNotifsList((prev) => [acceptNotif, ...prev]);
@@ -395,7 +662,7 @@ export default function App() {
     setActiveApplicantsLobbyId(null);
     setAcceptedModalData({
       name: applicant.name,
-      lobbyTitle: lobby.title,
+      lobbyTitle: lobby?.title || "Lobby",
       lobbyId: applicant.lobbyId,
       threadId,
     });
@@ -403,16 +670,19 @@ export default function App() {
 
   // Decline applicant
   const handleDeclineApplicant = (applicant) => {
-    api.updateApplicantStatus(applicant.id, "declined");
+    api.updateApplicantStatus(applicant.id, "declined").then(() => {
+      api.getApplicants().then((data) => setApplicantsList(Array.isArray(data) ? data : []));
+      api.getLobbies().then((data) => setLobbiesList(Array.isArray(data) ? data : []));
+    });
     setApplicantsList((prev) =>
       prev.map((a) =>
-        a.id === applicant.id ? { ...a, status: "declined" } : a,
+        String(a.id) === String(applicant.id) ? { ...a, status: "declined" } : a,
       ),
     );
-    const lobby = lobbiesList.find((l) => l.id === applicant.lobbyId);
+    const lobby = lobbiesList.find((l) => String(l.id) === String(applicant.lobbyId));
     setNotifsList((prev) =>
       prev.map((n) =>
-        n.applicantId === applicant.id
+        String(n.applicantId) === String(applicant.id)
           ? {
               ...n,
               unread: false,
@@ -428,43 +698,92 @@ export default function App() {
 
   // Open Chat and DM shortcuts
   const openGroupChat = (lobbyId) => {
-    setActiveChatLobbyId(lobbyId);
+    const strId = String(lobbyId);
+    setActiveChatLobbyId(strId);
     setAcceptedModalData(null);
     setActiveApplicantsLobbyId(null);
     setShowNotifsDropdown(false);
+
+    api.getChatMessages(strId).then((messages) => {
+      if (Array.isArray(messages) && messages.length > 0) {
+        setLobbiesList((prev) =>
+          prev.map((l) =>
+            String(l.id) === strId ? { ...l, chatMessages: messages } : l,
+          ),
+        );
+      }
+    });
   };
 
-  const openDMThread = (threadId) => {
+  const openDMThread = (threadId, userName, userHandle, userAvatar) => {
     let targetId = threadId;
+    let targetName = userName;
+    let targetHandle = userHandle;
+    let targetAvatar = userAvatar;
+
+    // Support openDMThread(userObj) or openDMThread(lobbyObj)
     if (typeof threadId === "object" && threadId !== null) {
-      const lobby = threadId;
+      const obj = threadId;
+      targetName = obj.name || obj.host || obj.user || "User";
+      targetHandle = obj.handle || "";
+      targetAvatar = obj.avatar || (targetName ? targetName.slice(0, 2).toUpperCase() : "ME");
+      targetId = null;
+    }
+
+    const cleanTargetHandle = targetHandle ? String(targetHandle).replace(/^@/, "") : "";
+    const cleanMyHandle = currentUser?.handle ? String(currentUser.handle).replace(/^@/, "") : "me";
+
+    // If targetId is not specified or was null/stub, match or create
+    if (!targetId || targetId === "null") {
       const existing = dmList.find(
-        (t) => t.user === lobby.host || t.handle === lobby.handle,
+        (t) =>
+          (cleanTargetHandle && t.handle && t.handle.replace(/^@/, "").toLowerCase() === cleanTargetHandle.toLowerCase()) ||
+          (cleanTargetHandle && t.id && t.id.toLowerCase().includes(cleanTargetHandle.toLowerCase())) ||
+          (targetName && t.user && t.user.toLowerCase() === targetName.toLowerCase())
       );
       if (existing) {
         targetId = existing.id;
+        if (!targetName) targetName = existing.user;
+        if (!targetAvatar) targetAvatar = existing.avatar;
       } else {
-        targetId = `dm-host-${lobby.id}`;
-        const newThread = {
-          id: targetId,
-          user: lobby.host,
-          handle: lobby.handle,
-          avatar: lobby.avatar || "AN",
-          lobbyContext: lobby.title,
-          unread: 0,
-          messages: [],
-        };
-        api.createDMThread(newThread);
-        setDmList((prev) => [newThread, ...prev]);
+        targetId = `dm_${cleanMyHandle}_${cleanTargetHandle || targetName || "user"}`;
       }
     }
 
     if (targetId) {
+      setDmList((prev) => {
+        const found = prev.find((t) => t.id === targetId);
+        if (!found) {
+          const parts = String(targetId).split("_");
+          const fallbackHandle = parts.length > 2 ? parts[2] : String(targetId).replace(/^dm-host-/, "");
+          const newThread = {
+            id: targetId,
+            user: targetName || cleanTargetHandle || fallbackHandle || "Teammate",
+            handle: cleanTargetHandle ? `@${cleanTargetHandle}` : (fallbackHandle ? `@${fallbackHandle}` : ""),
+            avatar: targetAvatar || "ME",
+            lobbyContext: "Direct Message",
+            unread: 0,
+            messages: [],
+          };
+          api.createDMThread(newThread);
+          return [newThread, ...prev];
+        }
+        return prev.map((t) => (t.id === targetId ? { ...t, unread: 0 } : t));
+      });
+
       setActiveDMThreadId(targetId);
-      setDmList((prev) =>
-        prev.map((t) => (t.id === targetId ? { ...t, unread: 0 } : t)),
-      );
+      api.markDMThreadRead(targetId);
+
+      // Fetch message history from API
+      api.getDMMessages(targetId).then((msgs) => {
+        if (Array.isArray(msgs) && msgs.length > 0) {
+          setDmList((prev) =>
+            prev.map((t) => (t.id === targetId ? { ...t, messages: msgs } : t))
+          );
+        }
+      });
     }
+
     setAcceptedModalData(null);
     setShowNotifsDropdown(false);
   };
@@ -485,9 +804,25 @@ export default function App() {
           return u;
         }),
       );
+
+      // Persist to real backend API
+      if (api.rateUser) {
+        api
+          .rateUser(targetHandle, {
+            score: newReview.score,
+            comment: newReview.comment,
+            rater: newReview.rater || currentUser?.name,
+            raterId: currentUser?.id,
+            raterName: newReview.rater || currentUser?.name,
+            raterHandle: newReview.raterHandle || currentUser?.handle,
+            raterAvatar: newReview.raterAvatar || currentUser?.avatar,
+          })
+          .catch((err) => console.warn("Failed to persist user rating:", err));
+      }
+
       showToast(`⭐ Rating recorded for @${targetHandle}!`);
     },
-    [showToast],
+    [currentUser, showToast],
   );
 
   const markNotifRead = (notifId) => {
@@ -499,9 +834,28 @@ export default function App() {
 
   const handleNotifClickApply = (applicantId, notifId) => {
     markNotifRead(notifId);
-    const applicant = applicantsList.find((a) => a.id === applicantId);
+    const targetId = String(applicantId);
+    let applicant = applicantsList.find(
+      (a) => String(a.id) === targetId || String(a.userId) === targetId
+    );
     if (!applicant) {
-      showToast("Applicant not found.");
+      api.getApplicants().then((fresh) => {
+        if (Array.isArray(fresh)) {
+          setApplicantsList(fresh);
+          const found = fresh.find(
+            (a) => String(a.id) === targetId || String(a.userId) === targetId
+          );
+          if (found) {
+            if (found.status !== "pending") {
+              showToast("This request was already handled.");
+              return;
+            }
+            setReviewingApplicant(found);
+            return;
+          }
+        }
+        showToast("Applicant not found.");
+      });
       return;
     }
     if (applicant.status !== "pending") {
@@ -558,6 +912,11 @@ export default function App() {
   };
 
   const handleCreateLobby = (payload) => {
+    if (!currentUser) {
+      openAuth("signin");
+      return;
+    }
+
     const isObj = typeof payload === "object" && payload !== null;
     const title = isObj ? payload.title : payload;
     const category = isObj ? payload.category || "Gaming" : "Gaming";
@@ -622,7 +981,7 @@ export default function App() {
       type: reportData.targetType,
       targetId: reportData.targetId,
       name: reportData.targetName,
-      reporter: currentUser.name,
+      reporter: currentUser?.name || "Anonymous",
       reason: reportData.reason,
       details: reportData.details,
       time: "Just now",
@@ -652,14 +1011,14 @@ export default function App() {
               status: actionData.status || "resolved",
               actionTaken: actionData.actionTaken || "Resolved",
               adminNote: actionData.adminNote || "",
-              resolvedBy: currentUser.name,
+              resolvedBy: currentUser?.name || "Admin",
               resolvedAt: "Just now",
             }
           : r,
       ),
     );
     const log = {
-      admin: `${currentUser.name} (@${currentUser.handle})`,
+      admin: currentUser ? `${currentUser.name} (@${currentUser.handle})` : "Administrator",
       action: actionData.status === "dismissed" ? "DISMISS_REPORT" : "RESOLVE_REPORT",
       target: `Report #${reportId}`,
       details: actionData.actionTaken || actionData.adminNote || "Actioned",
@@ -676,7 +1035,7 @@ export default function App() {
     );
     api.deleteLobby(lobbyIdOrTarget);
     const log = {
-      admin: `${currentUser.name} (@${currentUser.handle})`,
+      admin: currentUser ? `${currentUser.name} (@${currentUser.handle})` : "Administrator",
       action: "DELETE_LOBBY",
       target: name || `Lobby #${lobbyIdOrTarget}`,
       details: reason,
@@ -691,7 +1050,7 @@ export default function App() {
       prev.map((l) => (l.id === lobbyId ? { ...l, status: "Completed" } : l)),
     );
     const log = {
-      admin: `${currentUser.name} (@${currentUser.handle})`,
+      admin: currentUser ? `${currentUser.name} (@${currentUser.handle})` : "Administrator",
       action: "FORCE_COMPLETE",
       target: `Lobby #${lobbyId}`,
       details: "Admin marked session as Completed",
@@ -709,7 +1068,7 @@ export default function App() {
     );
     api.updateLobby(lobbyId, { isPinned: nextPinned });
     const log = {
-      admin: `${currentUser.name} (@${currentUser.handle})`,
+      admin: currentUser ? `${currentUser.name} (@${currentUser.handle})` : "Administrator",
       action: nextPinned ? "PIN_LOBBY" : "UNPIN_LOBBY",
       target: target.title,
       details: nextPinned ? "Pinned to top of live feed" : "Unpinned from top of live feed",
@@ -732,7 +1091,7 @@ export default function App() {
       prev.filter((l) => l.handle.toLowerCase() !== cleanHandle && l.host !== name),
     );
     const log = {
-      admin: `${currentUser.name} (@${currentUser.handle})`,
+      admin: currentUser ? `${currentUser.name} (@${currentUser.handle})` : "Administrator",
       action: "BAN_USER",
       target: `@${cleanHandle}`,
       details: reason,
@@ -752,7 +1111,7 @@ export default function App() {
     );
     api.updateUser(userHandle, { isBanned: false });
     const log = {
-      admin: `${currentUser.name} (@${currentUser.handle})`,
+      admin: currentUser ? `${currentUser.name} (@${currentUser.handle})` : "Administrator",
       action: "UNBAN_USER",
       target: `@${cleanHandle}`,
       details: "Account reinstated by admin",
@@ -767,7 +1126,7 @@ export default function App() {
     );
     api.updateUser(userId, { role: newRole });
     const log = {
-      admin: `${currentUser.name} (@${currentUser.handle})`,
+      admin: currentUser ? `${currentUser.name} (@${currentUser.handle})` : "Administrator",
       action: "UPDATE_ROLE",
       target: `User ID: ${userId}`,
       details: `Role updated to ${newRole.toUpperCase()}`,
@@ -788,7 +1147,7 @@ export default function App() {
     api.addTag(tag).then((updatedTags) => {
       setPlatformTags(updatedTags);
       const log = {
-        admin: `${currentUser.name} (@${currentUser.handle})`,
+        admin: currentUser ? `${currentUser.name} (@${currentUser.handle})` : "Administrator",
         action: "ADD_TAG",
         target: tag,
         details: "Added official platform tag to taxonomy",
@@ -801,7 +1160,7 @@ export default function App() {
     api.removeTag(tag).then((updatedTags) => {
       setPlatformTags(updatedTags);
       const log = {
-        admin: `${currentUser.name} (@${currentUser.handle})`,
+        admin: currentUser ? `${currentUser.name} (@${currentUser.handle})` : "Administrator",
         action: "REMOVE_TAG",
         target: tag,
         details: "Removed tag from official platform taxonomy",
@@ -814,7 +1173,7 @@ export default function App() {
     api.createAnnouncement(annData).then((newAnn) => {
       setAnnouncements((prev) => [newAnn, ...prev]);
       const log = {
-        admin: `${currentUser.name} (@${currentUser.handle})`,
+        admin: currentUser ? `${currentUser.name} (@${currentUser.handle})` : "Administrator",
         action: "BROADCAST",
         target: newAnn.title,
         details: newAnn.message,
@@ -930,11 +1289,12 @@ export default function App() {
               />
             ) : (
               <DiscoverPage
+                currentUser={currentUser}
                 lobbies={lobbiesList}
-                pendingIds={pendingLobbyIds}
-                acceptedIds={acceptedLobbyIds}
-                acceptedLobbyIds={acceptedLobbyIds}
-                appliedLobbies={Array.from(pendingLobbyIds)}
+                pendingIds={computedPendingLobbyIds}
+                acceptedIds={computedAcceptedLobbyIds}
+                acceptedLobbyIds={computedAcceptedLobbyIds}
+                appliedLobbies={Array.from(computedPendingLobbyIds)}
                 onSelectLobby={(lobby) => navigate(`/lobby/${lobby.id}`)}
                 onCreateLobby={() => setShowCreateLobby(true)}
                 onApply={handleJoinLobby}
@@ -949,11 +1309,12 @@ export default function App() {
           path="/feed"
           element={
             <DiscoverPage
+              currentUser={currentUser}
               lobbies={lobbiesList}
-              pendingIds={pendingLobbyIds}
-              acceptedIds={acceptedLobbyIds}
-              acceptedLobbyIds={acceptedLobbyIds}
-              appliedLobbies={Array.from(pendingLobbyIds)}
+              pendingIds={computedPendingLobbyIds}
+              acceptedIds={computedAcceptedLobbyIds}
+              acceptedLobbyIds={computedAcceptedLobbyIds}
+              appliedLobbies={Array.from(computedPendingLobbyIds)}
               onSelectLobby={(lobby) => navigate(`/lobby/${lobby.id}`)}
               onCreateLobby={() => {
                 if (!isAuthed) openAuth("signin");
@@ -971,8 +1332,10 @@ export default function App() {
           element={
             <LobbyRouteWrapper
               lobbies={lobbiesList}
-              pendingIds={pendingLobbyIds}
-              acceptedIds={acceptedLobbyIds}
+              applicants={applicantsList}
+              currentUser={currentUser}
+              pendingIds={computedPendingLobbyIds}
+              acceptedIds={computedAcceptedLobbyIds}
               onJoin={handleJoinLobby}
               onReport={handleOpenReport}
               onGroupChat={openGroupChat}
@@ -995,8 +1358,8 @@ export default function App() {
               <MyLobbiesPage
                 lobbies={lobbiesList}
                 applicants={applicantsList}
-                acceptedLobbyIds={acceptedLobbyIds}
-                pendingLobbyIds={pendingLobbyIds}
+                acceptedLobbyIds={computedAcceptedLobbyIds}
+                pendingLobbyIds={computedPendingLobbyIds}
                 currentUser={currentUser}
                 onCreateLobby={() => setShowCreateLobby(true)}
                 onReviewApplicants={(id, title) => {
@@ -1024,7 +1387,7 @@ export default function App() {
               <MessagesPage
                 threads={dmList}
                 lobbies={lobbiesList}
-                acceptedLobbyIds={acceptedLobbyIds}
+                acceptedLobbyIds={computedAcceptedLobbyIds}
                 onOpenDM={openDMThread}
                 onOpenGroupChat={openGroupChat}
               />
@@ -1162,6 +1525,16 @@ export default function App() {
               );
               showToast("All notifications marked as read");
             }}
+            onDelete={(notifId) => {
+              setNotifsList((prev) => prev.filter((n) => String(n.id) !== String(notifId)));
+              api.deleteNotification(notifId);
+              showToast("Notification deleted.");
+            }}
+            onClearAll={() => {
+              setNotifsList([]);
+              api.clearAllNotifications();
+              showToast("All notifications cleared.");
+            }}
           />
         </>
       )}
@@ -1211,7 +1584,7 @@ export default function App() {
         <ApplicantModal
           applicant={reviewingApplicant}
           lobbyTitle={
-            lobbiesList.find((l) => l.id === reviewingApplicant.lobbyId)
+            lobbiesList.find((l) => String(l.id) === String(reviewingApplicant.lobbyId))
               ?.title ?? ""
           }
           onClose={() => setReviewingApplicant(null)}
@@ -1249,10 +1622,22 @@ export default function App() {
           onClose={() => setActiveChatLobbyId(null)}
           onCompleteLobby={handleCompleteLobby}
           onSend={(lobbyId, text) => {
+            const senderName = currentUser?.name || "Player";
+            const senderAvatar =
+              currentUser?.avatar ||
+              (currentUser?.name
+                ? currentUser.name
+                    .trim()
+                    .split(/\s+/)
+                    .map((w) => w[0])
+                    .join("")
+                    .toUpperCase()
+                    .substring(0, 2)
+                : "ME");
             const newMsg = {
               id: String(Date.now()),
-              sender: "You",
-              avatar: currentUser.avatar || "AN",
+              sender: senderName,
+              avatar: senderAvatar,
               text,
               time: new Date().toLocaleTimeString([], {
                 hour: "2-digit",
@@ -1261,12 +1646,27 @@ export default function App() {
             };
             setLobbiesList((prev) =>
               prev.map((l) =>
-                l.id === lobbyId
+                String(l.id) === String(lobbyId)
                   ? { ...l, chatMessages: [...(l.chatMessages || []), newMsg] }
                   : l,
               ),
             );
-            api.sendLobbyMessage(lobbyId, text, "You", currentUser.avatar || "AN");
+            api.sendLobbyMessage(lobbyId, text, senderName, senderAvatar).then((saved) => {
+              if (saved && saved.id) {
+                setLobbiesList((prev) =>
+                  prev.map((l) =>
+                    String(l.id) === String(lobbyId)
+                      ? {
+                          ...l,
+                          chatMessages: (l.chatMessages || []).map((m) =>
+                            m.id === newMsg.id ? { ...newMsg, ...saved } : m,
+                          ),
+                        }
+                      : l,
+                  ),
+                );
+              }
+            });
           }}
         />
       )}
@@ -1276,10 +1676,22 @@ export default function App() {
           thread={activeDMThread}
           onClose={() => setActiveDMThreadId("")}
           onSend={(threadId, text) => {
+            const senderName = currentUser?.name || "Player";
+            const senderAvatar =
+              currentUser?.avatar ||
+              (currentUser?.name
+                ? currentUser.name
+                    .trim()
+                    .split(/\s+/)
+                    .map((w) => w[0])
+                    .join("")
+                    .toUpperCase()
+                    .substring(0, 2)
+                : "ME");
             const newMsg = {
               id: String(Date.now()),
-              sender: "You",
-              avatar: currentUser.avatar || "AN",
+              sender: senderName,
+              avatar: senderAvatar,
               text,
               time: new Date().toLocaleTimeString([], {
                 hour: "2-digit",
@@ -1298,7 +1710,22 @@ export default function App() {
                   : t,
               ),
             );
-            api.sendDMMessage(threadId, text, "You", currentUser.avatar || "AN");
+            api.sendDMMessage(threadId, text, senderName, senderAvatar).then((saved) => {
+              if (saved && saved.id) {
+                setDmList((prev) =>
+                  prev.map((t) =>
+                    t.id === threadId
+                      ? {
+                          ...t,
+                          messages: (t.messages || []).map((m) =>
+                            m.id === newMsg.id ? { ...newMsg, ...saved } : m,
+                          ),
+                        }
+                      : t,
+                  ),
+                );
+              }
+            });
           }}
           onBack={() => {
             setActiveDMThreadId("");

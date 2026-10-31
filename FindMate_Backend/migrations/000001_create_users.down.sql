@@ -1,0 +1,4 @@
+-- +migrate Down
+
+DROP TABLE IF EXISTS user_ratings CASCADE;
+DROP TABLE IF EXISTS users CASCADE;

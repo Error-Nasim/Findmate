@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "findmate-backend/cmd"
 
 func main() {
-	fmt.Println("Testing")
+	cmd.Serve()
 }

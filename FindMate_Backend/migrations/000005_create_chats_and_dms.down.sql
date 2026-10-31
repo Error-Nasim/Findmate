@@ -1,0 +1,7 @@
+-- +migrate Down
+
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS dm_messages CASCADE;
+DROP TABLE IF EXISTS dm_threads CASCADE;
+DROP TABLE IF EXISTS chat_messages CASCADE;
+DROP TABLE IF EXISTS chat_rooms CASCADE;

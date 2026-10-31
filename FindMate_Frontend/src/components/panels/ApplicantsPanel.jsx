@@ -6,7 +6,7 @@ import Tag from "../ui/Tag.jsx";
 
 export default function ApplicantsPanel({ applicants, lobbyId, lobbyTitle, onClose, onReview }) {
   const navigate = useNavigate();
-  const lobbyApplicants = applicants.filter((a) => a.lobbyId === lobbyId);
+  const lobbyApplicants = applicants.filter((a) => String(a.lobbyId) === String(lobbyId));
 
   return (
     <>

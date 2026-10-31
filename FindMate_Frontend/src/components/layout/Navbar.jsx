@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Avatar from '../ui/Avatar.jsx'
 import Button from '../ui/Button.jsx'
+import { useAuth } from '../../context/AuthContext.jsx'
 
 export default function Navbar({
   isAuthed,
@@ -16,6 +17,25 @@ export default function Navbar({
   theme = 'light',
   onToggleTheme,
 }) {
+  const { user } = useAuth()
+  const isNasim =
+    user?.handle?.toLowerCase() === 'error-nasim' ||
+    (user?.name && user.name.toLowerCase().includes('nasim'))
+  const userInitials =
+    user?.avatar && (isNasim || user.avatar !== 'AN')
+      ? user.avatar
+      : user?.name
+        ? user.name
+            .trim()
+            .split(/\s+/)
+            .map((w) => w[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2)
+        : user?.handle
+          ? user.handle.substring(0, 2).toUpperCase()
+          : 'ME'
+
   const location = useLocation()
   const navigate = useNavigate()
   const currentPath = location.pathname
@@ -151,6 +171,47 @@ export default function Navbar({
 
         {isAuthed ? (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <Link
+              to="/messages"
+              title="Direct Messages"
+              style={{
+                position: 'relative',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                fontSize: 18,
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textDecoration: 'none',
+              }}
+            >
+              💬
+              {dmUnread > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 2,
+                    right: 2,
+                    minWidth: 15,
+                    height: 15,
+                    background: '#F43F5E',
+                    borderRadius: '50%',
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 2px',
+                  }}
+                >
+                  {dmUnread}
+                </span>
+              )}
+            </Link>
             <button
               onClick={onToggleNotifs}
               style={{
@@ -187,7 +248,7 @@ export default function Navbar({
               )}
             </button>
             <Link to="/profile" style={{ textDecoration: 'none', display: 'flex' }}>
-              <Avatar initials="AN" size={30} />
+              <Avatar initials={userInitials} size={30} />
             </Link>
           </div>
         ) : (
@@ -381,6 +442,60 @@ export default function Navbar({
 
         {isAuthed ? (
           <>
+            <Link
+              to="/messages"
+              title="Direct Messages"
+              style={{
+                position: 'relative',
+                background: 'var(--bg-surface-alt)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '50%',
+                width: 36,
+                height: 36,
+                color: 'var(--text-muted)',
+                fontSize: 16,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textDecoration: 'none',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#6366F1'
+                e.currentTarget.style.transform = 'translateY(-1px)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-subtle)'
+                e.currentTarget.style.transform = 'translateY(0)'
+              }}
+            >
+              💬
+              {dmUnread > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -3,
+                    right: -3,
+                    minWidth: 16,
+                    height: 16,
+                    background: '#F43F5E',
+                    borderRadius: '50%',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 3px',
+                    boxShadow: '0 0 0 2px var(--bg-surface)',
+                  }}
+                >
+                  {dmUnread}
+                </span>
+              )}
+            </Link>
+
             <button
               onClick={onToggleNotifs}
               style={{
@@ -424,7 +539,7 @@ export default function Navbar({
               )}
             </button>
             <Link to="/profile" style={{ textDecoration: 'none', display: 'flex' }}>
-              <Avatar initials="AN" size={34} />
+              <Avatar initials={userInitials} size={34} />
             </Link>
           </>
         ) : (

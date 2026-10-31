@@ -1,35 +1,55 @@
-// AuthContext — global authentication state with localStorage persistence
-// Ready for Go backend JWT auth integration
+// AuthContext — global authentication state with localStorage persistence & JWT support
+// Real platform users: Abu Nasim (Main Admin), Rimon Chandra Bhowmik, Al Imtiaz
 
 import { createContext, useContext, useState, useEffect } from 'react'
 
 const AuthContext = createContext(null)
 
-export const DEFAULT_MOCK_USER = {
-  id: 'u_nasim',
-  name: 'Abu Nasim',
-  username: 'Error-nasim',
-  avatar: 'AN',
-  bio: 'Student developer & competitive gamer. Building stuff by day, climbing ranks by night. CSE 416 @ Stony Brook.',
-  teamUps: 24,
-  lobbiesHosted: 5,
+export const DEFAULT_USER_TEMPLATE = {
   reliability: 98,
-  rating: 4.9,
-  tags: ['#gaming', '#valorant', '#coding', '#ranked', '#competitive', '#fps'],
+  rating: 5.0,
+  teamUps: 0,
+  lobbiesHosted: 0,
+  roomsJoined: 0,
+  roomsCompleted: 0,
+  bio: 'Ready to team up and find great teammates!',
+  tags: ['#gaming'],
 }
 
 export function AuthProvider({ children }) {
   const [isAuthed, setIsAuthed] = useState(() => {
     const saved = localStorage.getItem('findmate_is_authed')
-    return saved === 'true'
+    const token = localStorage.getItem('findmate_jwt_token')
+    return saved === 'true' && Boolean(token)
   })
 
   const [user, setUser] = useState(() => {
     try {
+      const isAuth = localStorage.getItem('findmate_is_authed') === 'true'
       const savedUser = localStorage.getItem('findmate_auth_user')
-      return savedUser ? JSON.parse(savedUser) : DEFAULT_MOCK_USER
+      if (isAuth && savedUser) {
+        const parsed = JSON.parse(savedUser)
+        const isNasim =
+          parsed.handle?.toLowerCase() === 'error-nasim' ||
+          (parsed.name && parsed.name.toLowerCase().includes('nasim'))
+        if (parsed.avatar === 'AN' && !isNasim) {
+          if (parsed.name) {
+            parsed.avatar = parsed.name
+              .trim()
+              .split(/\s+/)
+              .map((w) => w[0])
+              .join('')
+              .toUpperCase()
+              .substring(0, 2)
+          } else if (parsed.handle) {
+            parsed.avatar = parsed.handle.substring(0, 2).toUpperCase()
+          }
+        }
+        return parsed
+      }
+      return null
     } catch {
-      return DEFAULT_MOCK_USER
+      return null
     }
   })
 
@@ -45,26 +65,55 @@ export function AuthProvider({ children }) {
     }
   }, [user])
 
-  const login = (userData = DEFAULT_MOCK_USER) => {
-    const mergedUser = {
-      ...DEFAULT_MOCK_USER,
-      ...userData,
-      avatar: userData.name
-        ? userData.name
-            .split(' ')
-            .map((w) => w[0])
-            .join('')
-            .toUpperCase()
-            .substring(0, 2)
-        : 'AN',
+  const login = (userData = {}, token = '') => {
+    const handle = userData.handle || userData.username || 'member'
+    const cleanHandle = handle.replace(/^@/, '')
+    const role =
+      cleanHandle.toLowerCase() === 'error-nasim' || userData.role === 'admin'
+        ? 'admin'
+        : userData.role || 'member'
+
+    const isNasim =
+      cleanHandle.toLowerCase() === 'error-nasim' ||
+      (userData.name && userData.name.toLowerCase().includes('nasim'))
+
+    let initials = 'ME'
+    if (userData.avatar && (isNasim || userData.avatar !== 'AN')) {
+      initials = userData.avatar
+    } else if (userData.name) {
+      initials = userData.name
+        .trim()
+        .split(/\s+/)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2)
+    } else if (cleanHandle) {
+      initials = cleanHandle.substring(0, 2).toUpperCase()
     }
-    setUser(mergedUser)
+
+    const formattedUser = {
+      ...DEFAULT_USER_TEMPLATE,
+      ...userData,
+      handle: cleanHandle,
+      username: cleanHandle,
+      role,
+      avatar: initials,
+    }
+
+    setUser(formattedUser)
     setIsAuthed(true)
+    if (token) {
+      localStorage.setItem('findmate_jwt_token', token)
+    }
   }
 
   const logout = () => {
     setIsAuthed(false)
+    setUser(null)
     localStorage.removeItem('findmate_is_authed')
+    localStorage.removeItem('findmate_auth_user')
+    localStorage.removeItem('findmate_jwt_token')
   }
 
   const updateUser = (updates) => {

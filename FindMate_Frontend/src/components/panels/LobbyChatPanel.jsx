@@ -153,7 +153,7 @@ export default function LobbyChatPanel({
               </div>
             ) : (
               <div key={msg.id} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <Avatar initials={msg.avatar || "ME"} size={32} />
+                <Avatar initials={msg.avatar || (msg.sender ? msg.sender.slice(0, 2).toUpperCase() : "ME")} size={32} />
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>

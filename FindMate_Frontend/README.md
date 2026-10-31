@@ -7,7 +7,7 @@
 [![Figma Prototype](https://img.shields.io/badge/UI_Design-Figma_Prototype-F24E1E?style=flat-square&logo=figma&logoColor=white)](https://appeal-rich-26498266.figma.site)
 [![Tests Passing](https://img.shields.io/badge/Tests-31%2F31_Passed-brightgreen?style=flat-square)](../tests/README.md)
 
-This directory houses the single-page web client for **FindMate**, built with **React 19**, **Vite 6**, and **Tailwind CSS 3**. The frontend implements the official [FindMate Figma UI Specification](https://appeal-rich-26498266.figma.site) with zero-dependency local storage persistence and full readiness for the [Go Gin Backend](../FindMate_Backend/README.md).
+This directory houses the single-page web client for **FindMate**, built with **React 19**, **Vite 6**, and **Tailwind CSS 3**. The frontend implements the official [FindMate Figma UI Specification](https://appeal-rich-26498266.figma.site) with real-time reactive synchronization and direct integration with the [Go DDD REST Backend](../FindMate_Backend/README.md).
 
 ---
 
@@ -151,21 +151,25 @@ The `/admin` route is a dedicated executive control suite protected by role chec
 3. **Dynamic Reputation Engine**: Teammate ratings are calculated on-the-fly via [`calculateUserRating(ratings)`](./src/data/users.js), providing accurate averages rounded to 1 decimal place, total review counts, and 1-to-5 star breakdowns.
 4. **Responsive Pill Navigation**: Navigation adapts gracefully from desktop capsule bars to mobile bottom drawer controls.
 
+5. **Real-Time Reactive Synchronization Engine**: Built-in reactive polling engine in `App.jsx` polls active conversation channels every 1.5 seconds and global platform state every 3 seconds, delivering squad chats, DMs, join requests, and notifications live with zero manual page refreshes.
+6. **Navbar Unread Message Indicator**: Dedicated `💬` Direct Message button in the top navigation bar displays a dynamic red dot/badge for unread incoming messages across both Desktop and Mobile viewports.
+7. **Interactive Notification Management**: Notifications panel allows single-click individual notification deletion (`🗑️`) and complete notification clearance (`Clear all`), persisting changes directly to the PostgreSQL database.
+
 ---
 
-## 🔌 Connecting to the Go Gin Backend
+## 🔌 Connecting to the Go DDD REST Backend
 
-By default, the client runs with zero-setup `localStorage` mock persistence. When connecting to the [FindMate Go Backend](../FindMate_Backend/README.md):
+The frontend communicates with the Go backend via Axios (`src/api/index.js`):
 
-1. Create or edit `.env` in `FindMate_Frontend/`:
+1. Configure `.env` in `FindMate_Frontend/`:
    ```env
    VITE_API_URL=http://localhost:8080/api
    ```
-2. Start the Go backend server:
+2. Start the Go backend server (PostgreSQL 16):
    ```bash
    cd ../FindMate_Backend && go run main.go
    ```
-3. Restart the frontend dev server (`npm run dev`). Requests from `src/api/index.js` seamlessly route to the Go Gin REST API.
+3. Launch the frontend dev server (`npm run dev`). Requests seamlessly interact with PostgreSQL-backed REST endpoints for real-time lobbies, squad chats, bilateral DMs, and notifications.
 
 ---
 

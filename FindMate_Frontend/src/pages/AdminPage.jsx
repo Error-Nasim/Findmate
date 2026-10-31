@@ -22,7 +22,7 @@ const CATEGORY_COLORS = {
 
 export default function AdminPage({
   toast,
-  currentUser = { name: "Abu Nasim", handle: "Error-nasim", avatar: "AN" },
+  currentUser = null,
   users = [],
   lobbies = [],
   reports = [],
@@ -473,7 +473,7 @@ export default function AdminPage({
                 borderRadius: 10,
               }}
             >
-              <Avatar initials={currentUser.avatar || "AN"} size={30} />
+              <Avatar initials={currentUser?.avatar || "AD"} size={30} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
@@ -485,10 +485,10 @@ export default function AdminPage({
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {currentUser.name}
+                  {currentUser?.name || "Admin"}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                  @{currentUser.handle}
+                  @{currentUser?.handle || "admin"}
                 </div>
               </div>
               <span
@@ -571,7 +571,7 @@ export default function AdminPage({
                 </span>
               </div>
               <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>
-                Logged in as <strong>{currentUser.name}</strong> (@{currentUser.handle}) • Central management and oversight
+                Logged in as <strong>{currentUser?.name || "Admin"}</strong> (@{currentUser?.handle || "admin"}) • Central management and oversight
               </p>
             </div>
 

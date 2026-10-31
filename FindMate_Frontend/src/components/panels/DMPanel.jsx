@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Avatar from "../ui/Avatar.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function DMPanel({ thread, onClose, onSend, onBack }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [text, setText] = useState("");
   const bottomRef = useRef(null);
 
@@ -153,7 +155,11 @@ export default function DMPanel({ thread, onClose, onSend, onBack }) {
           )}
 
           {thread.messages?.map((msg) => {
-            const isMe = msg.sender === "You";
+            const isMe =
+              msg.sender === "You" ||
+              (user?.name && msg.sender.toLowerCase() === user.name.toLowerCase()) ||
+              (user?.handle && msg.sender.toLowerCase() === user.handle.toLowerCase()) ||
+              (user?.username && msg.sender.toLowerCase() === user.username.toLowerCase());
             return (
               <div
                 key={msg.id}

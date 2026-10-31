@@ -62,7 +62,9 @@ export default function ProfilePage({
   const isSelf =
     !isViewingSpecificHandle ||
     (targetUserFromList &&
-      targetUserFromList.handle.toLowerCase() === myUser.handle.toLowerCase())
+      targetUserFromList.handle.toLowerCase() === myUser.handle.toLowerCase()) ||
+    (routeHandle &&
+      routeHandle.replace(/^@/, '').toLowerCase() === myUser?.handle?.replace(/^@/, '').toLowerCase())
 
   // Active target user profile
   const displayedUser = isSelf
@@ -331,10 +333,14 @@ export default function ProfilePage({
                     v="primary"
                     sm
                     onClick={() => {
+                      if (!isAuthed && onAuth) {
+                        onAuth();
+                        return;
+                      }
                       if (onOpenDM) {
-                        onOpenDM(null, displayedUser.name, displayedUser.handle, displayedUser.avatar)
+                        onOpenDM(displayedUser);
                       } else {
-                        navigate('/messages')
+                        navigate('/messages');
                       }
                     }}
                   >
@@ -1192,10 +1198,14 @@ export default function ProfilePage({
                   v="primary"
                   sm
                   onClick={() => {
+                    if (!isAuthed && onAuth) {
+                      onAuth();
+                      return;
+                    }
                     if (onOpenDM) {
-                      onOpenDM(null, displayedUser.name, displayedUser.handle, displayedUser.avatar)
+                      onOpenDM(displayedUser);
                     } else {
-                      navigate('/messages')
+                      navigate('/messages');
                     }
                   }}
                 >

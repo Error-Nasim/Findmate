@@ -10,6 +10,8 @@ import StatusBadge from "./StatusBadge.jsx";
 
 export default function LobbyDetailView({
   lobby,
+  applicants = [],
+  currentUser = null,
   isPending,
   isAccepted,
   onBack,
@@ -23,6 +25,46 @@ export default function LobbyDetailView({
   const [copied, setCopied] = useState(false);
 
   if (!lobby) return null;
+
+  const isHost =
+    (currentUser?.handle && lobby.handle?.toLowerCase() === currentUser.handle.toLowerCase()) ||
+    (currentUser?.name && lobby.host?.toLowerCase() === currentUser.name.toLowerCase());
+
+  const hostMember = {
+    id: "host",
+    name: lobby.host,
+    handle: lobby.handle,
+    avatar: lobby.avatar || (lobby.host ? lobby.host.slice(0, 2).toUpperCase() : "ME"),
+    isHost: true,
+  };
+
+  const acceptedApplicantsMap = new Map();
+  (applicants || [])
+    .filter(
+      (a) =>
+        String(a.lobbyId) === String(lobby.id) &&
+        (a.status?.toLowerCase() === "accepted" || a.status?.toLowerCase() === "approved")
+    )
+    .forEach((a) => {
+      const key = (a.handle || a.userId || a.name || a.id).toLowerCase();
+      if (
+        key !== lobby.handle?.toLowerCase() &&
+        key !== lobby.host?.toLowerCase() &&
+        !acceptedApplicantsMap.has(key)
+      ) {
+        acceptedApplicantsMap.set(key, {
+          id: a.id,
+          name: a.name,
+          handle: a.handle,
+          avatar: a.avatar || (a.name ? a.name.slice(0, 2).toUpperCase() : "ME"),
+          isHost: false,
+        });
+      }
+    });
+
+  const acceptedApplicants = Array.from(acceptedApplicantsMap.values());
+  const realRoster = [hostMember, ...acceptedApplicants];
+  const emptySlots = Math.max(0, (lobby.max || 5) - realRoster.length);
 
   const handleShare = () => {
     setCopied(true);
@@ -170,7 +212,7 @@ export default function LobbyDetailView({
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <StatusBadge status={lobby.status} />
-              {isAccepted && (
+              {!isHost && isAccepted && (
                 <Button v="ghost" sm onClick={onMsgHost}>
                   ✉️ Message Host
                 </Button>
@@ -268,41 +310,82 @@ export default function LobbyDetailView({
               fontWeight: 600,
             }}
           >
-            {lobby.joined} / {lobby.max}
+            {realRoster.length} / {lobby.max}
           </span>
         </h3>
 
-        <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
-          {Array.from({ length: lobby.max }, (_, i) =>
-            i < lobby.joined ? (
-              <div key={i} style={{ textAlign: "center" }}>
-                <Avatar initials={i === 0 ? lobby.avatar : "JR"} size={48} />
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, fontWeight: 600 }}>
-                  {i === 0 ? `@${lobby.handle}` : "teammate"}
-                </div>
-                {i === 0 && (
-                  <div style={{ fontSize: 10, color: "#6366F1", fontWeight: 800, marginTop: 2 }}>HOST</div>
-                )}
-              </div>
-            ) : (
+        <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "flex-start" }}>
+          {realRoster.map((member, i) => (
+            <div
+              key={member.id || i}
+              style={{
+                textAlign: "center",
+                cursor: member.handle ? "pointer" : "default",
+                transition: "transform 0.15s ease",
+              }}
+              onClick={() => {
+                if (member.handle) {
+                  navigate(`/profile/${member.handle.replace(/^@/, "")}`);
+                }
+              }}
+              title={member.name ? `${member.name} (@${member.handle?.replace(/^@/, "")})` : member.handle}
+              onMouseEnter={(e) => {
+                if (member.handle) e.currentTarget.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                if (member.handle) e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+              <Avatar initials={member.avatar || (member.name ? member.name.slice(0, 2).toUpperCase() : "ME")} size={48} />
               <div
-                key={i}
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: "50%",
-                  border: "2px dashed var(--border-strong)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "var(--text-faint)",
-                  fontSize: 18,
+                  fontSize: 11,
+                  color: "var(--text-secondary)",
+                  marginTop: 6,
+                  fontWeight: 600,
+                  maxWidth: 68,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
-                +
+                {member.handle ? (member.handle.startsWith("@") ? member.handle : `@${member.handle}`) : member.name}
               </div>
-            ),
-          )}
+              <div
+                style={{
+                  fontSize: 10,
+                  color: member.isHost ? "#6366F1" : "#10B981",
+                  fontWeight: 800,
+                  marginTop: 2,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                {member.isHost ? "HOST" : "MEMBER"}
+              </div>
+            </div>
+          ))}
+
+          {Array.from({ length: emptySlots }, (_, i) => (
+            <div
+              key={`empty-${i}`}
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                border: "2px dashed var(--border-strong)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text-faint)",
+                fontSize: 18,
+                userSelect: "none",
+              }}
+              title="Open teammate slot"
+            >
+              +
+            </div>
+          ))}
         </div>
       </div>
 
@@ -320,7 +403,34 @@ export default function LobbyDetailView({
         }}
       >
         <div style={{ flex: 1 }}>
-          {isAccepted ? (
+          {isHost ? (
+            <button
+              onClick={onGroupChat}
+              style={{
+                width: '100%',
+                padding: '12px 18px',
+                borderRadius: 10,
+                background: '#6366F1',
+                color: '#FFFFFF',
+                border: 'none',
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(99,102,241,0.25)',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#4F46E5';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#6366F1';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              👑 You are Host · Open Group Chat
+            </button>
+          ) : isAccepted ? (
             <Button v="ghost" full onClick={onGroupChat}>
               💬 Open Group Chat
             </Button>

@@ -7,6 +7,8 @@ export default function NotificationsPanel({
   onClickDM,
   onMarkRead,
   onMarkAll,
+  onDelete,
+  onClearAll,
 }) {
   const unreadCount = notifs.filter((n) => n.unread).length;
   const isMobile = window.innerWidth < 768;
@@ -125,25 +127,67 @@ export default function NotificationsPanel({
                 )}
                 <div style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 4 }}>{n.time}</div>
               </div>
-              {n.unread && (
-                <div
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: "#6366F1",
-                    flexShrink: 0,
-                    marginTop: 4,
-                  }}
-                />
-              )}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+                {n.unread && (
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "#6366F1",
+                    }}
+                  />
+                )}
+                {onDelete && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(n.id);
+                    }}
+                    title="Delete notification"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-muted)",
+                      cursor: "pointer",
+                      padding: "2px 6px",
+                      borderRadius: 6,
+                      fontSize: 13,
+                      lineHeight: 1,
+                      opacity: 0.6,
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = "1";
+                      e.currentTarget.style.color = "#EF4444";
+                      e.currentTarget.style.background = "rgba(239, 68, 68, 0.12)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = "0.6";
+                      e.currentTarget.style.color = "var(--text-muted)";
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
 
       {/* Footer */}
-      <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border-subtle)", textAlign: "center", background: "var(--bg-surface-alt)" }}>
+      <div
+        style={{
+          padding: "12px 20px",
+          borderTop: "1px solid var(--border-subtle)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "var(--bg-surface-alt)",
+        }}
+      >
         <button
           onClick={onMarkAll}
           style={{
@@ -156,8 +200,30 @@ export default function NotificationsPanel({
             fontFamily: "var(--font-inter)",
           }}
         >
-          ✓ Mark all as read
+          ✓ Mark all read
         </button>
+
+        {notifs.length > 0 && onClearAll && (
+          <button
+            onClick={onClearAll}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#EF4444",
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "var(--font-inter)",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+          >
+            🗑️ Clear all
+          </button>
+        )}
       </div>
     </div>
   );
