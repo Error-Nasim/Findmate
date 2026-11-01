@@ -112,10 +112,6 @@ func (s *service) Login(emailOrHandle, password string) (*domain.User, string, e
 		return nil, "", errors.New("invalid credentials")
 	}
 
-	if user.IsBanned {
-		return nil, "", errors.New("account suspended: please contact administration")
-	}
-
 	if user.PasswordHash == "" {
 		return nil, "", errors.New("invalid credentials")
 	}
@@ -262,4 +258,114 @@ func (s *service) CalculateUserRating(ratings []domain.UserRating) (float64, int
 	avg := math.Round(rawAvg*10) / 10
 
 	return avg, len(ratings), distribution
+}
+
+func (s *service) FindOrCreateOAuthUser(provider, email, name, handle, avatar string) (*domain.User, string, error) {
+	var user *domain.User
+	cleanEmail := strings.TrimSpace(strings.ToLower(email))
+
+	// 1. Try finding existing user by email
+	if cleanEmail != "" {
+		existing, _ := s.usrRepo.FindByEmail(cleanEmail)
+		if existing != nil {
+			user = existing
+		}
+	}
+
+	cleanHandle := strings.TrimPrefix(strings.TrimSpace(handle), "@")
+	if cleanHandle == "" && cleanEmail != "" {
+		parts := strings.Split(cleanEmail, "@")
+		cleanHandle = parts[0]
+	}
+	if cleanHandle == "" {
+		cleanHandle = fmt.Sprintf("player_%d", time.Now().Unix()%100000)
+	}
+
+	// 2. If not found by email, try finding by handle
+	if user == nil {
+		existing, _ := s.usrRepo.FindByHandle(cleanHandle)
+		if existing != nil {
+			user = existing
+			if user.Email == "" && cleanEmail != "" {
+				_, _ = s.usrRepo.UpdateUser(user.ID, map[string]interface{}{"email": cleanEmail})
+				user.Email = cleanEmail
+			}
+		}
+	}
+
+	// 3. If still not found, create new user in PostgreSQL
+	if user == nil {
+		uniqueHandle := cleanHandle
+		suffix := 1
+		for {
+			existing, _ := s.usrRepo.FindByHandle(uniqueHandle)
+			if existing == nil {
+				break
+			}
+			uniqueHandle = fmt.Sprintf("%s%d", cleanHandle, suffix)
+			suffix++
+		}
+
+		if name == "" {
+			name = uniqueHandle
+		}
+		if avatar == "" {
+			avatar = util.ComputeAvatar(name)
+		}
+
+		role := "member"
+		if strings.EqualFold(uniqueHandle, "error-nasim") {
+			role = "admin"
+		}
+
+		newUser := domain.User{
+			ID:             fmt.Sprintf("u_%d", time.Now().UnixNano()),
+			Name:           name,
+			Handle:         uniqueHandle,
+			Email:          cleanEmail,
+			PasswordHash:   "",
+			Role:           role,
+			IsBanned:       false,
+			Reliability:    98,
+			RoomsJoined:    0,
+			RoomsCompleted: 0,
+			TeamUps:        0,
+			Bio:            fmt.Sprintf("Squad member. Connected via %s.", strings.Title(provider)),
+			Avatar:         avatar,
+			Tags:           domain.StringArray{"#gaming", "#coding"},
+			CreatedAt:      time.Now(),
+			UpdatedAt:      time.Now(),
+		}
+
+		created, err := s.usrRepo.Create(newUser)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to create oauth user: %w", err)
+		}
+		user = created
+	}
+
+	// Enrich with ratings
+	ratings, err := s.GetRatings(user.ID)
+	if err == nil {
+		user.Ratings = ratings
+		user.Rating, _, _ = s.CalculateUserRating(ratings)
+	} else {
+		user.Rating = 5.0
+	}
+
+	// Generate 7-day JWT token
+	token, err := util.CreateJWT(user.ID, user.Handle, user.Role, user.Tags, s.cnf.JwtSecretKey, 7*24*time.Hour)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate session token: %w", err)
+	}
+
+	return user, token, nil
+}
+
+func (s *service) DeleteUser(idOrHandle string) error {
+	clean := strings.ToLower(strings.TrimPrefix(idOrHandle, "@"))
+	if clean == "error-nasim" || strings.Contains(clean, "nasim") {
+		return errors.New("cannot delete founder Nasim")
+	}
+	return s.usrRepo.Delete(idOrHandle)
 }

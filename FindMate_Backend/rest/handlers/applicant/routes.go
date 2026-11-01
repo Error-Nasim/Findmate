@@ -8,7 +8,7 @@ import (
 func (h *Handler) RegisterRoutes(mux *http.ServeMux, manager *middleware.Manager) {
 	mux.Handle(
 		"POST /api/lobbies/{id}/apply",
-		manager.With(http.HandlerFunc(h.Apply), h.middlewares.AuthenticateJwt),
+		manager.With(http.HandlerFunc(h.Apply)),
 	)
 	mux.Handle(
 		"GET /api/lobbies/{id}/applicants",

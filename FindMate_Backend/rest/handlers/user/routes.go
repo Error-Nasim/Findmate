@@ -22,4 +22,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, manager *middleware.Manager
 		"POST /api/users/{id}/rate",
 		manager.With(http.HandlerFunc(h.RateUser)),
 	)
+	mux.Handle(
+		"DELETE /api/users/{id}",
+		manager.With(http.HandlerFunc(h.DeleteUser)),
+	)
 }

@@ -7,7 +7,7 @@ export const initialUsers = [
     name: 'Abu Nasim',
     handle: 'Error-nasim',
     avatar: 'AN',
-    role: 'admin',
+    role: 'superadmin',
     bio: 'Founder & Lead Developer of FindMate.',
     tags: ['#gaming', '#valorant', '#coding', '#ranked', '#competitive', '#fps'],
     memberSince: 'Jan 2026',

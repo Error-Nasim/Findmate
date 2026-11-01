@@ -68,6 +68,10 @@ func (m *mockUserRepo) AddRating(r domain.UserRating) (*domain.UserRating, error
 func (m *mockUserRepo) GetRatingsForUser(rateeID string) ([]domain.UserRating, error) {
 	return []domain.UserRating{}, nil
 }
+func (m *mockUserRepo) Delete(idOrHandle string) error {
+	delete(m.users, idOrHandle)
+	return nil
+}
 
 type mockLobbyRepo struct {
 	lobbies map[string]*domain.Lobby

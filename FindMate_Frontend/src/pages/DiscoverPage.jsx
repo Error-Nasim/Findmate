@@ -19,6 +19,7 @@ export default function DiscoverPage({
   acceptedLobbyIds = new Set(),
   onOpenChat,
   onSelectLobby,
+  onReviewApplicants,
 }) {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
@@ -216,6 +217,7 @@ export default function DiscoverPage({
             applied={appliedLobbies.includes(lobby.id)}
             isAccepted={acceptedLobbyIds instanceof Set ? acceptedLobbyIds.has(lobby.id) : (acceptedLobbyIds || []).includes(lobby.id)}
             onOpenChat={onOpenChat}
+            onReviewApplicants={onReviewApplicants}
             onViewProfile={(h) => navigate(`/profile/${h}`)}
           />
         ))}
@@ -253,7 +255,7 @@ export default function DiscoverPage({
   )
 }
 
-function LobbyCard({ lobby, currentUser, onSelect, onApply, applied, isAccepted, onOpenChat, onViewProfile }) {
+function LobbyCard({ lobby, currentUser, onSelect, onApply, applied, isAccepted, onOpenChat, onViewProfile, onReviewApplicants }) {
   const [hovered, setHovered] = useState(false)
   const isFull = lobby.joined >= lobby.max
   const isHost =
@@ -369,35 +371,68 @@ function LobbyCard({ lobby, currentUser, onSelect, onApply, applied, isAccepted,
       {/* Action Button */}
       <div onClick={e => e.stopPropagation()}>
         {isHost ? (
-          <button
-            onClick={() => onOpenChat && onOpenChat(lobby.id)}
-            style={{
-              width: '100%',
-              padding: '11px 16px',
-              borderRadius: 10,
-              background: 'rgba(99,102,241,0.12)',
-              color: '#6366F1',
-              border: '1px solid rgba(99,102,241,0.3)',
-              fontSize: 14,
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.opacity = '0.85'
-              e.currentTarget.style.transform = 'translateY(-1px)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.opacity = '1'
-              e.currentTarget.style.transform = 'translateY(0)'
-            }}
-          >
-            👑 Your Lobby · Open Chat
-          </button>
+          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+            <button
+              onClick={() => onOpenChat && onOpenChat(lobby.id)}
+              style={{
+                flex: 1,
+                padding: '11px 16px',
+                borderRadius: 10,
+                background: 'rgba(99,102,241,0.12)',
+                color: '#6366F1',
+                border: '1px solid rgba(99,102,241,0.3)',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.opacity = '0.85'
+                e.currentTarget.style.transform = 'translateY(-1px)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.opacity = '1'
+                e.currentTarget.style.transform = 'translateY(0)'
+              }}
+            >
+              👑 Open Chat
+            </button>
+            {(lobby.pending || 0) > 0 && onReviewApplicants && (
+              <button
+                onClick={() => onReviewApplicants(lobby.id, lobby.title)}
+                style={{
+                  padding: '11px 14px',
+                  borderRadius: 10,
+                  background: 'rgba(245,158,11,0.15)',
+                  color: '#D97706',
+                  border: '1px solid rgba(245,158,11,0.4)',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 8px rgba(245,158,11,0.15)',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(245,158,11,0.25)'
+                  e.currentTarget.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(245,158,11,0.15)'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                }}
+              >
+                ⏳ {lobby.pending} Pending
+              </button>
+            )}
+          </div>
         ) : isAccepted ? (
           <button
             onClick={() => onOpenChat && onOpenChat(lobby.id)}

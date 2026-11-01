@@ -39,6 +39,9 @@ func (m *mockUserRepo) AddRating(r domain.UserRating) (*domain.UserRating, error
 func (m *mockUserRepo) GetRatingsForUser(rateeID string) ([]domain.UserRating, error) {
 	return m.ratings[rateeID], nil
 }
+func (m *mockUserRepo) Delete(idOrHandle string) error {
+	return nil
+}
 
 func TestCalculateUserRatingFormula(t *testing.T) {
 	svc := NewService(&mockUserRepo{}, nil)

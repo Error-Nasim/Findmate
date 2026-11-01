@@ -9,9 +9,10 @@ import Button from '../components/ui/Button.jsx'
 import Tag from '../components/ui/Tag.jsx'
 import CapacityBar from '../components/ui/CapacityBar.jsx'
 import StatusBadge from '../components/ui/StatusBadge.jsx'
-import { GoogleIcon, DiscordIcon, GitHubIcon, StarIcon, ChatBubbleIcon } from '../components/ui/Icons.jsx'
+import { GoogleIcon, DiscordIcon, FacebookIcon, StarIcon, ChatBubbleIcon } from '../components/ui/Icons.jsx'
 import { calculateUserRating, findUserByQuery } from '../data/users.js'
 import RateUserModal from '../components/modals/RateUserModal.jsx'
+import { api } from '../api/index.js'
 
 export default function ProfilePage({
   currentUser,
@@ -48,8 +49,8 @@ export default function ProfilePage({
         reliability: 96,
         linkedAccounts: [
           { id: 'google', label: 'Google', connected: true },
-          { id: 'discord', label: 'Discord', connected: true },
-          { id: 'github', label: 'GitHub', connected: false },
+          { id: 'discord', label: 'Discord', connected: false },
+          { id: 'facebook', label: 'Facebook', connected: false },
         ],
         ratings: [],
       }
@@ -82,7 +83,9 @@ export default function ProfilePage({
         roomsCompleted: 5,
         reliability: 92,
         linkedAccounts: [
+          { id: 'google', label: 'Google', connected: false },
           { id: 'discord', label: 'Discord', connected: true },
+          { id: 'facebook', label: 'Facebook', connected: false },
         ],
         ratings: [],
       }
@@ -119,13 +122,34 @@ export default function ProfilePage({
   const [editBio, setEditBio] = useState(displayedUser.bio)
   const [userTags, setUserTags] = useState(displayedUser.tags || [])
   const [newTagInput, setNewTagInput] = useState('')
-  const [linkedAccounts, setLinkedAccounts] = useState(
-    displayedUser.linkedAccounts || [
-      { id: 'google', label: 'Google', connected: true },
-      { id: 'discord', label: 'Discord', connected: true },
-      { id: 'github', label: 'GitHub', connected: false },
+  const [oauthLoading, setOauthLoading] = useState(null)
+
+  // Real dynamic linked accounts based on user auth provider & linked accounts
+  const displayLinkedAccounts = useMemo(() => {
+    const list = Array.isArray(displayedUser?.linkedAccounts) ? displayedUser.linkedAccounts : []
+    const g = list.find((a) => a.id === 'google')
+    const d = list.find((a) => a.id === 'discord')
+    const f = list.find((a) => a.id === 'facebook')
+    const p = (displayedUser?.provider || '').toLowerCase()
+
+    return [
+      {
+        id: 'google',
+        label: 'Google',
+        connected: g !== undefined ? Boolean(g.connected) : p === 'google' || Boolean(displayedUser?.email && displayedUser.email.includes('gmail')),
+      },
+      {
+        id: 'discord',
+        label: 'Discord',
+        connected: d !== undefined ? Boolean(d.connected) : p === 'discord',
+      },
+      {
+        id: 'facebook',
+        label: 'Facebook',
+        connected: f !== undefined ? Boolean(f.connected) : p === 'facebook',
+      },
     ]
-  )
+  }, [displayedUser])
 
   // Interactive review form states (for rating others)
   const [selectedScore, setSelectedScore] = useState(5)
@@ -160,15 +184,75 @@ export default function ProfilePage({
     setUserTags((prev) => prev.filter((t) => t !== tag))
   }
 
-  const toggleAccount = (id) => {
-    setLinkedAccounts((prev) => {
-      const updated = prev.map((a) =>
-        a.id === id ? { ...a, connected: !a.connected } : a
+  const handleConnectOAuth = async (provider) => {
+    if (!isSelf) return
+    setOauthLoading(provider)
+    try {
+      let clientId = ''
+      let redirectUri =
+        import.meta.env.VITE_OAUTH_REDIRECT_URI ||
+        `${window.location.origin}/auth/callback`
+
+      try {
+        const config = await api.getOAuthConfig()
+        if (config && config[provider]) {
+          clientId = config[provider].clientId || ''
+        }
+        if (config && config.redirectUri) {
+          redirectUri = config.redirectUri
+        }
+      } catch (confErr) {
+        console.warn('[ProfilePage] Failed to fetch backend OAuth config:', confErr.message)
+      }
+
+      if (!clientId) {
+        if (provider === 'google') clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+        else if (provider === 'discord') clientId = import.meta.env.VITE_DISCORD_CLIENT_ID || ''
+        else if (provider === 'facebook') clientId = import.meta.env.VITE_FACEBOOK_APP_ID || ''
+      }
+
+      if (!clientId) {
+        toast?.(`Please configure ${provider.toUpperCase()} credentials in settings or environment.`)
+        setOauthLoading(null)
+        return
+      }
+
+      // Mark that this is an account-linking authorization flow, not a new account signin
+      sessionStorage.setItem('findmate_linking_account', 'true')
+      sessionStorage.setItem('findmate_linking_handle', displayedUser?.handle || '')
+      sessionStorage.setItem('findmate_oauth_provider', provider)
+      const state = `${provider}_${Math.random().toString(36).substring(2, 12)}_${Date.now()}`
+      sessionStorage.setItem('findmate_oauth_state', state)
+
+      let authUrl = ''
+      if (provider === 'google') {
+        authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent('openid email profile')}&access_type=offline&state=${encodeURIComponent(state)}&prompt=select_account`
+      } else if (provider === 'discord') {
+        authUrl = `https://discord.com/api/oauth2/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent('identify email')}&state=${encodeURIComponent(state)}`
+      } else if (provider === 'facebook') {
+        authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}&scope=public_profile`
+      }
+
+      window.location.href = authUrl
+    } catch (err) {
+      toast?.(`Could not start ${provider} linking: ${err.message}`)
+      setOauthLoading(null)
+    }
+  }
+
+  const handleToggleOrConnectAccount = async (id, isConnected) => {
+    if (!isSelf) return
+    if (!isConnected) {
+      await handleConnectOAuth(id)
+    } else {
+      const updated = displayLinkedAccounts.map((a) =>
+        a.id === id ? { ...a, connected: false } : a
       )
-      const target = updated.find((a) => a.id === id)
-      toast?.(`${target.label} ${target.connected ? 'connected' : 'disconnected'}`)
-      return updated
-    })
+      if (onUpdateProfile) {
+        onUpdateProfile({ linkedAccounts: updated })
+      }
+      toast?.(`${id.charAt(0).toUpperCase() + id.slice(1)} account disconnected.`)
+    }
   }
 
   const handleSubmitRating = (e) => {
@@ -207,7 +291,7 @@ export default function ProfilePage({
   const renderIcon = (id) => {
     if (id === 'google') return <GoogleIcon size={18} />
     if (id === 'discord') return <DiscordIcon size={18} />
-    if (id === 'github') return <GitHubIcon size={18} />
+    if (id === 'facebook') return <FacebookIcon size={18} />
     return null
   }
 
@@ -1202,10 +1286,10 @@ export default function ProfilePage({
                 letterSpacing: '0.08em',
               }}
             >
-              LINKED ACCOUNTS
+              CONNECTED ACCOUNTS (REAL-TIME AUTH)
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {linkedAccounts.map((account) => (
+              {displayLinkedAccounts.map((account) => (
                 <div
                   key={account.id}
                   style={{
@@ -1214,8 +1298,10 @@ export default function ProfilePage({
                     justifyContent: 'space-between',
                     padding: '12px 16px',
                     background: 'var(--bg-surface-alt)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 10,
+                    border: account.connected
+                      ? '1px solid rgba(16, 185, 129, 0.4)'
+                      : '1px solid var(--border-subtle)',
+                    borderRadius: 12,
                   }}
                 >
                   <div
@@ -1233,25 +1319,33 @@ export default function ProfilePage({
                   </div>
                   {isSelf ? (
                     <button
-                      onClick={() => toggleAccount(account.id)}
+                      onClick={() => handleToggleOrConnectAccount(account.id, account.connected)}
+                      disabled={oauthLoading === account.id}
                       style={{
-                        background: 'none',
-                        border: 'none',
-                        color: account.connected ? '#059669' : '#6366F1',
-                        fontSize: 13,
+                        background: account.connected ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.1)',
+                        border: account.connected ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(99,102,241,0.3)',
+                        borderRadius: 8,
+                        padding: '5px 12px',
+                        color: account.connected ? '#10B981' : '#6366F1',
+                        fontSize: 12,
                         fontWeight: 700,
-                        cursor: 'pointer',
+                        cursor: oauthLoading === account.id ? 'wait' : 'pointer',
                         fontFamily: 'var(--font-inter)',
+                        transition: 'all 0.15s ease',
                       }}
                     >
-                      {account.connected ? '✓ Connected' : 'Connect →'}
+                      {oauthLoading === account.id
+                        ? 'Connecting...'
+                        : account.connected
+                        ? '✓ Connected'
+                        : 'Connect →'}
                     </button>
                   ) : (
                     <span
                       style={{
                         fontSize: 12,
                         fontWeight: 700,
-                        color: account.connected ? '#059669' : 'var(--text-muted)',
+                        color: account.connected ? '#10B981' : 'var(--text-muted)',
                       }}
                     >
                       {account.connected ? '✓ Verified' : 'Not linked'}

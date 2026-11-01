@@ -10,7 +10,7 @@ func (m *Middlewares) AdminRoleRequired(next http.Handler) http.Handler {
 		roleVal := r.Context().Value(ContextKeyUserRole)
 		role, ok := roleVal.(string)
 
-		if !ok || role != "admin" {
+		if !ok || (role != "admin" && role != "superadmin") {
 			util.SendError(w, http.StatusForbidden, "403 Forbidden: Administrative privileges required")
 			return
 		}

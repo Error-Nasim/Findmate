@@ -50,19 +50,40 @@ export default function MessagesPage({
       if (parts.length >= 2) {
         const p0 = parts[0].toLowerCase()
         const p1 = parts[1].toLowerCase()
-        if (p0 === myHandle) otherHandle = parts[1]
-        else if (p1 === myHandle) otherHandle = parts[0]
-        else if (tHandleClean && tHandleClean !== myHandle) otherHandle = t.handle.replace(/^@/, '')
-      } else if (tHandleClean && tHandleClean !== myHandle) {
-        otherHandle = t.handle.replace(/^@/, '')
+        if (p0 === myHandle || p0 === myName) otherHandle = parts[1]
+        else if (p1 === myHandle || p1 === myName) otherHandle = parts[0]
+        else {
+          // Thread belongs to other users — do not leak to current user
+          return
+        }
+      } else if (Array.isArray(t.participants) && t.participants.length > 0) {
+        const isPart = t.participants.some((p) => {
+          const cleanP = String(p).replace(/^@/, '').toLowerCase()
+          return cleanP === myHandle || cleanP === myName
+        })
+        if (!isPart) return
+        const otherP = t.participants.find((p) => {
+          const cleanP = String(p).replace(/^@/, '').toLowerCase()
+          return cleanP !== myHandle && cleanP !== myName
+        })
+        otherHandle = otherP ? String(otherP).replace(/^@/, '') : ''
+      } else {
+        // Check if thread messages involve current user
+        const msgs = t.messages || []
+        const involvesMe = msgs.some((m) => {
+          const s = (m.sender || '').replace(/^@/, '').toLowerCase()
+          const r = (m.recipient || '').replace(/^@/, '').toLowerCase()
+          return s === myHandle || r === myHandle || s === myName || r === myName
+        })
+        if (!involvesMe) return
+        if (tHandleClean && tHandleClean !== myHandle && tHandleClean !== myName) {
+          otherHandle = t.handle.replace(/^@/, '')
+        }
       }
 
-      if (!otherHandle && tHandleClean === myHandle) {
-        // Skip self-addressed or duplicate entries
+      if (!otherHandle || otherHandle.toLowerCase() === myHandle || otherHandle.toLowerCase() === myName) {
+        // Skip self-addressed or unresolved entries
         return
-      }
-      if (!otherHandle) {
-        otherHandle = t.handle ? t.handle.replace(/^@/, '') : t.user
       }
 
       const pairKey = [myHandle, otherHandle.toLowerCase()].sort().join('_')

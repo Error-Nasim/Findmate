@@ -23,6 +23,7 @@ import MyLobbiesPage from "./pages/MyLobbiesPage.jsx";
 import MessagesPage from "./pages/MessagesPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
+import OAuthCallbackPage from "./pages/OAuthCallbackPage.jsx";
 
 // Modals
 import AuthModal from "./components/modals/AuthModal.jsx";
@@ -79,6 +80,7 @@ function LobbyRouteWrapper({
   onCompleteLobby,
   onEditLobby,
   onRemoveMember,
+  onReviewApplicants,
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -128,6 +130,7 @@ function LobbyRouteWrapper({
       onCompleteLobby={onCompleteLobby}
       onEditLobby={onEditLobby}
       onRemoveMember={onRemoveMember}
+      onReviewApplicants={onReviewApplicants}
     />
   );
 }
@@ -140,6 +143,42 @@ export default function App() {
   // Context Hooks
   const { isAuthed, user, login, logout, updateUser } = useAuth();
   const { showToast } = useToast();
+
+  // Current user info (defined early to prevent TDZ ReferenceError in hooks)
+  const isNasim =
+    user?.handle?.toLowerCase() === "error-nasim" ||
+    (user?.name && user.name.toLowerCase().includes("nasim"));
+  const currentUserAvatar =
+    user?.avatar && (isNasim || user.avatar !== "AN")
+      ? user.avatar
+      : user?.name
+        ? user.name
+            .trim()
+            .split(/\s+/)
+            .map((w) => w[0])
+            .join("")
+            .toUpperCase()
+            .substring(0, 2)
+        : user?.handle
+          ? user.handle.substring(0, 2).toUpperCase()
+          : "ME";
+
+  const currentUser =
+    isAuthed && user
+      ? {
+          id: user.id || "u1",
+          name: user.name || "Member",
+          handle: user.handle || user.username || "member",
+          avatar: currentUserAvatar,
+          role: user.role || "member",
+          tags: user.tags || [],
+          reliability: user.reliability ?? 98,
+          teamUps: user.teamUps ?? 0,
+          bio: user.bio || "",
+          linkedAccounts: user.linkedAccounts || [],
+          provider: user.provider || "",
+        }
+      : null;
 
   // Theme state
   const [theme, setTheme] = useState(
@@ -186,45 +225,17 @@ export default function App() {
     api.getUsers().then((data) => setUsersList(Array.isArray(data) ? data : []));
     api.getAuditLogs().then((data) => setAuditLogs(Array.isArray(data) ? data : []));
     api.getAnnouncements().then((data) => setAnnouncements(Array.isArray(data) ? data : []));
-    api.getPendingLobbyIds().then(setPendingLobbyIds);
-    api.getAcceptedLobbyIds().then((ids) => {
-      if (ids && ids.size > 0) setAcceptedLobbyIds(ids);
-    });
   }, []);
 
-  // Current user info
-  const isNasim =
-    user?.handle?.toLowerCase() === "error-nasim" ||
-    (user?.name && user.name.toLowerCase().includes("nasim"));
-  const currentUserAvatar =
-    user?.avatar && (isNasim || user.avatar !== "AN")
-      ? user.avatar
-      : user?.name
-        ? user.name
-            .trim()
-            .split(/\s+/)
-            .map((w) => w[0])
-            .join("")
-            .toUpperCase()
-            .substring(0, 2)
-        : user?.handle
-          ? user.handle.substring(0, 2).toUpperCase()
-          : "ME";
+  // Reload user-scoped pending & accepted lobbies whenever active user changes
+  useEffect(() => {
+    const handle = currentUser?.handle || "default";
+    api.getPendingLobbyIds(handle).then(setPendingLobbyIds);
+    api.getAcceptedLobbyIds(handle).then((ids) => {
+      setAcceptedLobbyIds(ids instanceof Set ? ids : new Set());
+    });
+  }, [currentUser?.handle]);
 
-  const currentUser =
-    isAuthed && user
-      ? {
-          id: user.id || "u1",
-          name: user.name || "Member",
-          handle: user.handle || user.username || "member",
-          avatar: currentUserAvatar,
-          role: user.role || "member",
-          tags: user.tags || [],
-          reliability: user.reliability ?? 98,
-          teamUps: user.teamUps ?? 0,
-          bio: user.bio || "",
-        }
-      : null;
 
   // Load deleted chats persisted for active user
   useEffect(() => {
@@ -269,8 +280,12 @@ export default function App() {
         const match =
           (currentUserHandle && a.handle?.toLowerCase() === currentUserHandle) ||
           (currentUserId && a.userId === currentUserId);
-        if (match && a.status === "accepted") {
-          ids.add(String(a.lobbyId));
+        if (match) {
+          if (a.status === "accepted") {
+            ids.add(String(a.lobbyId));
+          } else if (a.status === "removed" || a.status === "declined") {
+            ids.delete(String(a.lobbyId));
+          }
         }
       });
     }
@@ -290,7 +305,7 @@ export default function App() {
         if (match) {
           if (a.status === "pending") {
             ids.add(String(a.lobbyId));
-          } else if (a.status === "accepted" || a.status === "declined") {
+          } else if (a.status === "accepted" || a.status === "declined" || a.status === "removed") {
             ids.delete(String(a.lobbyId));
           }
         }
@@ -316,10 +331,24 @@ export default function App() {
   const [activeChatLobbyId, setActiveChatLobbyId] = useState(null);
   const [activeDMThreadId, setActiveDMThreadId] = useState("");
 
-  // Derived counts
-  const unreadNotifCount = notifsList.filter(
-    (n) => n.unread && n.type !== "dm" && !n.text?.toLowerCase().includes("new message")
-  ).length;
+  // Filter notifications specifically for current user (Zero leakage to new/other users)
+  const userNotifsList = useMemo(() => {
+    if (!currentUser) return [];
+    const myHandle = (currentUser.handle || "").replace(/^@/, "").toLowerCase();
+    const myName = (currentUser.name || "").toLowerCase();
+
+    return notifsList.filter((n) => {
+      if (!n.recipient) return false;
+      const rec = String(n.recipient).replace(/^@/, "").toLowerCase();
+      return rec === myHandle || rec === myName;
+    });
+  }, [notifsList, currentUser]);
+
+  const unreadNotifCount = useMemo(() => {
+    return userNotifsList.filter(
+      (n) => n.unread && n.type !== "dm" && !n.text?.toLowerCase().includes("new message")
+    ).length;
+  }, [userNotifsList]);
 
   // Track read counts for group chats per user
   const [readGroupChatCounts, setReadGroupChatCounts] = useState(() => {
@@ -343,14 +372,51 @@ export default function App() {
     }
   }, [currentUser?.handle]);
 
+  // Filter DM threads specifically for current user (Zero demo/foreign threads)
+  const userDMList = useMemo(() => {
+    if (!currentUser) return [];
+    const myHandle = (currentUser.handle || "").replace(/^@/, "").toLowerCase();
+    const myName = (currentUser.name || "").toLowerCase();
+
+    return dmList.filter((t) => {
+      if (deletedDMThreadIds.has(String(t.id))) return false;
+
+      // 1. Check participants list
+      if (Array.isArray(t.participants) && t.participants.length > 0) {
+        return t.participants.some((p) => {
+          const cleanP = String(p).replace(/^@/, "").toLowerCase();
+          return cleanP === myHandle || cleanP === myName;
+        });
+      }
+
+      // 2. Check id format dm_userA_userB
+      const parts = String(t.id).replace(/^dm_/, "").split("_");
+      if (parts.length >= 2) {
+        const p0 = parts[0].toLowerCase();
+        const p1 = parts[1].toLowerCase();
+        return p0 === myHandle || p1 === myHandle || p0 === myName || p1 === myName;
+      }
+
+      // 3. Check messages
+      if (Array.isArray(t.messages) && t.messages.length > 0) {
+        return t.messages.some((m) => {
+          const sender = (m.sender || "").replace(/^@/, "").toLowerCase();
+          const rec = (m.recipient || "").replace(/^@/, "").toLowerCase();
+          return sender === myHandle || rec === myHandle || sender === myName || rec === myName;
+        });
+      }
+
+      return false;
+    });
+  }, [dmList, currentUser, deletedDMThreadIds]);
+
   const unreadDMCount = useMemo(() => {
     if (!currentUser) return 0;
     const myName = (currentUser.name || "").toLowerCase();
     const myHandle = (currentUser.handle || "").replace(/^@/, "").toLowerCase();
 
-    return dmList.reduce((acc, thread) => {
+    return userDMList.reduce((acc, thread) => {
       if (thread.id === activeDMThreadId) return acc;
-      if (deletedDMThreadIds.has(String(thread.id))) return acc;
 
       const msgs = thread.messages || [];
       const unreadMsgs = msgs.filter((m) => {
@@ -364,7 +430,7 @@ export default function App() {
       }
       return acc + (thread.unread || 0);
     }, 0);
-  }, [dmList, currentUser, activeDMThreadId, deletedDMThreadIds]);
+  }, [userDMList, currentUser, activeDMThreadId]);
 
   const unreadGroupCount = useMemo(() => {
     if (!currentUser) return 0;
@@ -674,6 +740,10 @@ export default function App() {
       openAuth("signin");
       return;
     }
+    if (currentUser?.isBanned) {
+      showToast("Your account is suspended. You cannot apply to or join lobbies.", "error");
+      return;
+    }
     const strId = String(lobbyId);
     if (computedPendingLobbyIds.has(strId)) {
       showToast("You've already applied to this lobby.");
@@ -709,6 +779,12 @@ export default function App() {
       return;
     }
 
+    if (currentUser?.isBanned) {
+      showToast("Your account is suspended. You cannot apply to lobbies.", "error");
+      setApplyingLobby(null);
+      return;
+    }
+
     // Host check
     const isHost =
       (currentUser?.handle && lobby.handle?.toLowerCase() === currentUser.handle.toLowerCase()) ||
@@ -721,10 +797,11 @@ export default function App() {
 
     setPendingLobbyIds((prev) => {
       const next = new Set([...prev, strId]);
-      api.savePendingLobbyIds(next);
+      api.savePendingLobbyIds(currentUser?.handle || "default", next);
       return next;
     });
 
+    const hostHandle = (lobby.handle || "").replace(/^@/, "");
     const newApp = {
       id: `app_${Date.now()}`,
       lobbyId: strId,
@@ -736,9 +813,31 @@ export default function App() {
       teamUps: currentUser.teamUps,
       status: "pending",
       message,
+      hostHandle,
     };
 
     setApplicantsList((prev) => [newApp, ...prev]);
+
+    // Dispatch host notification in real-time
+    if (hostHandle) {
+      const hostNotif = {
+        id: `notif_${Date.now()}`,
+        recipient: hostHandle,
+        recipientId: hostHandle,
+        icon: "✋",
+        title: "New Lobby Application",
+        text: `${currentUser.name || currentUser.handle} applied to your lobby "${lobby.title}"`,
+        unread: true,
+        type: "apply",
+        applicantId: newApp.id,
+        lobbyId: strId,
+        time: "Just now",
+        createdAt: new Date().toISOString(),
+      };
+      setNotifsList((prev) => [hostNotif, ...prev]);
+      api.addNotification(hostNotif);
+    }
+
     api.addApplicant(newApp).then((saved) => {
       if (saved && saved.id) {
         setApplicantsList((prev) =>
@@ -768,7 +867,60 @@ export default function App() {
     const lobby = lobbiesList.find((l) => String(l.id) === String(applicant.lobbyId));
     const hostHandle = lobby?.handle || currentUser?.handle || "host";
     const appHandle = applicant.handle || "player";
-    const threadId = `dm_${hostHandle}_${appHandle}`;
+    const cleanAppHandle = appHandle.replace(/^@/, "");
+    const threadId = `dm_${hostHandle}_${cleanAppHandle}`;
+
+    setApplicantsList((prev) =>
+      prev.map((a) =>
+        String(a.id) === String(applicant.id) ? { ...a, status: "accepted" } : a,
+      ),
+    );
+
+    if (lobby) {
+      setLobbiesList((prev) =>
+        prev.map((l) =>
+          String(l.id) === String(applicant.lobbyId)
+            ? {
+                ...l,
+                joined: Math.min(l.joined + 1, l.max),
+                pending: Math.max(0, (l.pending || 1) - 1),
+                chatMessages: [
+                  ...(l.chatMessages || []),
+                  {
+                    id: `sys_${Date.now()}`,
+                    type: "system",
+                    text: `${applicant.name} was accepted and joined the team! 🎉`,
+                  },
+                ],
+              }
+            : l,
+        ),
+      );
+    }
+
+    // Persist accepted lobby ID for applicant
+    api.getAcceptedLobbyIds(cleanAppHandle).then((existingIds) => {
+      const nextSet = new Set(existingIds instanceof Set ? existingIds : []);
+      nextSet.add(String(applicant.lobbyId));
+      api.saveAcceptedLobbyIds(cleanAppHandle, nextSet);
+    });
+
+    // Notify applicant in real-time
+    const acceptedNotif = {
+      id: `notif_${Date.now()}`,
+      recipient: cleanAppHandle,
+      recipientId: cleanAppHandle,
+      icon: "🎉",
+      title: "Application Accepted!",
+      text: `You were accepted into the squad for "${lobby?.title || "Lobby"}"!`,
+      unread: true,
+      type: "lobby_accepted",
+      lobbyId: String(applicant.lobbyId),
+      time: "Just now",
+      createdAt: new Date().toISOString(),
+    };
+    setNotifsList((prev) => [acceptedNotif, ...prev]);
+    api.addNotification(acceptedNotif);
 
     setApplicantsList((prev) =>
       prev.map((a) =>
@@ -933,23 +1085,23 @@ export default function App() {
       targetId = null;
     }
 
-    const cleanTargetHandle = targetHandle ? String(targetHandle).replace(/^@/, "") : "";
-    const cleanMyHandle = currentUser?.handle ? String(currentUser.handle).replace(/^@/, "") : "me";
+    const cleanTargetHandle = targetHandle ? String(targetHandle).replace(/^@/, "").toLowerCase() : "";
+    const cleanMyHandle = currentUser?.handle ? String(currentUser.handle).replace(/^@/, "").toLowerCase() : "me";
 
     // If targetId is not specified or was null/stub, match or create
     if (!targetId || targetId === "null") {
+      const pairKeyA = `dm_${cleanMyHandle}_${cleanTargetHandle}`;
+      const pairKeyB = `dm_${cleanTargetHandle}_${cleanMyHandle}`;
+
       const existing = dmList.find(
-        (t) =>
-          (cleanTargetHandle && t.handle && t.handle.replace(/^@/, "").toLowerCase() === cleanTargetHandle.toLowerCase()) ||
-          (cleanTargetHandle && t.id && t.id.toLowerCase().includes(cleanTargetHandle.toLowerCase())) ||
-          (targetName && t.user && t.user.toLowerCase() === targetName.toLowerCase())
+        (t) => t.id === pairKeyA || t.id === pairKeyB
       );
       if (existing) {
         targetId = existing.id;
         if (!targetName) targetName = existing.user;
         if (!targetAvatar) targetAvatar = existing.avatar;
       } else {
-        targetId = `dm_${cleanMyHandle}_${cleanTargetHandle || targetName || "user"}`;
+        targetId = pairKeyA;
       }
     }
 
@@ -957,13 +1109,12 @@ export default function App() {
       setDmList((prev) => {
         const found = prev.find((t) => t.id === targetId);
         if (!found) {
-          const parts = String(targetId).split("_");
-          const fallbackHandle = parts.length > 2 ? parts[2] : String(targetId).replace(/^dm-host-/, "");
           const newThread = {
             id: targetId,
-            user: targetName || cleanTargetHandle || fallbackHandle || "Teammate",
-            handle: cleanTargetHandle ? `@${cleanTargetHandle}` : (fallbackHandle ? `@${fallbackHandle}` : ""),
+            user: targetName || cleanTargetHandle || "Teammate",
+            handle: cleanTargetHandle ? `@${cleanTargetHandle}` : "",
             avatar: targetAvatar || "ME",
+            participants: [cleanMyHandle, cleanTargetHandle],
             lobbyContext: "Direct Message",
             unread: 0,
             messages: [],
@@ -993,6 +1144,10 @@ export default function App() {
 
   const handleRateUser = useCallback(
     (targetHandle, newReview) => {
+      if (currentUser?.isBanned) {
+        showToast("Your account is suspended. You cannot submit ratings.", "error");
+        return;
+      }
       setUsersList((prev) =>
         prev.map((u) => {
           if (
@@ -1119,6 +1274,10 @@ export default function App() {
       openAuth("signin");
       return;
     }
+    if (currentUser?.isBanned) {
+      showToast("Your account is suspended. You cannot create new lobbies.", "error");
+      return;
+    }
 
     const isObj = typeof payload === "object" && payload !== null;
     const title = isObj ? payload.title : payload;
@@ -1161,7 +1320,7 @@ export default function App() {
       setLobbiesList((prev) => [created, ...prev]);
       setAcceptedLobbyIds((prev) => {
         const next = new Set([...prev, created.id]);
-        api.saveAcceptedLobbyIds(next);
+        api.saveAcceptedLobbyIds(currentUser?.handle || "default", next);
         return next;
       });
       showToast(`Lobby "${title}" posted!`);
@@ -1306,12 +1465,47 @@ export default function App() {
       })
     );
 
+    // Prune removed lobby from accepted and pending sets so kicked member can re-apply fresh
+    setAcceptedLobbyIds((prev) => {
+      const next = new Set(prev);
+      next.delete(strLobbyId);
+      api.saveAcceptedLobbyIds(memberHandle || currentUser?.handle || "default", next);
+      return next;
+    });
+
+    setPendingLobbyIds((prev) => {
+      const next = new Set(prev);
+      next.delete(strLobbyId);
+      api.savePendingLobbyIds(memberHandle || currentUser?.handle || "default", next);
+      return next;
+    });
+
     if (applicantId) {
       api.removeApplicant(applicantId).then(() => {
         showToast(`Removed @${memberHandle || memberName} from squad.`, "info");
       }).catch((err) => {
         console.warn("Failed to remove applicant:", err.message);
       });
+    }
+
+    // Send kick notification to the removed member in real-time
+    const lobby = lobbiesList.find((l) => String(l.id) === strLobbyId);
+    if (memberHandle) {
+      const kickNotif = {
+        id: `notif_${Date.now()}`,
+        recipient: memberHandle,
+        recipientId: memberHandle,
+        icon: "⚠️",
+        title: "Removed from Lobby",
+        text: `You have been removed from the lobby "${lobby?.title || "Lobby"}" by the host.`,
+        unread: true,
+        type: "lobby_kick",
+        lobbyId: strLobbyId,
+        time: "Just now",
+        createdAt: new Date().toISOString(),
+      };
+      setNotifsList((prev) => [kickNotif, ...prev]);
+      api.addNotification(kickNotif);
     }
   };
 
@@ -1471,18 +1665,71 @@ export default function App() {
   };
 
   const handleAdminUpdateUserRole = (userId, newRole) => {
+    const targetUser = usersList.find((u) => u.id === userId || u.handle === userId);
+    const targetHandle = (targetUser?.handle || String(userId)).replace(/^@/, "");
+
     setUsersList((prev) =>
       prev.map((u) => (u.id === userId || u.handle === userId ? { ...u, role: newRole } : u)),
     );
     api.updateUser(userId, { role: newRole });
+
+    const roleName = newRole === "superadmin" ? "Super Admin" : newRole === "admin" ? "Admin" : "Member";
+    const roleIcon = newRole === "superadmin" ? "👑" : newRole === "admin" ? "🛡️" : "ℹ️";
+
+    // Send role update notification in real-time
+    if (targetHandle) {
+      const notif = {
+        id: `notif_${Date.now()}`,
+        recipient: targetHandle,
+        recipientId: targetHandle,
+        icon: roleIcon,
+        title: "Account Role Updated",
+        text: newRole === "member"
+          ? "Your account role has been updated to Member."
+          : `Congratulations! You have been promoted to ${roleName} by ${currentUser?.name || "Nasim"}!`,
+        unread: true,
+        type: "role_update",
+        time: "Just now",
+        createdAt: new Date().toISOString(),
+      };
+      setNotifsList((prev) => [notif, ...prev]);
+      api.addNotification(notif);
+    }
+
     const log = {
       admin: currentUser ? `${currentUser.name} (@${currentUser.handle})` : "Administrator",
       action: "UPDATE_ROLE",
-      target: `User ID: ${userId}`,
+      target: `@${targetHandle}`,
       details: `Role updated to ${newRole.toUpperCase()}`,
     };
     api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
-    showToast(`User role updated to ${newRole}`);
+    showToast(`User role updated to ${roleName}`);
+  };
+
+  const handleAdminDeleteUser = async (userId) => {
+    const targetUser = usersList.find((u) => u.id === userId || u.handle === userId);
+    const targetHandle = (targetUser?.handle || String(userId)).replace(/^@/, "").toLowerCase();
+
+    if (targetHandle === "error-nasim" || (targetUser?.name && targetUser.name.toLowerCase().includes("nasim"))) {
+      showToast("Superadmin (Nasim) is permanent and cannot be deleted.", "error");
+      return;
+    }
+
+    try {
+      await api.deleteUser(userId);
+      setUsersList((prev) => prev.filter((u) => u.id !== userId && u.handle !== userId));
+      const log = {
+        admin: currentUser ? `${currentUser.name} (@${currentUser.handle})` : "Administrator",
+        action: "DELETE_USER",
+        target: `@${targetHandle}`,
+        details: "User permanently deleted from system",
+      };
+      api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+      showToast(`User @${targetHandle} permanently deleted.`);
+    } catch (err) {
+      console.error("Failed to delete user:", err);
+      showToast("Failed to delete user. Please try again.", "error");
+    }
   };
 
   const handleAdminUpdateUserReliability = (userId, newScore) => {
@@ -1622,6 +1869,31 @@ export default function App() {
           </div>
         ))}
 
+      {/* ── Banned Account Sticky Read-Only Notice ── */}
+      {currentUser?.isBanned && (
+        <div
+          style={{
+            background: "linear-gradient(90deg, #991B1B 0%, #DC2626 100%)",
+            color: "#ffffff",
+            padding: "10px 16px",
+            textAlign: "center",
+            fontSize: 13,
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            zIndex: 9999,
+            boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
+          }}
+        >
+          <span style={{ fontSize: 16 }}>🚫</span>
+          <span>
+            <strong>Account Suspended (Read-Only Mode):</strong> Your account is currently suspended. You can view your past lobbies and profile activity, but cannot create lobbies, send requests, or chat.
+          </span>
+        </div>
+      )}
+
       {/* ── Top Navbar ── */}
       <Navbar
         isAuthed={isAuthed}
@@ -1636,6 +1908,9 @@ export default function App() {
 
       {/* ── React Router View Routes ── */}
       <Routes>
+        {/* OAuth 2.0 Provider Redirect Callback */}
+        <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+
         {/* Home / Feed Route */}
         <Route
           path="/"
@@ -1684,6 +1959,10 @@ export default function App() {
               }}
               onApply={handleJoinLobby}
               onOpenChat={openGroupChat}
+              onReviewApplicants={(id, title) => {
+                setActiveApplicantsLobbyId(id);
+                setActiveApplicantsLobbyTitle(title);
+              }}
             />
           }
         />
@@ -1705,6 +1984,10 @@ export default function App() {
               onCompleteLobby={handleCompleteLobby}
               onEditLobby={(l) => setEditingLobby(l)}
               onRemoveMember={handleRemoveMember}
+              onReviewApplicants={(id, title) => {
+                setActiveApplicantsLobbyId(id);
+                setActiveApplicantsLobbyTitle(title);
+              }}
             />
           }
         />
@@ -1751,7 +2034,7 @@ export default function App() {
               />
             ) : (
               <MessagesPage
-                threads={dmList}
+                threads={userDMList}
                 lobbies={lobbiesList}
                 acceptedLobbyIds={computedAcceptedLobbyIds}
                 deletedGroupChatIds={deletedGroupChatIds}
@@ -1857,6 +2140,7 @@ export default function App() {
                 onRemoveTag={handleRemovePlatformTag}
                 onCreateAnnouncement={handleCreateAnnouncement}
                 onDeleteAnnouncement={handleDeleteAnnouncement}
+                onDeleteUser={handleAdminDeleteUser}
                 onAddAuditLog={(entry) =>
                   api.addAuditLog(entry).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]))
                 }
@@ -1882,7 +2166,7 @@ export default function App() {
             onClick={() => setShowNotifsDropdown(false)}
           />
           <NotificationsPanel
-            notifs={notifsList}
+            notifs={userNotifsList}
             onClose={() => setShowNotifsDropdown(false)}
             onClickApply={(appId, nId) => {
               handleNotifClickApply(appId, nId);
@@ -2021,6 +2305,10 @@ export default function App() {
           onDeleteChat={handleDeleteGroupChat}
           onCompleteLobby={handleCompleteLobby}
           onSend={(lobbyId, text) => {
+            if (currentUser?.isBanned) {
+              showToast("Your account is suspended. You cannot send messages.", "error");
+              return;
+            }
             if (activeChatLobby.status === "Completed" || activeChatLobby.status === "Closed") {
               showToast("Chat is disabled for completed or closed lobbies.", "error");
               return;
@@ -2087,6 +2375,10 @@ export default function App() {
           thread={activeDMThread}
           onClose={() => setActiveDMThreadId("")}
           onSend={(threadId, text) => {
+            if (currentUser?.isBanned) {
+              showToast("Your account is suspended. You cannot send messages.", "error");
+              return;
+            }
             const senderName = currentUser?.name || "Player";
             const senderAvatar =
               currentUser?.avatar ||

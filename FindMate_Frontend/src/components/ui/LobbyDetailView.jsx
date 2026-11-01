@@ -22,6 +22,7 @@ export default function LobbyDetailView({
   onCompleteLobby,
   onEditLobby,
   onRemoveMember,
+  onReviewApplicants,
 }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
@@ -65,6 +66,9 @@ export default function LobbyDetailView({
     });
 
   const acceptedApplicants = Array.from(acceptedApplicantsMap.values());
+  const pendingApplicants = (applicants || []).filter(
+    (a) => String(a.lobbyId) === String(lobby.id) && a.status === "pending"
+  );
   const realRoster = [hostMember, ...acceptedApplicants];
   const emptySlots = Math.max(0, (lobby.max || 5) - realRoster.length);
 
@@ -99,6 +103,45 @@ export default function LobbyDetailView({
       >
         ← Back to Feed
       </button>
+
+      {/* Pending Applicants Host Notification Banner */}
+      {isHost && pendingApplicants.length > 0 && (
+        <div
+          style={{
+            marginBottom: 20,
+            padding: "16px 20px",
+            background: "rgba(245, 158, 11, 0.12)",
+            border: "1px solid rgba(245, 158, 11, 0.35)",
+            borderRadius: 16,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 24 }}>✋</span>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#D97706" }}>
+                {pendingApplicants.length} {pendingApplicants.length === 1 ? "applicant is" : "applicants are"} waiting to join!
+              </div>
+              <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>
+                Review their pitch notes and decide who joins your squad.
+              </div>
+            </div>
+          </div>
+          {onReviewApplicants && (
+            <Button
+              v="primary"
+              sm
+              onClick={() => onReviewApplicants(lobby.id, lobby.title)}
+            >
+              Review Applicants ({pendingApplicants.length}) →
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Completed Lobby Rating Banner */}
       {lobby.status === "Completed" && (
@@ -431,11 +474,12 @@ export default function LobbyDetailView({
       >
         <div style={{ flex: 1 }}>
           {isHost ? (
-            <div style={{ display: "flex", gap: 10, width: "100%" }}>
+            <div style={{ display: "flex", gap: 10, width: "100%", flexWrap: "wrap" }}>
               <button
                 onClick={onGroupChat}
                 style={{
                   flex: 1,
+                  minWidth: 160,
                   padding: "12px 18px",
                   borderRadius: 10,
                   background: "#6366F1",
@@ -458,6 +502,36 @@ export default function LobbyDetailView({
               >
                 👑 Open Group Chat
               </button>
+              {pendingApplicants.length > 0 && onReviewApplicants && (
+                <button
+                  onClick={() => onReviewApplicants(lobby.id, lobby.title)}
+                  style={{
+                    padding: "12px 18px",
+                    borderRadius: 10,
+                    background: "rgba(245, 158, 11, 0.15)",
+                    color: "#D97706",
+                    border: "1px solid rgba(245, 158, 11, 0.4)",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    boxShadow: "0 2px 8px rgba(245,158,11,0.15)",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(245, 158, 11, 0.25)";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(245, 158, 11, 0.15)";
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
+                >
+                  ⏳ Review Applicants ({pendingApplicants.length})
+                </button>
+              )}
               {onEditLobby && (
                 <Button v="line" onClick={() => onEditLobby(lobby)}>
                   ✏️ Edit Lobby

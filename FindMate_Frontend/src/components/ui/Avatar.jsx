@@ -24,8 +24,34 @@ function getColor(initials) {
   return FALLBACK_PALETTE[idx]
 }
 
+import { useState } from 'react'
+
 export default function Avatar({ initials = 'ME', size = 36 }) {
-  const bg = getColor(initials)
+  const [imgError, setImgError] = useState(false)
+  const isUrl = Boolean(initials && typeof initials === 'string' && (initials.startsWith('http://') || initials.startsWith('https://') || initials.startsWith('data:image/')))
+
+  if (isUrl && !imgError) {
+    return (
+      <img
+        src={initials}
+        alt="Avatar"
+        onError={() => setImgError(true)}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          objectFit: 'cover',
+          flexShrink: 0,
+          position: 'relative',
+          zIndex: 2,
+          border: '1px solid var(--border-subtle)',
+        }}
+      />
+    )
+  }
+
+  const cleanText = initials && initials.length > 3 ? initials.substring(0, 2).toUpperCase() : initials || 'ME'
+  const bg = getColor(cleanText)
 
   return (
     <div
@@ -46,7 +72,7 @@ export default function Avatar({ initials = 'ME', size = 36 }) {
         zIndex: 2,
       }}
     >
-      {initials}
+      {cleanText}
     </div>
   )
 }

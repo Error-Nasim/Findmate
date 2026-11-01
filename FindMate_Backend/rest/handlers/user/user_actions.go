@@ -135,3 +135,17 @@ func (h *Handler) RateUser(w http.ResponseWriter, r *http.Request) {
 
 	util.SendData(w, rating, http.StatusCreated)
 }
+
+func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		util.SendError(w, http.StatusBadRequest, "Missing user ID")
+		return
+	}
+	err := h.userSvc.DeleteUser(id)
+	if err != nil {
+		util.SendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	util.SendData(w, map[string]interface{}{"success": true, "deleted": id}, http.StatusOK)
+}

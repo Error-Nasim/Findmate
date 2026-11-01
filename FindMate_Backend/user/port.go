@@ -11,6 +11,8 @@ type Service interface {
 	AddRating(raterID, raterName, raterHandle, raterAvatar, rateeID string, score int, comment string) (*domain.UserRating, error)
 	GetRatings(rateeID string) ([]domain.UserRating, error)
 	CalculateUserRating(ratings []domain.UserRating) (float64, int, map[int]int)
+	FindOrCreateOAuthUser(provider, email, name, handle, avatar string) (*domain.User, string, error)
+	DeleteUser(idOrHandle string) error
 }
 
 type UserRepo interface {
@@ -22,4 +24,5 @@ type UserRepo interface {
 	UpdateUser(id string, updates map[string]interface{}) (*domain.User, error)
 	AddRating(r domain.UserRating) (*domain.UserRating, error)
 	GetRatingsForUser(rateeID string) ([]domain.UserRating, error)
+	Delete(idOrHandle string) error
 }

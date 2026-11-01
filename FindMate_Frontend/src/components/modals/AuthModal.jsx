@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import Button from "../ui/Button.jsx";
-import { GoogleIcon, DiscordIcon } from "../ui/Icons.jsx";
+import { GoogleIcon, DiscordIcon, FacebookIcon } from "../ui/Icons.jsx";
 import { api } from "../../api/index.js";
 
 export default function AuthModal({
@@ -25,6 +25,9 @@ export default function AuthModal({
   });
   const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(null);
+  const [oauthPrompt, setOauthPrompt] = useState(null);
+  const [manualClientId, setManualClientId] = useState("");
 
   const interestOptions = ["#gaming", "#coding", "#sports", "#study", "#fitness", "#music"];
 
@@ -42,6 +45,63 @@ export default function AuthModal({
       password: password,
     }));
     setErrorMsg("");
+  };
+
+  const handleInitiateOAuth = async (provider, overrideClientId = "") => {
+    setErrorMsg("");
+    setOauthLoading(provider);
+
+    try {
+      let clientId = overrideClientId?.trim();
+      let redirectUri =
+        import.meta.env.VITE_OAUTH_REDIRECT_URI ||
+        `${window.location.origin}/auth/callback`;
+
+      if (!clientId) {
+        try {
+          const config = await api.getOAuthConfig();
+          if (config && config[provider]) {
+            clientId = config[provider].clientId || "";
+          }
+          if (config && config.redirectUri) {
+            redirectUri = config.redirectUri;
+          }
+        } catch (confErr) {
+          console.warn("[AuthModal] Failed to fetch backend OAuth config:", confErr.message);
+        }
+
+        if (!clientId) {
+          if (provider === "google") clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+          else if (provider === "discord") clientId = import.meta.env.VITE_DISCORD_CLIENT_ID || "";
+          else if (provider === "facebook") clientId = import.meta.env.VITE_FACEBOOK_APP_ID || "";
+        }
+      }
+
+      if (!clientId) {
+        setOauthPrompt({ provider, redirectUri });
+        setOauthLoading(null);
+        return;
+      }
+
+      // Generate secure state with provider tag and random string
+      const state = `${provider}_${Math.random().toString(36).substring(2, 12)}_${Date.now()}`;
+      sessionStorage.setItem("findmate_oauth_state", state);
+      sessionStorage.setItem("findmate_oauth_provider", provider);
+
+      let authUrl = "";
+      if (provider === "google") {
+        authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent("openid email profile")}&access_type=offline&state=${encodeURIComponent(state)}&prompt=select_account`;
+      } else if (provider === "discord") {
+        authUrl = `https://discord.com/api/oauth2/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent("identify email")}&state=${encodeURIComponent(state)}`;
+      } else if (provider === "facebook") {
+        authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}&scope=public_profile`;
+      }
+
+      window.location.href = authUrl;
+    } catch (err) {
+      setErrorMsg(err.message || `Failed to initiate ${provider} authentication`);
+      setOauthLoading(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -191,6 +251,186 @@ export default function AuthModal({
               ⚠️ {errorMsg}
             </div>
           )}
+
+          {/* Social OAuth Buttons */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+            {/* Google */}
+            <button
+              type="button"
+              onClick={() => handleInitiateOAuth("google")}
+              disabled={Boolean(oauthLoading)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                width: "100%",
+                padding: "11px 16px",
+                borderRadius: 12,
+                background: "#ffffff",
+                color: "#1f2937",
+                border: "1px solid #d1d5db",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: oauthLoading ? "not-allowed" : "pointer",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <GoogleIcon size={18} />
+              <span>{oauthLoading === "google" ? "Connecting to Google..." : "Continue with Google"}</span>
+            </button>
+
+            {/* Discord */}
+            <button
+              type="button"
+              onClick={() => handleInitiateOAuth("discord")}
+              disabled={Boolean(oauthLoading)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                width: "100%",
+                padding: "11px 16px",
+                borderRadius: 12,
+                background: "#5865F2",
+                color: "#ffffff",
+                border: "1px solid rgba(255,255,255,0.15)",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: oauthLoading ? "not-allowed" : "pointer",
+                boxShadow: "0 2px 6px rgba(88,101,242,0.3)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <svg width={18} height={18} viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                <path
+                  d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"
+                  fill="#ffffff"
+                />
+              </svg>
+              <span>{oauthLoading === "discord" ? "Connecting to Discord..." : "Continue with Discord"}</span>
+            </button>
+
+            {/* Facebook */}
+            <button
+              type="button"
+              onClick={() => handleInitiateOAuth("facebook")}
+              disabled={Boolean(oauthLoading)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 12,
+                width: "100%",
+                padding: "11px 16px",
+                borderRadius: 12,
+                background: "#1877F2",
+                color: "#ffffff",
+                border: "1px solid rgba(255,255,255,0.15)",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: oauthLoading ? "not-allowed" : "pointer",
+                boxShadow: "0 2px 6px rgba(24,119,242,0.3)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <FacebookIcon size={18} color="#ffffff" />
+              <span>{oauthLoading === "facebook" ? "Connecting to Facebook..." : "Continue with Facebook"}</span>
+            </button>
+          </div>
+
+          {/* OAuth Setup Info / Direct Test Prompt if credentials not yet loaded */}
+          {oauthPrompt && (
+            <div
+              style={{
+                background: "rgba(99, 102, 241, 0.08)",
+                border: "1px solid rgba(99, 102, 241, 0.35)",
+                borderRadius: 12,
+                padding: "14px 16px",
+                marginBottom: 16,
+                fontSize: 12,
+                lineHeight: 1.5,
+              }}
+            >
+              <div style={{ fontWeight: 800, color: "#818cf8", marginBottom: 6, fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>⚙️ {oauthPrompt.provider.toUpperCase()} OAuth Setup</span>
+                <button
+                  type="button"
+                  onClick={() => { setOauthPrompt(null); setManualClientId(""); }}
+                  style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 14 }}
+                >
+                  ✕
+                </button>
+              </div>
+              <div style={{ color: "var(--text-muted)", marginBottom: 8 }}>
+                To sign in with real {oauthPrompt.provider}, add your App Client ID to:
+                <br />
+                <code style={{ background: "rgba(0,0,0,0.3)", padding: "2px 6px", borderRadius: 4, color: "#cbd5e1" }}>
+                  FindMate_Backend/.env
+                </code>
+                <br />
+                Redirect URI: <code style={{ color: "#38bdf8" }}>{oauthPrompt.redirectUri}</code>
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                <input
+                  type="text"
+                  placeholder={`Or paste ${oauthPrompt.provider} Client ID to test live`}
+                  value={manualClientId}
+                  onChange={(e) => setManualClientId(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: "6px 10px",
+                    background: "var(--bg-input)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: 8,
+                    color: "var(--text-primary)",
+                    fontSize: 12,
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (manualClientId.trim()) {
+                      handleInitiateOAuth(oauthPrompt.provider, manualClientId.trim());
+                    }
+                  }}
+                  disabled={!manualClientId.trim()}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: manualClientId.trim() ? "var(--primary-gradient)" : "rgba(255,255,255,0.1)",
+                    border: "none",
+                    color: "#fff",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: manualClientId.trim() ? "pointer" : "not-allowed",
+                  }}
+                >
+                  Launch →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Divider */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              margin: "16px 0 18px 0",
+              color: "var(--text-muted)",
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
+          >
+            <div style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
+            <span style={{ padding: "0 10px" }}>or continue with email</span>
+            <div style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
+          </div>
 
           {/* Quick Real User Picker (Sign In View) */}
           {view === "signin" && (

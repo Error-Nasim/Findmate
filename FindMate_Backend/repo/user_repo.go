@@ -21,6 +21,7 @@ type UserRepo interface {
 	UpdateUser(id string, updates map[string]interface{}) (*domain.User, error)
 	AddRating(r domain.UserRating) (*domain.UserRating, error)
 	GetRatingsForUser(rateeID string) ([]domain.UserRating, error)
+	Delete(idOrHandle string) error
 }
 
 type userRepo struct {
@@ -258,4 +259,10 @@ func (r *userRepo) GetRatingsForUser(rateeID string) ([]domain.UserRating, error
 		return nil, err
 	}
 	return ratings, nil
+}
+
+func (r *userRepo) Delete(idOrHandle string) error {
+	query := `DELETE FROM users WHERE id = $1 OR LOWER(handle) = LOWER($1)`
+	_, err := r.db.Exec(query, idOrHandle)
+	return err
 }

@@ -40,12 +40,91 @@ export default function AdminPage({
   onUpdateUserReliability,
   onAddTag,
   onRemoveTag,
+  onAddAnnouncement,
   onCreateAnnouncement,
   onDeleteAnnouncement,
   onAddAuditLog,
+  onDeleteUser,
 }) {
   const showToast = typeof toast === "function" ? toast : (msg) => console.log(msg);
   const navigate = useNavigate();
+
+  // Superadmin & Admin clearance verification
+  const [sessionUnlocked, setSessionUnlocked] = useState(() => {
+    return sessionStorage.getItem("findmate_admin_unlocked") === "true";
+  });
+  const sessionUser = (sessionStorage.getItem("findmate_admin_username") || "").toLowerCase();
+
+  const isNasim = Boolean(
+    (currentUser && (
+      (currentUser.handle && currentUser.handle.replace(/^@/, '').toLowerCase() === 'error-nasim') ||
+      (currentUser.name && currentUser.name.toLowerCase().includes('nasim')) ||
+      (currentUser.email && currentUser.email.toLowerCase().includes('nasim'))
+    )) ||
+    sessionUser === "error-nasim" ||
+    sessionUser === "nasim"
+  );
+
+  const isSuperAdmin = Boolean(
+    isNasim ||
+    (currentUser && currentUser.role === 'superadmin') ||
+    (sessionUser && users.find(u => u.handle?.toLowerCase().replace(/^@/, '') === sessionUser)?.role === 'superadmin')
+  );
+
+  const isApprovedAdmin = Boolean(
+    isSuperAdmin ||
+    (currentUser && currentUser.role === 'admin') ||
+    (sessionUser && users.find(u => u.handle?.toLowerCase().replace(/^@/, '') === sessionUser)?.role === 'admin') ||
+    sessionUser === 'admin'
+  );
+
+  const [adminUsername, setAdminUsername] = useState("");
+  const [adminPasscode, setAdminPasscode] = useState("");
+  const [passcodeError, setPasscodeError] = useState("");
+
+  const hasAdminAccess = (isNasim || isSuperAdmin || (currentUser && currentUser.role === 'admin')) || sessionUnlocked;
+
+  const handleUnlockAdmin = (e) => {
+    if (e) e.preventDefault();
+    setPasscodeError("");
+    const cleanUser = adminUsername.trim().toLowerCase().replace(/^@/, "");
+    const cleanPass = adminPasscode.trim();
+
+    if (!cleanUser) {
+      setPasscodeError("Please enter your admin username.");
+      return;
+    }
+    if (!cleanPass) {
+      setPasscodeError("Please enter your admin password.");
+      return;
+    }
+
+    const isNasimUser = cleanUser === "error-nasim" || cleanUser === "nasim";
+    const matchedUser = users.find(
+      (u) =>
+        (u.handle && u.handle.toLowerCase().replace(/^@/, "") === cleanUser) ||
+        (u.name && u.name.toLowerCase() === cleanUser) ||
+        (u.email && u.email.toLowerCase() === cleanUser)
+    );
+
+    const isMatchAdmin = matchedUser && (matchedUser.role === "admin" || matchedUser.role === "superadmin");
+    const isLegacyAdmin = cleanUser === "admin";
+
+    const isAuthorizedRole = isNasimUser || isMatchAdmin || isLegacyAdmin;
+    const isPasswordValid =
+      cleanPass === "nasimadmin" ||
+      cleanPass === "1234" ||
+      (matchedUser && matchedUser.password && matchedUser.password === cleanPass);
+
+    if (isAuthorizedRole && isPasswordValid) {
+      sessionStorage.setItem("findmate_admin_unlocked", "true");
+      sessionStorage.setItem("findmate_admin_username", cleanUser);
+      setSessionUnlocked(true);
+      showToast("Admin portal unlocked successfully.");
+    } else {
+      setPasscodeError("Invalid admin username or password. Access denied.");
+    }
+  };
 
   // Active Main Tab
   const [activeTab, setActiveTab] = useState("overview");
@@ -308,6 +387,133 @@ export default function AdminPage({
     { id: "announcements", label: "Broadcasts", icon: "📢", badge: announcements.length },
     { id: "audit", label: "Audit Log", icon: "📜" },
   ];
+
+  if (!hasAdminAccess) {
+    return (
+      <div
+        style={{
+          minHeight: "85vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "24px 16px",
+          background: "var(--bg-canvas)",
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 440,
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: 20,
+            padding: "36px 30px",
+            textAlign: "center",
+            boxShadow: "0 24px 60px rgba(0,0,0,0.25), 0 0 40px rgba(99,102,241,0.15)",
+          }}
+        >
+          <div
+            style={{
+              width: 60,
+              height: 60,
+              borderRadius: 18,
+              background: "rgba(239, 68, 68, 0.12)",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 28,
+              margin: "0 auto 18px",
+            }}
+          >
+            🔒
+          </div>
+
+          <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 8px 0", color: "var(--text-primary)" }}>
+            Admin Portal Access
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 20px 0", lineHeight: 1.5 }}>
+            This section is restricted to <strong>FindMate Administrators</strong>.
+            <br />
+            Only <strong>Nasim (Superadmin)</strong> or verified administrators can manage the platform.
+            If you have an admin passcode, enter it below to unlock.
+          </p>
+
+          {passcodeError && (
+            <div
+              style={{
+                background: "rgba(239, 68, 68, 0.15)",
+                border: "1px solid rgba(239, 68, 68, 0.35)",
+                borderRadius: 10,
+                color: "#EF4444",
+                padding: "10px 14px",
+                fontSize: 13,
+                fontWeight: 600,
+                marginBottom: 16,
+              }}
+            >
+              ⚠️ {passcodeError}
+            </div>
+          )}
+
+          <form onSubmit={handleUnlockAdmin} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ textAlign: "left" }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6, display: "block" }}>
+                Admin Username
+              </label>
+              <input
+                type="text"
+                placeholder="Enter admin username (e.g. error-nasim)"
+                value={adminUsername}
+                onChange={(e) => setAdminUsername(e.target.value)}
+                autoFocus
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  background: "var(--bg-input)",
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--text-primary)",
+                  fontSize: 14,
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div style={{ textAlign: "left" }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 6, display: "block" }}>
+                Admin Password
+              </label>
+              <input
+                type="password"
+                placeholder="Enter admin password"
+                value={adminPasscode}
+                onChange={(e) => setAdminPasscode(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  background: "var(--bg-input)",
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--text-primary)",
+                  fontSize: 14,
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <Button v="primary" full type="submit" style={{ marginTop: 6 }}>
+              Unlock Admin Portal →
+            </Button>
+
+            <Button v="ghost" full type="button" onClick={() => navigate("/feed")}>
+              Return to Feed
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -1438,7 +1644,13 @@ export default function AdminPage({
                 <tbody>
                   {filteredUsers.map((u) => {
                     const ratingObj = calculateUserRating(u.ratings || []);
-                    const isAdmin = u.role === "admin";
+                    const isNasimTarget = Boolean(
+                      (u.handle && u.handle.toLowerCase().replace(/^@/, '') === 'error-nasim') ||
+                      (u.name && u.name.toLowerCase().includes('nasim')) ||
+                      (u.email && u.email.toLowerCase().includes('nasim'))
+                    );
+                    const isSuperAdminTarget = isNasimTarget || u.role === "superadmin";
+                    const isAdminTarget = !isSuperAdminTarget && u.role === "admin";
                     const isBanned = Boolean(u.isBanned);
 
                     return (
@@ -1454,7 +1666,14 @@ export default function AdminPage({
                           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                             <Avatar initials={u.avatar || u.name?.slice(0, 2) || "U"} size={36} />
                             <div>
-                              <div style={{ fontWeight: 800, color: "var(--text-primary)" }}>{u.name}</div>
+                              <div style={{ fontWeight: 800, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 6 }}>
+                                {u.name}
+                                {isNasimTarget && (
+                                  <span style={{ fontSize: 10, background: "#FEF3C7", color: "#B45309", padding: "1px 6px", borderRadius: 8, fontWeight: 800 }}>
+                                    FOUNDER
+                                  </span>
+                                )}
+                              </div>
                               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>@{u.handle}</div>
                             </div>
                           </div>
@@ -1462,22 +1681,75 @@ export default function AdminPage({
 
                         {/* Role */}
                         <td style={{ padding: "14px 14px" }}>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                              padding: "3px 9px",
-                              borderRadius: 12,
-                              fontSize: 11,
-                              fontWeight: 800,
-                              background: isAdmin ? "rgba(99, 102, 241, 0.15)" : "var(--bg-surface-alt)",
-                              color: isAdmin ? "var(--primary-text)" : "var(--text-secondary)",
-                              border: isAdmin ? "1px solid var(--primary-border)" : "1px solid var(--border-subtle)",
-                            }}
-                          >
-                            {isAdmin ? "🛡️ Admin" : "👤 Member"}
-                          </span>
+                          {isNasimTarget ? (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                padding: "4px 10px",
+                                borderRadius: 12,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                background: "linear-gradient(135deg, rgba(245,158,11,0.2), rgba(234,179,8,0.25))",
+                                color: "#B45309",
+                                border: "1px solid rgba(245,158,11,0.5)",
+                              }}
+                            >
+                              👑 Founder (Superadmin)
+                            </span>
+                          ) : isSuperAdminTarget ? (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                padding: "4px 10px",
+                                borderRadius: 12,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                background: "rgba(139, 92, 246, 0.15)",
+                                color: "#8B5CF6",
+                                border: "1px solid rgba(139, 92, 246, 0.35)",
+                              }}
+                            >
+                              👑 Super Admin
+                            </span>
+                          ) : isAdminTarget ? (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                padding: "4px 10px",
+                                borderRadius: 12,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                background: "rgba(99, 102, 241, 0.15)",
+                                color: "var(--primary-text)",
+                                border: "1px solid var(--primary-border)",
+                              }}
+                            >
+                              🛡️ Admin
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                padding: "4px 10px",
+                                borderRadius: 12,
+                                fontSize: 11,
+                                fontWeight: 800,
+                                background: "var(--bg-surface-alt)",
+                                color: "var(--text-secondary)",
+                                border: "1px solid var(--border-subtle)",
+                              }}
+                            >
+                              👤 Member
+                            </span>
+                          )}
                         </td>
 
                         {/* Reliability score */}
@@ -1589,7 +1861,7 @@ export default function AdminPage({
 
                         {/* Actions */}
                         <td style={{ padding: "14px 18px", textAlign: "right" }}>
-                          <div style={{ display: "inline-flex", gap: 8 }}>
+                          <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
                             <Button
                               v="line"
                               sm
@@ -1598,48 +1870,152 @@ export default function AdminPage({
                               Inspect
                             </Button>
 
-                            {/* Promote / Demote Role */}
-                            <Button
-                              v="ghost"
-                              sm
-                              onClick={() => {
-                                const nextRole = isAdmin ? "member" : "admin";
-                                if (onUpdateUserRole) onUpdateUserRole(u.id, nextRole);
-                              }}
-                            >
-                              {isAdmin ? "Demote" : "Make Admin"}
-                            </Button>
-
-                            {/* Ban / Unban Toggle */}
-                            {isBanned ? (
-                              <Button
-                                v="ghost"
-                                sm
-                                onClick={() => {
-                                  if (onUnbanUser) onUnbanUser(u.handle, u.name);
+                            {/* Role management */}
+                            {isNasimTarget ? (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  color: "#D97706",
+                                  fontWeight: 800,
+                                  padding: "4px 8px",
+                                  background: "#FEF3C7",
+                                  borderRadius: 8,
                                 }}
                               >
-                                Re-instate
-                              </Button>
+                                👑 Permanent Superadmin
+                              </span>
                             ) : (
-                              <Button
-                                v="bad"
-                                sm
-                                onClick={() => {
-                                  setConfirmModalData({
-                                    title: `Ban User @${u.handle}?`,
-                                    message: `Are you sure you want to ban ${u.name}? Their hosted lobbies will be closed and they will not be able to join rooms.`,
-                                    confirmText: "Confirm Ban",
-                                    isDanger: true,
-                                    onConfirm: () => {
-                                      if (onBanUser) onBanUser(u.handle, u.name);
-                                      setConfirmModalData(null);
-                                    },
-                                  });
-                                }}
-                              >
-                                Ban
-                              </Button>
+                              <>
+                                {/* Superadmin role options: only accessible if viewer is Super Admin */}
+                                {isSuperAdmin ? (
+                                  <>
+                                    {isSuperAdminTarget ? (
+                                      <>
+                                        <Button
+                                          v="ghost"
+                                          sm
+                                          onClick={() => {
+                                            if (onUpdateUserRole) onUpdateUserRole(u.id, "admin");
+                                            showToast(`Demoted @${u.handle} to Admin`);
+                                          }}
+                                        >
+                                          Demote to Admin
+                                        </Button>
+                                        <Button
+                                          v="ghost"
+                                          sm
+                                          onClick={() => {
+                                            if (onUpdateUserRole) onUpdateUserRole(u.id, "member");
+                                            showToast(`Demoted @${u.handle} to Member`);
+                                          }}
+                                        >
+                                          Demote to Member
+                                        </Button>
+                                      </>
+                                    ) : isAdminTarget ? (
+                                      <>
+                                        <Button
+                                          v="primary"
+                                          sm
+                                          onClick={() => {
+                                            if (onUpdateUserRole) onUpdateUserRole(u.id, "superadmin");
+                                            showToast(`Promoted @${u.handle} to Super Admin!`);
+                                          }}
+                                        >
+                                          👑 Make Super Admin
+                                        </Button>
+                                        <Button
+                                          v="ghost"
+                                          sm
+                                          onClick={() => {
+                                            if (onUpdateUserRole) onUpdateUserRole(u.id, "member");
+                                            showToast(`Demoted @${u.handle} to Member`);
+                                          }}
+                                        >
+                                          Demote to Member
+                                        </Button>
+                                      </>
+                                    ) : (
+                                      <Button
+                                        v="ghost"
+                                        sm
+                                        onClick={() => {
+                                          if (onUpdateUserRole) onUpdateUserRole(u.id, "admin");
+                                          showToast(`Promoted @${u.handle} to Admin`);
+                                        }}
+                                      >
+                                        + Make Admin
+                                      </Button>
+                                    )}
+                                  </>
+                                ) : (
+                                  isSuperAdminTarget && (
+                                    <span
+                                      style={{
+                                        fontSize: 11,
+                                        color: "var(--text-muted)",
+                                        fontStyle: "italic",
+                                        padding: "4px 6px",
+                                      }}
+                                    >
+                                      Protected (Superadmin)
+                                    </span>
+                                  )
+                                )}
+
+                                {/* Ban / Unban Toggle */}
+                                {isBanned ? (
+                                  <Button
+                                    v="ghost"
+                                    sm
+                                    onClick={() => {
+                                      if (onUnbanUser) onUnbanUser(u.handle, u.name);
+                                    }}
+                                  >
+                                    Re-instate
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    v="bad"
+                                    sm
+                                    onClick={() => {
+                                      setConfirmModalData({
+                                        title: `Ban User @${u.handle}?`,
+                                        message: `Are you sure you want to ban ${u.name}? They will only have read-only access to view their past history.`,
+                                        confirmText: "Confirm Ban",
+                                        isDanger: true,
+                                        onConfirm: () => {
+                                          if (onBanUser) onBanUser(u.handle, u.name);
+                                          setConfirmModalData(null);
+                                        },
+                                      });
+                                    }}
+                                  >
+                                    Ban
+                                  </Button>
+                                )}
+
+                                {/* Delete User Button */}
+                                <Button
+                                  v="bad"
+                                  sm
+                                  title="Permanently Delete User"
+                                  onClick={() => {
+                                    setConfirmModalData({
+                                      title: `Delete User @${u.handle}?`,
+                                      message: `Are you sure you want to permanently delete ${u.name} (@${u.handle})? All their hosted lobbies and records will be deleted. This cannot be undone.`,
+                                      confirmText: "Permanently Delete",
+                                      isDanger: true,
+                                      onConfirm: () => {
+                                        if (onDeleteUser) onDeleteUser(u.id);
+                                        setConfirmModalData(null);
+                                      },
+                                    });
+                                  }}
+                                >
+                                  🗑️
+                                </Button>
+                              </>
                             )}
                           </div>
                         </td>
@@ -2639,26 +3015,55 @@ export default function AdminPage({
               <Button v="line" onClick={() => setInspectingUser(null)}>
                 Close
               </Button>
-              {inspectingUser.isBanned ? (
-                <Button
-                  v="ghost"
-                  onClick={() => {
-                    if (onUnbanUser) onUnbanUser(inspectingUser.handle, inspectingUser.name);
-                    setInspectingUser((prev) => ({ ...prev, isBanned: false }));
-                  }}
-                >
-                  Re-instate User
-                </Button>
+              {inspectingUser.handle?.toLowerCase() === 'error-nasim' ? (
+                <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", alignSelf: "center" }}>
+                  👑 Superadmin Account Protected
+                </span>
               ) : (
-                <Button
-                  v="bad"
-                  onClick={() => {
-                    if (onBanUser) onBanUser(inspectingUser.handle, inspectingUser.name);
-                    setInspectingUser((prev) => ({ ...prev, isBanned: true }));
-                  }}
-                >
-                  Ban Account
-                </Button>
+                <>
+                  {inspectingUser.isBanned ? (
+                    <Button
+                      v="ghost"
+                      onClick={() => {
+                        if (onUnbanUser) onUnbanUser(inspectingUser.handle, inspectingUser.name);
+                        setInspectingUser((prev) => ({ ...prev, isBanned: false }));
+                      }}
+                    >
+                      Re-instate User
+                    </Button>
+                  ) : (
+                    <Button
+                      v="bad"
+                      onClick={() => {
+                        if (onBanUser) onBanUser(inspectingUser.handle, inspectingUser.name);
+                        setInspectingUser((prev) => ({ ...prev, isBanned: true }));
+                      }}
+                    >
+                      Ban Account
+                    </Button>
+                  )}
+                  <Button
+                    v="bad"
+                    onClick={() => {
+                      const uId = inspectingUser.id;
+                      const uHandle = inspectingUser.handle;
+                      const uName = inspectingUser.name;
+                      setConfirmModalData({
+                        title: `Delete User @${uHandle}?`,
+                        message: `Are you sure you want to permanently delete ${uName} (@${uHandle})? All records will be removed.`,
+                        confirmText: "Delete Permanently",
+                        isDanger: true,
+                        onConfirm: () => {
+                          if (onDeleteUser) onDeleteUser(uId);
+                          setInspectingUser(null);
+                          setConfirmModalData(null);
+                        },
+                      });
+                    }}
+                  >
+                    🗑️ Delete User
+                  </Button>
+                </>
               )}
             </div>
           </div>

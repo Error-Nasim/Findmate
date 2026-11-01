@@ -108,6 +108,51 @@ export const api = {
     }
   },
 
+  // ── OAuth 2.0 (Google, Discord, LinkedIn) ──
+  getOAuthConfig: async () => {
+    try {
+      const res = await apiClient.get("/auth/oauth/config");
+      return res.data;
+    } catch (err) {
+      console.warn("[API] getOAuthConfig failed, falling back to env:", err.message);
+      return {
+        google: {
+          configured: Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID),
+          clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || "",
+        },
+        discord: {
+          configured: Boolean(import.meta.env.VITE_DISCORD_CLIENT_ID),
+          clientId: import.meta.env.VITE_DISCORD_CLIENT_ID || "",
+        },
+        facebook: {
+          configured: Boolean(import.meta.env.VITE_FACEBOOK_APP_ID),
+          appId: import.meta.env.VITE_FACEBOOK_APP_ID || "",
+          clientId: import.meta.env.VITE_FACEBOOK_APP_ID || "",
+        },
+        redirectUri:
+          import.meta.env.VITE_OAUTH_REDIRECT_URI ||
+          `${window.location.origin}/auth/callback`,
+      };
+    }
+  },
+
+  oauthExchange: async ({ provider, code, redirectUri }) => {
+    try {
+      const res = await apiClient.post("/auth/oauth/exchange", {
+        provider,
+        code,
+        redirectUri,
+      });
+      if (res.data?.token) {
+        localStorage.setItem("findmate_jwt_token", res.data.token);
+      }
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "OAuth exchange failed";
+      throw new Error(msg);
+    }
+  },
+
   // ── Lobbies ──
   getLobbies: async () => {
     try {
@@ -212,9 +257,16 @@ export const api = {
 
   addApplicant: async (applicantData) => {
     try {
-      const res = await apiClient.post(`/lobbies/${applicantData.lobbyId}/apply`, {
+      const payload = {
+        name: applicantData.name || "Member",
+        handle: applicantData.handle || "member",
+        avatar: applicantData.avatar || "ME",
+        tags: Array.isArray(applicantData.tags) ? applicantData.tags : [],
+        message: applicantData.message || applicantData.pitchNote || "Hey, I would like to join!",
         pitchNote: applicantData.message || applicantData.pitchNote || "Hey, I would like to join!",
-      });
+        userId: applicantData.userId || applicantData.id || "",
+      };
+      const res = await apiClient.post(`/lobbies/${applicantData.lobbyId}/apply`, payload);
       if (res.data) return res.data;
     } catch (err) {
       console.warn("[API] addApplicant fallback:", err.message);
@@ -229,6 +281,28 @@ export const api = {
     };
     const updated = [newApplicant, ...applicants];
     writeStorage(STORAGE_KEYS.APPLICANTS, updated);
+
+    // Also persist host notification in fallback storage
+    const hostHandle = applicantData.hostHandle;
+    if (hostHandle) {
+      const notifs = readStorage(STORAGE_KEYS.NOTIFS, initialNotifications);
+      const notif = {
+        id: `notif_${Date.now()}`,
+        recipient: hostHandle,
+        recipientId: hostHandle,
+        icon: "✋",
+        title: "New Lobby Application",
+        text: `${applicantData.name || applicantData.handle} applied to your lobby`,
+        unread: true,
+        type: "apply",
+        applicantId: newApplicant.id,
+        lobbyId: applicantData.lobbyId,
+        time: "Just now",
+        createdAt: new Date().toISOString(),
+      };
+      writeStorage(STORAGE_KEYS.NOTIFS, [notif, ...notifs]);
+    }
+
     return Promise.resolve(newApplicant);
   },
 
@@ -653,6 +727,26 @@ export const api = {
     );
   },
 
+  deleteUser: async (userQuery) => {
+    try {
+      const cleanHandle = String(userQuery).replace(/^@/, "");
+      const res = await apiClient.delete(`/users/${cleanHandle}`);
+      if (res.data) return res.data;
+    } catch (err) {
+      console.warn("[API] deleteUser fallback:", err.message);
+    }
+    const cleanQuery = String(userQuery).replace(/^@/, "").toLowerCase();
+    const users = readStorage(STORAGE_KEYS.USERS, initialUsers);
+    const updated = users.filter(
+      (u) =>
+        u.id !== userQuery &&
+        u.handle.toLowerCase() !== cleanQuery &&
+        u.name.toLowerCase() !== cleanQuery
+    );
+    writeStorage(STORAGE_KEYS.USERS, updated);
+    return Promise.resolve({ success: true, id: userQuery });
+  },
+
   rateUser: async (userId, ratingData) => {
     try {
       const res = await apiClient.post(`/users/${userId}/rate`, ratingData);
@@ -788,24 +882,32 @@ export const api = {
     return Promise.resolve(updated);
   },
 
-  // ── Sets Persistence ──
-  getPendingLobbyIds: async () => {
-    const data = readStorage(STORAGE_KEYS.PENDING_IDS, []);
+  // ── Sets Persistence (Scoped strictly per user handle — Zero cross-user contamination) ──
+  getPendingLobbyIds: async (handle = "default") => {
+    const key = `findmate_pending_lobby_ids_${String(handle).replace(/^@/, "").toLowerCase()}`;
+    const data = readStorage(key, []);
     return Promise.resolve(new Set(data));
   },
 
-  savePendingLobbyIds: async (set) => {
-    writeStorage(STORAGE_KEYS.PENDING_IDS, Array.from(set));
+  savePendingLobbyIds: async (handleOrSet, maybeSet) => {
+    const handle = typeof handleOrSet === "string" ? handleOrSet : "default";
+    const set = maybeSet !== undefined ? maybeSet : handleOrSet;
+    const key = `findmate_pending_lobby_ids_${String(handle).replace(/^@/, "").toLowerCase()}`;
+    writeStorage(key, Array.from(set || []));
     return Promise.resolve(true);
   },
 
-  getAcceptedLobbyIds: async () => {
-    const data = readStorage(STORAGE_KEYS.ACCEPTED_IDS, []);
+  getAcceptedLobbyIds: async (handle = "default") => {
+    const key = `findmate_accepted_lobby_ids_${String(handle).replace(/^@/, "").toLowerCase()}`;
+    const data = readStorage(key, []);
     return Promise.resolve(new Set(data));
   },
 
-  saveAcceptedLobbyIds: async (set) => {
-    writeStorage(STORAGE_KEYS.ACCEPTED_IDS, Array.from(set));
+  saveAcceptedLobbyIds: async (handleOrSet, maybeSet) => {
+    const handle = typeof handleOrSet === "string" ? handleOrSet : "default";
+    const set = maybeSet !== undefined ? maybeSet : handleOrSet;
+    const key = `findmate_accepted_lobby_ids_${String(handle).replace(/^@/, "").toLowerCase()}`;
+    writeStorage(key, Array.from(set || []));
     return Promise.resolve(true);
   },
 

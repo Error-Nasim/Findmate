@@ -68,14 +68,16 @@ export function AuthProvider({ children }) {
   const login = (userData = {}, token = '') => {
     const handle = userData.handle || userData.username || 'member'
     const cleanHandle = handle.replace(/^@/, '')
-    const role =
-      cleanHandle.toLowerCase() === 'error-nasim' || userData.role === 'admin'
-        ? 'admin'
-        : userData.role || 'member'
-
     const isNasim =
       cleanHandle.toLowerCase() === 'error-nasim' ||
       (userData.name && userData.name.toLowerCase().includes('nasim'))
+
+    const role =
+      isNasim || userData.role === 'superadmin'
+        ? 'superadmin'
+        : userData.role === 'admin'
+        ? 'admin'
+        : userData.role || 'member'
 
     let initials = 'ME'
     if (userData.avatar && (isNasim || userData.avatar !== 'AN')) {
@@ -92,6 +94,16 @@ export function AuthProvider({ children }) {
       initials = cleanHandle.substring(0, 2).toUpperCase()
     }
 
+    let linkedAccounts = userData.linkedAccounts
+    if (!linkedAccounts) {
+      const p = userData.provider || (userData.email?.includes('gmail') ? 'google' : '')
+      linkedAccounts = [
+        { id: 'google', label: 'Google', connected: p === 'google' },
+        { id: 'discord', label: 'Discord', connected: p === 'discord' },
+        { id: 'facebook', label: 'Facebook', connected: p === 'facebook' },
+      ]
+    }
+
     const formattedUser = {
       ...DEFAULT_USER_TEMPLATE,
       ...userData,
@@ -99,6 +111,7 @@ export function AuthProvider({ children }) {
       username: cleanHandle,
       role,
       avatar: initials,
+      linkedAccounts,
     }
 
     setUser(formattedUser)

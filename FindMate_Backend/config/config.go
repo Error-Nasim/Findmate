@@ -20,12 +20,25 @@ type DBConfig struct {
 	EnableSSLMODE bool
 }
 
+type OAuthConfig struct {
+	GoogleClientID       string
+	GoogleClientSecret   string
+	GoogleRedirectURI    string
+	DiscordClientID      string
+	DiscordClientSecret  string
+	DiscordRedirectURI   string
+	FacebookAppID        string
+	FacebookAppSecret    string
+	FacebookRedirectURI  string
+}
+
 type Config struct {
 	Version      string
 	ServiceName  string
 	HttpPort     int
 	JwtSecretKey string
 	DB           *DBConfig
+	OAuth        *OAuthConfig
 }
 
 func LoadConfig() {
@@ -109,6 +122,17 @@ func LoadConfig() {
 			User:          dbUser,
 			Password:      dbPassword,
 			EnableSSLMODE: enableSSL,
+		},
+		OAuth: &OAuthConfig{
+			GoogleClientID:       os.Getenv("GOOGLE_CLIENT_ID"),
+			GoogleClientSecret:   os.Getenv("GOOGLE_CLIENT_SECRET"),
+			GoogleRedirectURI:    os.Getenv("GOOGLE_REDIRECT_URI"),
+			DiscordClientID:      os.Getenv("DISCORD_CLIENT_ID"),
+			DiscordClientSecret:  os.Getenv("DISCORD_CLIENT_SECRET"),
+			DiscordRedirectURI:   os.Getenv("DISCORD_REDIRECT_URI"),
+			FacebookAppID:        os.Getenv("FACEBOOK_APP_ID"),
+			FacebookAppSecret:    os.Getenv("FACEBOOK_APP_SECRET"),
+			FacebookRedirectURI:  os.Getenv("FACEBOOK_REDIRECT_URI"),
 		},
 	}
 }

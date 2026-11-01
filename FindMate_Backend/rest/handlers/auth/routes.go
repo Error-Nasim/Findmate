@@ -18,4 +18,12 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, manager *middleware.Manager
 		"POST /api/auth/oauth/callback",
 		manager.With(http.HandlerFunc(h.OAuthCallback)),
 	)
+	mux.Handle(
+		"POST /api/auth/oauth/exchange",
+		manager.With(http.HandlerFunc(h.ExchangeOAuthCode)),
+	)
+	mux.Handle(
+		"GET /api/auth/oauth/config",
+		manager.With(http.HandlerFunc(h.GetOAuthConfig)),
+	)
 }
