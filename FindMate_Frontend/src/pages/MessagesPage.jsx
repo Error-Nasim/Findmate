@@ -9,11 +9,14 @@ export default function MessagesPage({
   threads = [],
   lobbies = [],
   acceptedLobbyIds = new Set(),
+  deletedGroupChatIds = new Set(),
+  deletedDMThreadIds = new Set(),
   currentUser = null,
   readGroupChatCounts = {},
   onOpenDM,
   onOpenGroupChat,
   onDeleteGroupChat,
+  onDeleteDM,
 }) {
   const navigate = useNavigate()
   const [tab, setTab] = useState('dms') // 'dms' | 'groups'
@@ -27,6 +30,15 @@ export default function MessagesPage({
     const threadMap = new Map()
 
     threads.forEach((t) => {
+      const strId = String(t.id);
+      if (
+        deletedDMThreadIds instanceof Set
+          ? deletedDMThreadIds.has(strId)
+          : (deletedDMThreadIds || []).includes(strId)
+      ) {
+        return;
+      }
+
       // Determine the other participant
       let otherHandle = ''
       let otherName = t.user || ''
@@ -85,7 +97,7 @@ export default function MessagesPage({
     })
 
     return Array.from(threadMap.values()).filter((t) => t.lastMessage || (t.messages && t.messages.length > 0))
-  }, [threads, currentUser, myHandle, myName])
+  }, [threads, deletedDMThreadIds, currentUser, myHandle, myName])
 
   // Total unread DMs
   const totalDMUnread = useMemo(() => {
@@ -95,14 +107,22 @@ export default function MessagesPage({
   // ── 2. Process Group Chats for Current User ──
   const joinedLobbies = useMemo(() => {
     return lobbies.filter((l) => {
+      const strId = String(l.id)
+      if (
+        deletedGroupChatIds instanceof Set
+          ? deletedGroupChatIds.has(strId)
+          : (deletedGroupChatIds || []).includes(strId)
+      ) {
+        return false
+      }
       const isHost = (myHandle && l.handle?.toLowerCase() === myHandle) || (myName && l.host?.toLowerCase() === myName)
       const isAccepted =
         acceptedLobbyIds instanceof Set
-          ? acceptedLobbyIds.has(String(l.id)) || acceptedLobbyIds.has(l.id)
-          : (acceptedLobbyIds || []).includes(String(l.id)) || (acceptedLobbyIds || []).includes(l.id)
+          ? acceptedLobbyIds.has(strId) || acceptedLobbyIds.has(l.id)
+          : (acceptedLobbyIds || []).includes(strId) || (acceptedLobbyIds || []).includes(l.id)
       return isHost || isAccepted
     })
-  }, [lobbies, acceptedLobbyIds, myHandle, myName])
+  }, [lobbies, acceptedLobbyIds, deletedGroupChatIds, myHandle, myName])
 
   const getLobbyUnreadCount = (lobby) => {
     if (!lobby || !Array.isArray(lobby.chatMessages)) return 0
@@ -267,6 +287,51 @@ export default function MessagesPage({
                     {thread.lastMessage || 'Direct message'}
                   </div>
                 </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  {onDeleteDM && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Are you sure you want to delete and remove conversation with ${displayName} from your list?`)) {
+                          onDeleteDM(thread.id);
+                        }
+                      }}
+                      title="Delete conversation from list"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        fontSize: 16,
+                        cursor: 'pointer',
+                        padding: '4px 6px',
+                        borderRadius: 6,
+                        transition: 'color 0.15s, background 0.15s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = '#EF4444';
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = 'var(--text-muted)';
+                        e.currentTarget.style.background = 'none';
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  )}
+                  {isUnread && (
+                    <span
+                      className="pulse-dot"
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: '#6366F1',
+                      }}
+                    />
+                  )}
+                </div>
               </div>
             )
           })}
@@ -369,11 +434,11 @@ export default function MessagesPage({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (window.confirm(`Are you sure you want to delete chat history for "${lobby.title}"?`)) {
+                        if (window.confirm(`Are you sure you want to delete and remove "${lobby.title}" from your chat list?`)) {
                           onDeleteGroupChat(lobby.id);
                         }
                       }}
-                      title="Delete chat history"
+                      title="Delete chat from list"
                       style={{
                         background: 'none',
                         border: 'none',

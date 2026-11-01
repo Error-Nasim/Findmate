@@ -820,6 +820,30 @@ export const api = {
     writeStorage(key, Array.from(set));
     return Promise.resolve(true);
   },
+
+  getDeletedGroupChatIds: async (handle = "default") => {
+    const key = `findmate_deleted_group_chats_${String(handle).replace(/^@/, "").toLowerCase()}`;
+    const data = readStorage(key, []);
+    return Promise.resolve(new Set(data));
+  },
+
+  saveDeletedGroupChatIds: async (handle = "default", set) => {
+    const key = `findmate_deleted_group_chats_${String(handle).replace(/^@/, "").toLowerCase()}`;
+    writeStorage(key, Array.from(set));
+    return Promise.resolve(true);
+  },
+
+  getDeletedDMThreadIds: async (handle = "default") => {
+    const key = `findmate_deleted_dm_threads_${String(handle).replace(/^@/, "").toLowerCase()}`;
+    const data = readStorage(key, []);
+    return Promise.resolve(new Set(data));
+  },
+
+  saveDeletedDMThreadIds: async (handle = "default", set) => {
+    const key = `findmate_deleted_dm_threads_${String(handle).replace(/^@/, "").toLowerCase()}`;
+    writeStorage(key, Array.from(set));
+    return Promise.resolve(true);
+  },
 };
 
 export default api;

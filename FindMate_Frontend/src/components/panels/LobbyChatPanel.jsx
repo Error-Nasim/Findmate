@@ -107,11 +107,11 @@ export default function LobbyChatPanel({
             {onDeleteChat && (
               <button
                 onClick={() => {
-                  if (window.confirm("Are you sure you want to delete this group chat history?")) {
+                  if (window.confirm("Are you sure you want to delete and remove this group chat from your list?")) {
                     onDeleteChat(lobbyId);
                   }
                 }}
-                title="Delete group chat history"
+                title="Delete group chat from list"
                 style={{
                   padding: "4px 10px",
                   borderRadius: 14,

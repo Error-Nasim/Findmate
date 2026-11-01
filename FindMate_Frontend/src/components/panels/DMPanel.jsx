@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Avatar from "../ui/Avatar.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 
-export default function DMPanel({ thread, onClose, onSend, onBack }) {
+export default function DMPanel({ thread, onClose, onSend, onBack, onDeleteDM }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [text, setText] = useState("");
@@ -120,19 +120,49 @@ export default function DMPanel({ thread, onClose, onSend, onBack }) {
               </div>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--text-muted)",
-              fontSize: 24,
-              cursor: "pointer",
-              lineHeight: 1,
-            }}
-          >
-            ×
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {onDeleteDM && (
+              <button
+                onClick={() => {
+                  if (window.confirm(`Are you sure you want to delete and remove conversation with ${thread.user} from your list?`)) {
+                    onDeleteDM(thread.id);
+                  }
+                }}
+                title="Delete conversation from list"
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--text-muted)",
+                  fontSize: 16,
+                  cursor: "pointer",
+                  padding: "4px",
+                  lineHeight: 1,
+                  transition: "color 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#EF4444";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-muted)";
+                }}
+              >
+                🗑️
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                fontSize: 24,
+                cursor: "pointer",
+                lineHeight: 1,
+              }}
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         {/* Message Feed */}

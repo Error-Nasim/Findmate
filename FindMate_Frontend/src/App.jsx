@@ -170,9 +170,11 @@ export default function App() {
   const [announcements, setAnnouncements] = useState([]);
   const [dismissedAnnouncements, setDismissedAnnouncements] = useState(new Set());
 
-  // Sets of lobby IDs
+  // Sets of lobby IDs & deleted chat IDs
   const [pendingLobbyIds, setPendingLobbyIds] = useState(new Set());
   const [acceptedLobbyIds, setAcceptedLobbyIds] = useState(new Set());
+  const [deletedGroupChatIds, setDeletedGroupChatIds] = useState(new Set());
+  const [deletedDMThreadIds, setDeletedDMThreadIds] = useState(new Set());
 
   // Load persistent state from API
   useEffect(() => {
@@ -189,6 +191,20 @@ export default function App() {
       if (ids && ids.size > 0) setAcceptedLobbyIds(ids);
     });
   }, []);
+
+  useEffect(() => {
+    if (currentUser?.handle) {
+      api.getDeletedGroupChatIds(currentUser.handle).then((ids) => {
+        if (ids) setDeletedGroupChatIds(ids);
+      });
+      api.getDeletedDMThreadIds(currentUser.handle).then((ids) => {
+        if (ids) setDeletedDMThreadIds(ids);
+      });
+    } else {
+      setDeletedGroupChatIds(new Set());
+      setDeletedDMThreadIds(new Set());
+    }
+  }, [currentUser?.handle]);
 
   // Current user info
   const isNasim =
@@ -333,6 +349,7 @@ export default function App() {
 
     return dmList.reduce((acc, thread) => {
       if (thread.id === activeDMThreadId) return acc;
+      if (deletedDMThreadIds.has(String(thread.id))) return acc;
 
       const msgs = thread.messages || [];
       const unreadMsgs = msgs.filter((m) => {
@@ -346,7 +363,7 @@ export default function App() {
       }
       return acc + (thread.unread || 0);
     }, 0);
-  }, [dmList, currentUser, activeDMThreadId]);
+  }, [dmList, currentUser, activeDMThreadId, deletedDMThreadIds]);
 
   const unreadGroupCount = useMemo(() => {
     if (!currentUser) return 0;
@@ -354,8 +371,11 @@ export default function App() {
     const myName = (currentUser.name || "").toLowerCase();
 
     const userLobbies = lobbiesList.filter((l) => {
+      const strId = String(l.id);
+      if (deletedGroupChatIds.has(strId)) return false;
+
       const isHost = (myHandle && l.handle?.toLowerCase() === myHandle) || (myName && l.host?.toLowerCase() === myName);
-      const isAccepted = computedAcceptedLobbyIds.has(String(l.id)) || computedAcceptedLobbyIds.has(l.id);
+      const isAccepted = computedAcceptedLobbyIds.has(strId) || computedAcceptedLobbyIds.has(l.id);
       return isHost || isAccepted;
     });
 
@@ -370,7 +390,7 @@ export default function App() {
       });
       return total + unread.length;
     }, 0);
-  }, [lobbiesList, computedAcceptedLobbyIds, currentUser, activeChatLobbyId, readGroupChatCounts]);
+  }, [lobbiesList, computedAcceptedLobbyIds, currentUser, activeChatLobbyId, readGroupChatCounts, deletedGroupChatIds]);
 
   const totalUnreadMessages = unreadDMCount + unreadGroupCount;
 
@@ -388,6 +408,10 @@ export default function App() {
   activeChatLobbyIdRef.current = activeChatLobbyId;
   const activeDMThreadIdRef = useRef(activeDMThreadId);
   activeDMThreadIdRef.current = activeDMThreadId;
+  const deletedGroupChatIdsRef = useRef(deletedGroupChatIds);
+  deletedGroupChatIdsRef.current = deletedGroupChatIds;
+  const deletedDMThreadIdsRef = useRef(deletedDMThreadIds);
+  deletedDMThreadIdsRef.current = deletedDMThreadIds;
 
   // Initial group chat message loader whenever user or lobby list changes
   useEffect(() => {
@@ -501,9 +525,12 @@ export default function App() {
       // Real-time DM threads & unread status
       api.getDMThreads().then((freshThreads) => {
         if (!Array.isArray(freshThreads)) return;
+        const filteredFresh = freshThreads.filter(
+          (ft) => !deletedDMThreadIdsRef.current.has(String(ft.id))
+        );
         setDmList((prev) => {
           let changed = false;
-          const merged = freshThreads.map((ft) => {
+          const merged = filteredFresh.map((ft) => {
             const existing = prev.find((t) => t.id === ft.id);
             if (!existing) {
               changed = true;
@@ -531,8 +558,11 @@ export default function App() {
         const allLobbies = lobbiesListRef.current;
 
         const myLobbies = allLobbies.filter((l) => {
+          const strId = String(l.id);
+          if (deletedGroupChatIdsRef.current.has(strId)) return false;
+
           const isHost = (myH && l.handle?.toLowerCase() === myH) || (myN && l.host?.toLowerCase() === myN);
-          const isAccepted = acceptedIds.has(String(l.id)) || acceptedIds.has(l.id);
+          const isAccepted = acceptedIds.has(strId) || acceptedIds.has(l.id);
           return isHost || isAccepted;
         });
 
@@ -1181,12 +1211,21 @@ export default function App() {
   const handleDeleteGroupChat = (lobbyId) => {
     const strId = String(lobbyId);
 
-    // Clear messages locally
+    // 1. Immediately remove from user's active group chat list and persist
+    setDeletedGroupChatIds((prev) => {
+      const next = new Set([...prev, strId]);
+      if (currentUser?.handle) {
+        api.saveDeletedGroupChatIds(currentUser.handle, next);
+      }
+      return next;
+    });
+
+    // 2. Clear messages locally
     setLobbiesList((prev) =>
       prev.map((l) => (String(l.id) === strId ? { ...l, chatMessages: [] } : l))
     );
 
-    // Reset unread count
+    // 3. Reset unread count
     setReadGroupChatCounts((prev) => {
       const next = { ...prev, [strId]: 0 };
       if (currentUser?.handle) {
@@ -1195,9 +1234,41 @@ export default function App() {
       return next;
     });
 
-    api.deleteLobbyChat(strId).then(() => {
-      showToast("Group chat history deleted.", "info");
-    }).catch(() => {});
+    // 4. Close slide-in panel if currently viewing this chat
+    if (String(activeChatLobbyId) === strId) {
+      setActiveChatLobbyId(null);
+    }
+
+    // 5. Delete chat messages in backend and notify
+    api
+      .deleteLobbyChat(strId)
+      .then(() => {
+        showToast("Group chat removed from list.", "info");
+      })
+      .catch(() => {});
+  };
+
+  const handleDeleteDM = (threadId) => {
+    const strId = String(threadId);
+
+    // 1. Immediately remove from user's active DM list and persist
+    setDeletedDMThreadIds((prev) => {
+      const next = new Set([...prev, strId]);
+      if (currentUser?.handle) {
+        api.saveDeletedDMThreadIds(currentUser.handle, next);
+      }
+      return next;
+    });
+
+    // 2. Remove thread locally
+    setDmList((prev) => prev.filter((t) => String(t.id) !== strId));
+
+    // 3. Close slide-in DM panel if currently viewing
+    if (String(activeDMThreadId) === strId) {
+      setActiveDMThreadId("");
+    }
+
+    showToast("Direct message removed from list.", "info");
   };
 
   const handleRemoveMember = (lobbyId, member) => {
@@ -1682,11 +1753,14 @@ export default function App() {
                 threads={dmList}
                 lobbies={lobbiesList}
                 acceptedLobbyIds={computedAcceptedLobbyIds}
+                deletedGroupChatIds={deletedGroupChatIds}
+                deletedDMThreadIds={deletedDMThreadIds}
                 currentUser={currentUser}
                 readGroupChatCounts={readGroupChatCounts}
                 onOpenDM={openDMThread}
                 onOpenGroupChat={openGroupChat}
                 onDeleteGroupChat={handleDeleteGroupChat}
+                onDeleteDM={handleDeleteDM}
               />
             )
           }
@@ -2067,6 +2141,7 @@ export default function App() {
             setActiveDMThreadId("");
             navigate("/messages");
           }}
+          onDeleteDM={handleDeleteDM}
         />
       )}
 

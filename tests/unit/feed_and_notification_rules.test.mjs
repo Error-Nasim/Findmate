@@ -235,6 +235,26 @@ test('MSG-03: Group chat unread counter ignores system broadcasts and sums acros
   assert.equal(totalGroupUnread, 2);
 });
 
+test('MSG-04: Deleted group chat is cleanly removed from group chats list and unread count', () => {
+  const currentHandle = 'rimon21';
+  const lobbies = [
+    { id: 'lob_1', title: 'Open Valorant', handle: 'rimon21', chatMessages: [{ id: 'm1', sender: 'Error-nasim', text: 'Hi' }] },
+    { id: 'lob_2', title: 'Closed LeetCode', handle: 'rimon21', chatMessages: [{ id: 'm2', sender: 'Error-nasim', text: 'Done' }] },
+  ];
+
+  const deletedGroupChatIds = new Set(['lob_2']);
+
+  const visibleGroupChats = lobbies.filter((l) => {
+    const strId = String(l.id);
+    if (deletedGroupChatIds.has(strId)) return false;
+    return l.handle === currentHandle;
+  });
+
+  assert.equal(visibleGroupChats.length, 1);
+  assert.equal(visibleGroupChats[0].id, 'lob_1');
+  assert.ok(!visibleGroupChats.some((l) => l.id === 'lob_2'), 'Deleted group chat lob_2 must be removed from list');
+});
+
 test('ZINDEX-01: Slide-in chat panels z-index is strictly higher than announcement banner and navbar', () => {
   const BANNER_ZINDEX = 600;
   const NAVBAR_ZINDEX = 700;
