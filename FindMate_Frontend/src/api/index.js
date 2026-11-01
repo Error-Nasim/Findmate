@@ -171,7 +171,7 @@ export const api = {
 
   updateLobby: async (lobbyId, updates) => {
     try {
-      const res = await apiClient.put(`/lobbies/${lobbyId}`, updates);
+      const res = await apiClient.patch(`/lobbies/${lobbyId}`, updates);
       if (res.data) return res.data;
     } catch (err) {
       console.warn("[API] updateLobby fallback:", err.message);

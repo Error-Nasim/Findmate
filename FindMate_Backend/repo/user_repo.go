@@ -2,6 +2,7 @@ package repo
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"findmate-backend/domain"
 	"fmt"
@@ -140,24 +141,83 @@ func (r *userRepo) ListUsers(search, role, status string) ([]*domain.User, error
 
 func (r *userRepo) UpdateUser(id string, updates map[string]interface{}) (*domain.User, error) {
 	if len(updates) == 0 {
-		return r.FindByID(id)
+		return r.FindByHandle(id)
 	}
 
 	setClauses := []string{}
 	args := []interface{}{}
 	argIdx := 1
 
-	for col, val := range updates {
+	for k, val := range updates {
+		var col string
+		var finalVal interface{} = val
+
+		switch strings.ToLower(k) {
+		case "name":
+			col = "name"
+		case "handle":
+			col = "handle"
+			if s, ok := val.(string); ok {
+				finalVal = strings.TrimPrefix(s, "@")
+			}
+		case "email":
+			col = "email"
+		case "role":
+			col = "role"
+		case "bio":
+			col = "bio"
+		case "avatar":
+			col = "avatar"
+		case "isbanned", "is_banned":
+			col = "is_banned"
+			if b, ok := val.(bool); ok {
+				finalVal = b
+			}
+		case "reliability":
+			col = "reliability"
+			if f, ok := val.(float64); ok {
+				finalVal = int(f)
+			}
+		case "roomsjoined", "rooms_joined":
+			col = "rooms_joined"
+			if f, ok := val.(float64); ok {
+				finalVal = int(f)
+			}
+		case "roomscompleted", "rooms_completed":
+			col = "rooms_completed"
+			if f, ok := val.(float64); ok {
+				finalVal = int(f)
+			}
+		case "teamups", "team_ups":
+			col = "team_ups"
+			if f, ok := val.(float64); ok {
+				finalVal = int(f)
+			}
+		case "tags":
+			col = "tags"
+			bytes, err := json.Marshal(val)
+			if err == nil {
+				finalVal = string(bytes)
+			}
+		default:
+			continue
+		}
+
 		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", col, argIdx))
-		args = append(args, val)
+		args = append(args, finalVal)
 		argIdx++
+	}
+
+	if len(setClauses) == 0 {
+		return r.FindByHandle(id)
 	}
 
 	setClauses = append(setClauses, fmt.Sprintf("updated_at = $%d", argIdx))
 	args = append(args, time.Now())
 	argIdx++
 
-	args = append(args, id)
+	cleanID := strings.TrimPrefix(id, "@")
+	args = append(args, cleanID)
 	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d OR LOWER(handle) = LOWER($%d)", strings.Join(setClauses, ", "), argIdx, argIdx)
 
 	_, err := r.db.Exec(query, args...)

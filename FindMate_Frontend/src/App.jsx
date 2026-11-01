@@ -138,7 +138,7 @@ export default function App() {
   const location = useLocation();
 
   // Context Hooks
-  const { isAuthed, user, login, logout } = useAuth();
+  const { isAuthed, user, login, logout, updateUser } = useAuth();
   const { showToast } = useToast();
 
   // Theme state
@@ -486,7 +486,8 @@ export default function App() {
           setNotifsList((prev) => {
             if (
               prev.length !== clean.length ||
-              (clean.length > 0 && clean[0].id !== prev[0]?.id)
+              (clean.length > 0 && clean[0].id !== prev[0]?.id) ||
+              prev.some((p, i) => p.unread !== clean[i]?.unread)
             ) {
               return clean;
             }
@@ -1420,6 +1421,18 @@ export default function App() {
     showToast(`Reliability score updated to ${newScore}%`);
   };
 
+  const handleUpdateProfile = (updates) => {
+    if (currentUser?.handle) {
+      updateUser(updates);
+      api.updateUser(currentUser.handle, updates);
+      setUsersList((prev) =>
+        prev.map((u) =>
+          u.handle.toLowerCase() === currentUser.handle.toLowerCase() ? { ...u, ...updates } : u
+        )
+      );
+    }
+  };
+
   const handleAddPlatformTag = (tag) => {
     api.addTag(tag).then((updatedTags) => {
       setPlatformTags(updatedTags);
@@ -1694,6 +1707,7 @@ export default function App() {
               onReport={(target) => handleOpenReport(target || { type: "user", id: currentUser.handle, name: currentUser.name })}
               onAuth={() => openAuth("signin")}
               onLogout={handleLogout}
+              onUpdateProfile={handleUpdateProfile}
               toast={showToast}
               mobile={isMobile}
             />
@@ -1714,6 +1728,7 @@ export default function App() {
               onReport={(target) => handleOpenReport(target)}
               onAuth={() => openAuth("signin")}
               onLogout={handleLogout}
+              onUpdateProfile={handleUpdateProfile}
               toast={showToast}
               mobile={isMobile}
             />
@@ -1734,6 +1749,7 @@ export default function App() {
               onReport={(target) => handleOpenReport(target)}
               onAuth={() => openAuth("signin")}
               onLogout={handleLogout}
+              onUpdateProfile={handleUpdateProfile}
               toast={showToast}
               mobile={isMobile}
             />

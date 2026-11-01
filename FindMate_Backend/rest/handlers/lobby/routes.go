@@ -27,6 +27,10 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, manager *middleware.Manager
 		manager.With(http.HandlerFunc(h.UpdateLobby)),
 	)
 	mux.Handle(
+		"PUT /api/lobbies/{id}",
+		manager.With(http.HandlerFunc(h.UpdateLobby)),
+	)
+	mux.Handle(
 		"DELETE /api/lobbies/{id}",
 		manager.With(http.HandlerFunc(h.DeleteLobby)),
 	)

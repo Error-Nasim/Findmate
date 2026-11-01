@@ -24,6 +24,7 @@ export default function ProfilePage({
   onReport,
   onAuth,
   onLogout,
+  onUpdateProfile,
   toast,
   mobile = false,
 }) {
@@ -138,6 +139,9 @@ export default function ProfilePage({
     displayedUser.name = editName
     displayedUser.bio = editBio
     displayedUser.tags = userTags
+    if (onUpdateProfile) {
+      onUpdateProfile({ name: editName, bio: editBio, tags: userTags })
+    }
     toast?.('Profile updated successfully!')
   }
 
