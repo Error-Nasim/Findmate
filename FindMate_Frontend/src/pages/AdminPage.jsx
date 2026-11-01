@@ -62,7 +62,7 @@ export default function AdminPage({
   // Lobby Oversight Tab state
   const [lobbySearch, setLobbySearch] = useState("");
   const [lobbyCategoryFilter, setLobbyCategoryFilter] = useState("all");
-  const [lobbyStatusFilter, setLobbyStatusFilter] = useState("all");
+  const [lobbyStatusFilter, setLobbyStatusFilter] = useState("running");
 
   // Tag Governance Tab state
   const [newTagInput, setNewTagInput] = useState("");
@@ -250,7 +250,14 @@ export default function AdminPage({
   const filteredLobbies = useMemo(() => {
     return lobbies.filter((l) => {
       const matchesCat = lobbyCategoryFilter === "all" || l.category === lobbyCategoryFilter;
-      const matchesStatus = lobbyStatusFilter === "all" || l.status === lobbyStatusFilter;
+      const matchesStatus =
+        lobbyStatusFilter === "all"
+          ? true
+          : lobbyStatusFilter === "running"
+          ? (l.status === "Open" || l.status === "Full" || l.status === "In Progress")
+          : lobbyStatusFilter === "finalized"
+          ? (l.status === "Completed" || l.status === "Closed")
+          : l.status === lobbyStatusFilter;
 
       const query = lobbySearch.toLowerCase();
       const matchesSearch =
@@ -1726,16 +1733,52 @@ export default function AdminPage({
                   fontWeight: 600,
                 }}
               >
-                <option value="all">All Statuses</option>
-                <option value="Open">Open</option>
-                <option value="Full">Full</option>
+                <option value="running">🟢 Running Lobbies (Default)</option>
+                <option value="finalized">🔒 Completed & Closed</option>
+                <option value="all">🌐 All Statuses</option>
+                <option value="Open">Open Only</option>
+                <option value="Full">Full Only</option>
                 <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
+                <option value="Completed">Completed Only</option>
+                <option value="Closed">Closed Only</option>
               </select>
             </div>
 
-            <div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 700 }}>
-              Showing {filteredLobbies.length} of {lobbies.length} lobbies
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {/* Quick status filter pills */}
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                {[
+                  { id: "running", label: "🟢 Running", count: lobbies.filter((l) => l.status === "Open" || l.status === "Full" || l.status === "In Progress").length },
+                  { id: "finalized", label: "🔒 Completed & Closed", count: lobbies.filter((l) => l.status === "Completed" || l.status === "Closed").length },
+                  { id: "all", label: "🌐 All", count: lobbies.length },
+                ].map((pill) => (
+                  <button
+                    key={pill.id}
+                    onClick={() => setLobbyStatusFilter(pill.id)}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 14,
+                      border: `1px solid ${lobbyStatusFilter === pill.id ? "#6366F1" : "var(--border-subtle)"}`,
+                      background: lobbyStatusFilter === pill.id ? "rgba(99,102,241,0.15)" : "var(--bg-surface)",
+                      color: lobbyStatusFilter === pill.id ? "var(--primary-text)" : "var(--text-muted)",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <span>{pill.label}</span>
+                    <span style={{ fontSize: 10, opacity: 0.85 }}>({pill.count})</span>
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 700 }}>
+                Showing {filteredLobbies.length} of {lobbies.length} lobbies
+              </div>
             </div>
           </div>
 

@@ -141,5 +141,25 @@ func (h *Handler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.SendError(w, http.StatusBadRequest, "Invalid status (must be accepted or declined)")
+	if req.Status == "removed" {
+		app, err := h.applicantSvc.RemoveApplicant(applicantID)
+		if err != nil {
+			util.SendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		util.SendData(w, map[string]interface{}{"success": true, "applicant": app, "applicantId": app.ID, "status": "removed"}, http.StatusOK)
+		return
+	}
+
+	util.SendError(w, http.StatusBadRequest, "Invalid status (must be accepted, declined, or removed)")
+}
+
+func (h *Handler) DeleteApplicant(w http.ResponseWriter, r *http.Request) {
+	applicantID := r.PathValue("id")
+	app, err := h.applicantSvc.RemoveApplicant(applicantID)
+	if err != nil {
+		util.SendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	util.SendData(w, map[string]interface{}{"success": true, "applicant": app, "applicantId": applicantID, "status": "removed"}, http.StatusOK)
 }

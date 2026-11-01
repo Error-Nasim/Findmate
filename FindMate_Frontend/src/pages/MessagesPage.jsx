@@ -13,6 +13,7 @@ export default function MessagesPage({
   readGroupChatCounts = {},
   onOpenDM,
   onOpenGroupChat,
+  onDeleteGroupChat,
 }) {
   const navigate = useNavigate()
   const [tab, setTab] = useState('dms') // 'dms' | 'groups'
@@ -363,16 +364,48 @@ export default function MessagesPage({
                   </div>
                 </div>
 
-                <span
-                  className="pulse-dot"
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: isUnread ? '#10B981' : 'var(--border-strong)',
-                    flexShrink: 0,
-                  }}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  {onDeleteGroupChat && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Are you sure you want to delete chat history for "${lobby.title}"?`)) {
+                          onDeleteGroupChat(lobby.id);
+                        }
+                      }}
+                      title="Delete chat history"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        fontSize: 16,
+                        cursor: 'pointer',
+                        padding: '4px 6px',
+                        borderRadius: 6,
+                        transition: 'color 0.15s, background 0.15s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = '#EF4444';
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = 'var(--text-muted)';
+                        e.currentTarget.style.background = 'none';
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  )}
+                  <span
+                    className="pulse-dot"
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: isUnread ? '#10B981' : 'var(--border-strong)',
+                    }}
+                  />
+                </div>
               </div>
             )
           })}

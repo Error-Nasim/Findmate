@@ -27,17 +27,23 @@ const DEFAULT_PLATFORM_TAGS = [
   "#music",
 ];
 
-export default function CreateLobbyModal({ onClose, onCreate, availableTags = DEFAULT_PLATFORM_TAGS }) {
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Gaming");
-  const [description, setDescription] = useState("");
-  const [selectedTags, setSelectedTags] = useState(["#gaming"]);
+export default function CreateLobbyModal({
+  onClose,
+  onCreate,
+  editingLobby = null,
+  availableTags = DEFAULT_PLATFORM_TAGS,
+}) {
+  const isEditing = Boolean(editingLobby);
+  const [title, setTitle] = useState(editingLobby?.title || "");
+  const [category, setCategory] = useState(editingLobby?.category || "Gaming");
+  const [description, setDescription] = useState(editingLobby?.description || "");
+  const [selectedTags, setSelectedTags] = useState(editingLobby?.tags || ["#gaming"]);
   const [tagInput, setTagInput] = useState("");
   const [showTagDropdown, setShowTagDropdown] = useState(false);
-  const [maxTeammates, setMaxTeammates] = useState(4);
-  const [dateTime, setDateTime] = useState("");
-  const [locMode, setLocMode] = useState("digital");
-  const [locationValue, setLocationValue] = useState("");
+  const [maxTeammates, setMaxTeammates] = useState(editingLobby?.max || 4);
+  const [dateTime, setDateTime] = useState(editingLobby?.time || "");
+  const [locMode, setLocMode] = useState(editingLobby?.location === "In-Person" ? "in-person" : "digital");
+  const [locationValue, setLocationValue] = useState(editingLobby?.locationDetail || editingLobby?.location || "");
 
   const tagDropdownRef = useRef(null);
 
@@ -84,6 +90,7 @@ export default function CreateLobbyModal({ onClose, onCreate, availableTags = DE
     if (!title.trim()) return;
 
     onCreate({
+      ...(editingLobby ? { id: editingLobby.id } : {}),
       title: title.trim(),
       category,
       description: description.trim() || "Looking for reliable teammates. Let's do this!",
@@ -142,10 +149,10 @@ export default function CreateLobbyModal({ onClose, onCreate, availableTags = DE
         >
           <div>
             <h3 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: "var(--text-primary)" }}>
-              Create a Lobby
+              {isEditing ? `Edit Lobby: ${editingLobby.title}` : "Create a Lobby"}
             </h3>
             <p style={{ margin: "2px 0 0", fontSize: 13, color: "var(--text-muted)" }}>
-              Post your team-up and find teammates in seconds
+              {isEditing ? "Update lobby details, adjust member capacity, tags, and schedule" : "Post your team-up and find teammates in seconds"}
             </p>
           </div>
           <button
@@ -553,7 +560,7 @@ export default function CreateLobbyModal({ onClose, onCreate, availableTags = DE
               Cancel
             </Button>
             <Button v="primary" full onClick={handlePost} disabled={!title.trim()}>
-              Post Lobby ✦
+              {isEditing ? "Save Changes ✦" : "Post Lobby ✦"}
             </Button>
           </div>
         </div>

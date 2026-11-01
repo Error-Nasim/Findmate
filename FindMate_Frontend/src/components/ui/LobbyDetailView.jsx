@@ -20,6 +20,8 @@ export default function LobbyDetailView({
   onGroupChat,
   onMsgHost,
   onCompleteLobby,
+  onEditLobby,
+  onRemoveMember,
 }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
@@ -363,6 +365,31 @@ export default function LobbyDetailView({
               >
                 {member.isHost ? "HOST" : "MEMBER"}
               </div>
+              {isHost && !member.isHost && onRemoveMember && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`Are you sure you want to remove ${member.name || member.handle} from this lobby?`)) {
+                      onRemoveMember(lobby.id, member);
+                    }
+                  }}
+                  style={{
+                    marginTop: 6,
+                    padding: "2px 8px",
+                    borderRadius: 4,
+                    background: "rgba(239,68,68,0.1)",
+                    border: "1px solid rgba(239,68,68,0.25)",
+                    color: "#EF4444",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-block",
+                  }}
+                  title={`Remove ${member.name || member.handle} from lobby`}
+                >
+                  Remove ✕
+                </button>
+              )}
             </div>
           ))}
 
@@ -404,32 +431,39 @@ export default function LobbyDetailView({
       >
         <div style={{ flex: 1 }}>
           {isHost ? (
-            <button
-              onClick={onGroupChat}
-              style={{
-                width: '100%',
-                padding: '12px 18px',
-                borderRadius: 10,
-                background: '#6366F1',
-                color: '#FFFFFF',
-                border: 'none',
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(99,102,241,0.25)',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#4F46E5';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#6366F1';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              👑 You are Host · Open Group Chat
-            </button>
+            <div style={{ display: "flex", gap: 10, width: "100%" }}>
+              <button
+                onClick={onGroupChat}
+                style={{
+                  flex: 1,
+                  padding: "12px 18px",
+                  borderRadius: 10,
+                  background: "#6366F1",
+                  color: "#FFFFFF",
+                  border: "none",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(99,102,241,0.25)",
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#4F46E5";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#6366F1";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                👑 Open Group Chat
+              </button>
+              {onEditLobby && (
+                <Button v="line" onClick={() => onEditLobby(lobby)}>
+                  ✏️ Edit Lobby
+                </Button>
+              )}
+            </div>
           ) : isAccepted ? (
             <Button v="ghost" full onClick={onGroupChat}>
               💬 Open Group Chat

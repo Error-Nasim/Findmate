@@ -169,6 +169,21 @@ export const api = {
     return Promise.resolve({ success: true, lobbyId, status: newStatus });
   },
 
+  updateLobby: async (lobbyId, updates) => {
+    try {
+      const res = await apiClient.put(`/lobbies/${lobbyId}`, updates);
+      if (res.data) return res.data;
+    } catch (err) {
+      console.warn("[API] updateLobby fallback:", err.message);
+    }
+    const lobbies = readStorage(STORAGE_KEYS.LOBBIES, initialLobbies);
+    const updated = lobbies.map((l) =>
+      String(l.id) === String(lobbyId) ? { ...l, ...updates } : l,
+    );
+    writeStorage(STORAGE_KEYS.LOBBIES, updated);
+    return Promise.resolve({ id: lobbyId, ...updates });
+  },
+
   deleteLobby: async (lobbyId) => {
     try {
       await apiClient.delete(`/lobbies/${lobbyId}`);
@@ -238,6 +253,27 @@ export const api = {
     }
   },
 
+  removeApplicant: async (applicantId) => {
+    try {
+      const res = await apiClient.delete(`/applicants/${applicantId}`);
+      const serverData = res.data;
+      const applicants = readStorage(STORAGE_KEYS.APPLICANTS, initialApplicants);
+      const updatedApplicants = applicants.map((a) =>
+        a.id === applicantId ? { ...a, status: "removed" } : a,
+      );
+      writeStorage(STORAGE_KEYS.APPLICANTS, updatedApplicants);
+      return serverData || { success: true, applicantId, status: "removed" };
+    } catch (err) {
+      console.warn("[API] removeApplicant error:", err.message);
+      const applicants = readStorage(STORAGE_KEYS.APPLICANTS, initialApplicants);
+      const updatedApplicants = applicants.map((a) =>
+        a.id === applicantId ? { ...a, status: "removed" } : a,
+      );
+      writeStorage(STORAGE_KEYS.APPLICANTS, updatedApplicants);
+      return { success: true, applicantId, status: "removed", fallback: true };
+    }
+  },
+
   // ── Chat & DMs ──
   getChatMessages: async (lobbyId) => {
     try {
@@ -293,6 +329,20 @@ export const api = {
     );
     writeStorage(STORAGE_KEYS.LOBBIES, updated);
     return Promise.resolve(newMsg);
+  },
+
+  deleteLobbyChat: async (lobbyId) => {
+    try {
+      await apiClient.delete(`/lobbies/${lobbyId}/messages`);
+    } catch (err) {
+      console.warn("[API] deleteLobbyChat fallback:", err.message);
+    }
+    const lobbies = readStorage(STORAGE_KEYS.LOBBIES, initialLobbies);
+    const updated = lobbies.map((l) =>
+      String(l.id) === String(lobbyId) ? { ...l, chatMessages: [] } : l,
+    );
+    writeStorage(STORAGE_KEYS.LOBBIES, updated);
+    return Promise.resolve({ success: true, lobbyId });
   },
 
   getDMThreads: async () => {

@@ -2,6 +2,7 @@ package repo
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"findmate-backend/domain"
 	"fmt"
@@ -138,14 +139,55 @@ func (r *lobbyRepo) Update(id string, updates map[string]interface{}) (*domain.L
 		return r.GetByID(id)
 	}
 
+	currentLobby, err := r.GetByID(id)
+	if err != nil || currentLobby == nil {
+		return nil, fmt.Errorf("lobby %s not found", id)
+	}
+
 	setClauses := []string{}
 	args := []interface{}{}
 	argIdx := 1
 
-	for col, val := range updates {
+	for k, val := range updates {
+		var col string
+		var finalVal interface{} = val
+
+		switch strings.ToLower(k) {
+		case "title", "name":
+			col = "title"
+		case "description":
+			col = "description"
+		case "category":
+			col = "category"
+		case "location":
+			col = "location"
+		case "locationdetail", "location_detail":
+			col = "location_detail"
+		case "color":
+			col = "color"
+		case "max", "maxmembers", "max_members":
+			col = "max_members"
+			if f, ok := val.(float64); ok {
+				finalVal = int(f)
+			}
+		case "tags":
+			col = "tags"
+			if b, err := json.Marshal(val); err == nil {
+				finalVal = b
+			}
+		case "status":
+			col = "status"
+		default:
+			continue
+		}
+
 		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", col, argIdx))
-		args = append(args, val)
+		args = append(args, finalVal)
 		argIdx++
+	}
+
+	if len(setClauses) == 0 {
+		return currentLobby, nil
 	}
 
 	setClauses = append(setClauses, fmt.Sprintf("updated_at = $%d", argIdx))
@@ -155,12 +197,26 @@ func (r *lobbyRepo) Update(id string, updates map[string]interface{}) (*domain.L
 	args = append(args, id)
 	query := fmt.Sprintf("UPDATE lobbies SET %s WHERE id = $%d", strings.Join(setClauses, ", "), argIdx)
 
-	_, err := r.db.Exec(query, args...)
+	_, err = r.db.Exec(query, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	return r.GetByID(id)
+	updated, err := r.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// If max_members was updated, adjust status if necessary
+	if updated.Status == "Full" && updated.Joined < updated.Max {
+		_ = r.UpdateStatus(id, "Open")
+		updated.Status = "Open"
+	} else if updated.Status == "Open" && updated.Joined >= updated.Max {
+		_ = r.UpdateStatus(id, "Full")
+		updated.Status = "Full"
+	}
+
+	return updated, nil
 }
 
 func (r *lobbyRepo) UpdateStatus(id, status string) error {

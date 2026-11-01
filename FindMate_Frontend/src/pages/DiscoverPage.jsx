@@ -32,9 +32,9 @@ export default function DiscoverPage({
     )
   }
 
-  // Filter: Closed lobbies are NEVER shown in the public feed
+  // Filter: Only running lobbies (Open or Full) are shown in the public feed; Closed and Completed are removed
   let filtered = lobbies.filter(l => {
-    if (l.status === 'Closed') return false
+    if (l.status === 'Closed' || l.status === 'Completed') return false
 
     const matchCategory = activeCategory === 'All' || l.category === activeCategory
     const matchSearch =
@@ -47,16 +47,9 @@ export default function DiscoverPage({
     return matchCategory && matchSearch && matchTags
   })
 
-  // Sort: Active (non-completed) lobbies first; Completed lobbies go to the very bottom
+  // Sort: Running lobbies sorted by Admin pin, match score, or recency
   filtered = [...filtered].sort((a, b) => {
-    // 1. Completed lobbies go to the very last
-    const aCompleted = a.status === 'Completed' ? 1 : 0
-    const bCompleted = b.status === 'Completed' ? 1 : 0
-    if (aCompleted !== bCompleted) {
-      return aCompleted - bCompleted
-    }
-
-    // 2. Admin pinned lobbies float to top among active lobbies
+    // 1. Admin pinned lobbies float to top among active lobbies
     const aPinned = a.isPinned ? 1 : 0
     const bPinned = b.isPinned ? 1 : 0
     if (aPinned !== bPinned) {

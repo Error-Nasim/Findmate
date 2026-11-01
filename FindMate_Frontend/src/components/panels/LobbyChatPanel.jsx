@@ -6,20 +6,23 @@ import Avatar from "../ui/Avatar.jsx";
 export default function LobbyChatPanel({
   lobbyId,
   lobbyTitle,
+  lobbyStatus = "Open",
   messages = [],
   onClose,
   onSend,
   onCompleteLobby,
+  onDeleteChat,
 }) {
   const [text, setText] = useState("");
   const bottomRef = useRef(null);
+  const isFinalized = lobbyStatus === "Completed" || lobbyStatus === "Closed";
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSend = () => {
-    if (!text.trim()) return;
+    if (isFinalized || !text.trim()) return;
     onSend(lobbyId, text.trim());
     setText("");
   };
@@ -69,23 +72,65 @@ export default function LobbyChatPanel({
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)" }}>{lobbyTitle}</span>
-              <span
-                className="pulse-dot"
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: "#10B981",
-                  display: "inline-block",
-                }}
-              />
+              {isFinalized ? (
+                <span
+                  style={{
+                    fontSize: 10,
+                    padding: "2px 8px",
+                    borderRadius: 12,
+                    background: "rgba(100,116,139,0.15)",
+                    color: "var(--text-muted)",
+                    fontWeight: 700,
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  🔒 {lobbyStatus.toUpperCase()}
+                </span>
+              ) : (
+                <span
+                  className="pulse-dot"
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: "#10B981",
+                    display: "inline-block",
+                  }}
+                />
+              )}
             </div>
             <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-              Group Chat · All accepted members
+              {isFinalized ? "Chat disabled · Read-only message history" : "Group Chat · All accepted members"}
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {onCompleteLobby && (
+            {onDeleteChat && (
+              <button
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to delete this group chat history?")) {
+                    onDeleteChat(lobbyId);
+                  }
+                }}
+                title="Delete group chat history"
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 14,
+                  background: "rgba(239,68,68,0.1)",
+                  border: "1px solid rgba(239,68,68,0.25)",
+                  color: "#EF4444",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  transition: "opacity 0.15s ease",
+                }}
+              >
+                🗑️ Delete Chat
+              </button>
+            )}
+            {!isFinalized && onCompleteLobby && (
               <button
                 onClick={() => onCompleteLobby(lobbyId)}
                 title="Finish lobby session and rate teammates"
@@ -181,40 +226,62 @@ export default function LobbyChatPanel({
           <div ref={bottomRef} />
         </div>
 
-        {/* Input Bar */}
-        <div style={{ padding: "16px 22px", borderTop: "1px solid var(--border-subtle)", background: "var(--bg-surface)" }}>
-          <div style={{ display: "flex", gap: 10 }}>
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Message the group…"
+        {/* Input Bar or Disabled State for Completed/Closed Lobbies */}
+        <div style={{ padding: "16px 22px", borderTop: "1px solid var(--border-subtle)", background: isFinalized ? "var(--bg-surface-alt)" : "var(--bg-surface)" }}>
+          {isFinalized ? (
+            <div
               style={{
-                flex: 1,
-                padding: "11px 16px",
-                background: "var(--bg-input)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "12px 16px",
+                background: "var(--bg-surface)",
                 border: "1px solid var(--border-subtle)",
                 borderRadius: 10,
-                color: "var(--text-primary)",
-                fontSize: 14,
-              }}
-            />
-            <button
-              onClick={handleSend}
-              style={{
-                padding: "11px 18px",
-                background: "#6366F1",
-                border: "none",
-                borderRadius: 10,
-                color: "#fff",
-                fontSize: 16,
-                cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(99,102,241,0.25)",
+                color: "var(--text-muted)",
+                fontSize: 13,
+                fontWeight: 600,
+                textAlign: "center",
               }}
             >
-              ➤
-            </button>
-          </div>
+              <span>🔒</span>
+              <span>This lobby is {lobbyStatus.toLowerCase()}. Chat is turned off (read-only).</span>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 10 }}>
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                placeholder="Message the group…"
+                style={{
+                  flex: 1,
+                  padding: "11px 16px",
+                  background: "var(--bg-input)",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: 10,
+                  color: "var(--text-primary)",
+                  fontSize: 14,
+                }}
+              />
+              <button
+                onClick={handleSend}
+                style={{
+                  padding: "11px 18px",
+                  background: "#6366F1",
+                  border: "none",
+                  borderRadius: 10,
+                  color: "#fff",
+                  fontSize: 16,
+                  cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(99,102,241,0.25)",
+                }}
+              >
+                ➤
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>

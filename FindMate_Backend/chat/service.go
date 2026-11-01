@@ -9,12 +9,14 @@ import (
 )
 
 type service struct {
-	chatRepo ChatRepo
+	chatRepo  ChatRepo
+	lobbyRepo LobbyRepo
 }
 
-func NewService(chatRepo ChatRepo) Service {
+func NewService(chatRepo ChatRepo, lobbyRepo LobbyRepo) Service {
 	return &service{
-		chatRepo: chatRepo,
+		chatRepo:  chatRepo,
+		lobbyRepo: lobbyRepo,
 	}
 }
 
@@ -27,6 +29,17 @@ func (s *service) AddMessage(lobbyID, sender, avatar, text, msgType string) (*do
 	if msgType == "" {
 		msgType = "user"
 	}
+
+	// Turn off / disable sending chat for Completed or Closed lobbies (except system messages)
+	if msgType != "system" && s.lobbyRepo != nil {
+		lobby, err := s.lobbyRepo.GetByID(lobbyID)
+		if err == nil && lobby != nil {
+			if lobby.Status == "Completed" || lobby.Status == "Closed" {
+				return nil, errors.New("chat is disabled because this lobby is completed or closed")
+			}
+		}
+	}
+
 	if avatar == "" {
 		avatar = util.ComputeAvatar(sender)
 	}
@@ -45,4 +58,8 @@ func (s *service) AddMessage(lobbyID, sender, avatar, text, msgType string) (*do
 
 func (s *service) GetMessagesByLobby(lobbyID string) ([]domain.ChatMessage, error) {
 	return s.chatRepo.GetMessagesByLobby(lobbyID)
+}
+
+func (s *service) DeleteMessagesByLobby(lobbyID string) error {
+	return s.chatRepo.DeleteMessagesByLobby(lobbyID)
 }

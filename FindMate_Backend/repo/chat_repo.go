@@ -12,6 +12,7 @@ type ChatRepo interface {
 	CreateRoom(lobbyID string) (*domain.ChatRoom, error)
 	AddMessage(msg domain.ChatMessage) (*domain.ChatMessage, error)
 	GetMessagesByLobby(lobbyID string) ([]domain.ChatMessage, error)
+	DeleteMessagesByLobby(lobbyID string) error
 }
 
 type chatRepo struct {
@@ -73,4 +74,10 @@ func (r *chatRepo) GetMessagesByLobby(lobbyID string) ([]domain.ChatMessage, err
 		return nil, err
 	}
 	return messages, nil
+}
+
+func (r *chatRepo) DeleteMessagesByLobby(lobbyID string) error {
+	query := `DELETE FROM chat_messages WHERE lobby_id = $1`
+	_, err := r.db.Exec(query, lobbyID)
+	return err
 }

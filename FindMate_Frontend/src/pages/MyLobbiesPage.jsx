@@ -18,6 +18,7 @@ export default function MyLobbiesPage({
   readGroupChatCounts = {},
   onReviewApplicants,
   onOpenChat,
+  onEditLobby,
   onStatusChange,
   onCompleteLobby,
   onCreateLobby,
@@ -241,11 +242,6 @@ export default function MyLobbiesPage({
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <StatusBadge status={lobby.status} />
-                          {isFinalized && (
-                            <span style={{ fontSize: 11, color: 'var(--text-faint)', fontWeight: 600 }}>
-                              🔒 Finalized
-                            </span>
-                          )}
                         </div>
                         {!isFinalized ? (
                           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -346,6 +342,11 @@ export default function MyLobbiesPage({
                       <Button v="line" sm onClick={() => onOpenChat(lobby.id)}>
                         💬 Group Chat{getLobbyUnreadCount(lobby) > 0 ? ` (${getLobbyUnreadCount(lobby)})` : ''}
                       </Button>
+                      {!isFinalized && onEditLobby && (
+                        <Button v="ghost" sm onClick={() => onEditLobby(lobby)}>
+                          ✏️ Edit
+                        </Button>
+                      )}
                       {lobby.status === 'Completed' ? (
                         <Button
                           v="ghost"

@@ -60,7 +60,7 @@ func Serve() {
 	userSvc := user.NewService(userRepo, cfg)
 	lobbySvc := lobby.NewService(lobbyRepo, chatRepo)
 	applicantSvc := applicant.NewService(applicantRepo, lobbyRepo, chatRepo, dmRepo, notificationRepo)
-	chatSvc := chat.NewService(chatRepo)
+	chatSvc := chat.NewService(chatRepo, lobbyRepo)
 	dmSvc := dm.NewService(dmRepo)
 	notificationSvc := notification.NewService(notificationRepo)
 	reportSvc := report.NewService(reportRepo)

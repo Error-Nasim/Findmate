@@ -116,6 +116,9 @@ func (m *mockChatRepo) AddMessage(msg domain.ChatMessage) (*domain.ChatMessage, 
 func (m *mockChatRepo) GetMessagesByLobby(lobbyID string) ([]domain.ChatMessage, error) {
 	return []domain.ChatMessage{}, nil
 }
+func (m *mockChatRepo) DeleteMessagesByLobby(lobbyID string) error {
+	return nil
+}
 
 type mockDMRepo struct{}
 
@@ -197,7 +200,7 @@ func setupTestServer() *rest.Server {
 	userSvc := user.NewService(userRepo, cfg)
 	lobbySvc := lobby.NewService(lobbyRepo, chatRepo)
 	applicantSvc := applicant.NewService(appRepo, lobbyRepo, chatRepo, dmRepo, notifRepo)
-	chatSvc := chat.NewService(chatRepo)
+	chatSvc := chat.NewService(chatRepo, lobbyRepo)
 	dmSvc := dm.NewService(dmRepo)
 	notifSvc := notification.NewService(notifRepo)
 	repSvc := report.NewService(repRepo)

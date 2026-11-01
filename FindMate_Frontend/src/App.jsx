@@ -77,6 +77,8 @@ function LobbyRouteWrapper({
   onGroupChat,
   onMsgHost,
   onCompleteLobby,
+  onEditLobby,
+  onRemoveMember,
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -124,6 +126,8 @@ function LobbyRouteWrapper({
       onGroupChat={() => onGroupChat(lobby.id)}
       onMsgHost={() => onMsgHost(lobby)}
       onCompleteLobby={onCompleteLobby}
+      onEditLobby={onEditLobby}
+      onRemoveMember={onRemoveMember}
     />
   );
 }
@@ -281,6 +285,7 @@ export default function App() {
   // Modal controls
   const [showNotifsDropdown, setShowNotifsDropdown] = useState(false);
   const [showCreateLobby, setShowCreateLobby] = useState(false);
+  const [editingLobby, setEditingLobby] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
   const [applyingLobby, setApplyingLobby] = useState(null);
@@ -1131,6 +1136,112 @@ export default function App() {
     });
   };
 
+  const handleSaveEditLobby = (data) => {
+    const lobbyId = data.id || editingLobby?.id;
+    if (!lobbyId) return;
+
+    const locMode = data.locMode;
+    const location = locMode === "digital" ? "Discord" : "In-Person";
+    const locationDetail =
+      data.locationValue || (locMode === "digital" ? "discord.gg/findmate" : "Campus Center");
+
+    const updates = {
+      title: data.title,
+      category: data.category,
+      description: data.description,
+      tags: data.tags,
+      max: Number(data.max) || 4,
+      location,
+      locationDetail,
+      color: categoryColors[data.category] || "#6366F1",
+      time: data.dateTime || "Just now",
+    };
+
+    setLobbiesList((prev) =>
+      prev.map((l) => (String(l.id) === String(lobbyId) ? { ...l, ...updates } : l))
+    );
+
+    api
+      .updateLobby(lobbyId, updates)
+      .then((saved) => {
+        if (saved) {
+          setLobbiesList((prev) =>
+            prev.map((l) => (String(l.id) === String(lobbyId) ? { ...l, ...saved } : l))
+          );
+        }
+        showToast("Lobby updated successfully! ✦", "success");
+      })
+      .catch((err) => {
+        console.warn("Failed to update lobby:", err.message);
+        showToast("Failed to update lobby.", "error");
+      });
+  };
+
+  const handleDeleteGroupChat = (lobbyId) => {
+    const strId = String(lobbyId);
+
+    // Clear messages locally
+    setLobbiesList((prev) =>
+      prev.map((l) => (String(l.id) === strId ? { ...l, chatMessages: [] } : l))
+    );
+
+    // Reset unread count
+    setReadGroupChatCounts((prev) => {
+      const next = { ...prev, [strId]: 0 };
+      if (currentUser?.handle) {
+        localStorage.setItem(`findmate_read_group_chats_${currentUser.handle}`, JSON.stringify(next));
+      }
+      return next;
+    });
+
+    api.deleteLobbyChat(strId).then(() => {
+      showToast("Group chat history deleted.", "info");
+    }).catch(() => {});
+  };
+
+  const handleRemoveMember = (lobbyId, member) => {
+    const strLobbyId = String(lobbyId);
+    const memberHandle = (member.handle || "").replace(/^@/, "").toLowerCase();
+    const memberName = (member.name || "").toLowerCase();
+
+    // Find applicant record
+    const app = applicantsList.find(
+      (a) =>
+        String(a.lobbyId) === strLobbyId &&
+        ((memberHandle && a.handle?.toLowerCase() === memberHandle) ||
+          (memberName && a.name?.toLowerCase() === memberName)) &&
+        a.status === "accepted"
+    );
+
+    const applicantId = app ? app.id : member.id;
+
+    if (app) {
+      setApplicantsList((prev) =>
+        prev.map((a) => (a.id === app.id ? { ...a, status: "removed" } : a))
+      );
+    }
+
+    // Decrement joined count locally
+    setLobbiesList((prev) =>
+      prev.map((l) => {
+        if (String(l.id) === strLobbyId) {
+          const newJoined = Math.max(1, (l.joined || 1) - 1);
+          const newStatus = l.status === "Full" && newJoined < l.max ? "Open" : l.status;
+          return { ...l, joined: newJoined, status: newStatus };
+        }
+        return l;
+      })
+    );
+
+    if (applicantId) {
+      api.removeApplicant(applicantId).then(() => {
+        showToast(`Removed @${memberHandle || memberName} from squad.`, "info");
+      }).catch((err) => {
+        console.warn("Failed to remove applicant:", err.message);
+      });
+    }
+  };
+
   const handleMessageHost = (lobby) => {
     openDMThread(lobby);
   };
@@ -1507,6 +1618,8 @@ export default function App() {
               onGroupChat={openGroupChat}
               onMsgHost={handleMessageHost}
               onCompleteLobby={handleCompleteLobby}
+              onEditLobby={(l) => setEditingLobby(l)}
+              onRemoveMember={handleRemoveMember}
             />
           }
         />
@@ -1529,6 +1642,7 @@ export default function App() {
                 currentUser={currentUser}
                 readGroupChatCounts={readGroupChatCounts}
                 onCreateLobby={() => setShowCreateLobby(true)}
+                onEditLobby={(l) => setEditingLobby(l)}
                 onReviewApplicants={(id, title) => {
                   setActiveApplicantsLobbyId(id);
                   setActiveApplicantsLobbyTitle(title);
@@ -1559,6 +1673,7 @@ export default function App() {
                 readGroupChatCounts={readGroupChatCounts}
                 onOpenDM={openDMThread}
                 onOpenGroupChat={openGroupChat}
+                onDeleteGroupChat={handleDeleteGroupChat}
               />
             )
           }
@@ -1718,13 +1833,22 @@ export default function App() {
         />
       )}
 
-      {showCreateLobby && (
+      {(showCreateLobby || editingLobby) && (
         <CreateLobbyModal
           availableTags={platformTags}
-          onClose={() => setShowCreateLobby(false)}
-          onCreate={(data) => {
-            handleCreateLobby(data);
+          editingLobby={editingLobby}
+          onClose={() => {
             setShowCreateLobby(false);
+            setEditingLobby(null);
+          }}
+          onCreate={(data) => {
+            if (editingLobby) {
+              handleSaveEditLobby(data);
+              setEditingLobby(null);
+            } else {
+              handleCreateLobby(data);
+              setShowCreateLobby(false);
+            }
           }}
         />
       )}
@@ -1780,6 +1904,7 @@ export default function App() {
           lobbyTitle={activeApplicantsLobbyTitle}
           onClose={() => setActiveApplicantsLobbyId(null)}
           onReview={(app) => setReviewingApplicant(app)}
+          onRemoveMember={handleRemoveMember}
         />
       )}
 
@@ -1787,6 +1912,7 @@ export default function App() {
         <LobbyChatPanel
           lobbyId={activeChatLobbyId}
           lobbyTitle={activeChatLobby.title}
+          lobbyStatus={activeChatLobby.status}
           messages={activeChatLobby.chatMessages || []}
           onClose={() => {
             if (activeChatLobby) {
@@ -1801,8 +1927,13 @@ export default function App() {
             }
             setActiveChatLobbyId(null);
           }}
+          onDeleteChat={handleDeleteGroupChat}
           onCompleteLobby={handleCompleteLobby}
           onSend={(lobbyId, text) => {
+            if (activeChatLobby.status === "Completed" || activeChatLobby.status === "Closed") {
+              showToast("Chat is disabled for completed or closed lobbies.", "error");
+              return;
+            }
             const senderName = currentUser?.name || "Player";
             const senderAvatar =
               currentUser?.avatar ||

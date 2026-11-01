@@ -9,6 +9,7 @@ type Service interface {
 	ListAll() ([]*domain.Applicant, error)
 	AcceptApplicant(applicantID string) (*domain.Applicant, error)
 	DeclineApplicant(applicantID string) (*domain.Applicant, error)
+	RemoveApplicant(applicantID string) (*domain.Applicant, error)
 }
 
 type ApplicantRepo interface {

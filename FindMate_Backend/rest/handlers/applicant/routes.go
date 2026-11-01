@@ -22,4 +22,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, manager *middleware.Manager
 		"PUT /api/applicants/{id}/status",
 		manager.With(http.HandlerFunc(h.UpdateStatus), h.middlewares.AuthenticateJwt),
 	)
+	mux.Handle(
+		"DELETE /api/applicants/{id}",
+		manager.With(http.HandlerFunc(h.DeleteApplicant), h.middlewares.AuthenticateJwt),
+	)
 }

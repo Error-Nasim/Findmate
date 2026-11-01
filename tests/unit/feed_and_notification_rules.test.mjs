@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 // Helper mimicking feed filtering & sorting in DiscoverPage.jsx
 function filterAndSortFeed(lobbies, { activeCategory = 'All', search = '', sortBy = 'match', selectedTags = [] } = {}) {
   let filtered = lobbies.filter(l => {
-    if (l.status === 'Closed') return false;
+    // Both Closed and Completed lobbies are excluded from the public feed
+    if (l.status === 'Closed' || l.status === 'Completed') return false;
 
     const matchCategory = activeCategory === 'All' || l.category === activeCategory;
     const matchSearch =
@@ -18,21 +19,14 @@ function filterAndSortFeed(lobbies, { activeCategory = 'All', search = '', sortB
   });
 
   return [...filtered].sort((a, b) => {
-    // 1. Completed lobbies go to the very last
-    const aCompleted = a.status === 'Completed' ? 1 : 0;
-    const bCompleted = b.status === 'Completed' ? 1 : 0;
-    if (aCompleted !== bCompleted) {
-      return aCompleted - bCompleted;
-    }
-
-    // 2. Admin pinned lobbies float to top among active lobbies
+    // 1. Admin pinned lobbies float to top among active lobbies
     const aPinned = a.isPinned ? 1 : 0;
     const bPinned = b.isPinned ? 1 : 0;
     if (aPinned !== bPinned) {
       return bPinned - aPinned;
     }
 
-    // 3. User sort selection
+    // 2. User sort selection
     if (sortBy === 'match') {
       return (b.matchScore || 0) - (a.matchScore || 0);
     } else if (sortBy === 'newest') {
@@ -44,7 +38,7 @@ function filterAndSortFeed(lobbies, { activeCategory = 'All', search = '', sortB
   });
 }
 
-test('FEED-01: Closed lobbies must NEVER appear on the discover feed', () => {
+test('FEED-01: Closed and Completed lobbies must NEVER appear on the discover feed; only running lobbies are shown', () => {
   const lobbies = [
     { id: '1', title: 'Open Valorant', status: 'Open', category: 'Gaming' },
     { id: '2', title: 'Closed Hackathon', status: 'Closed', category: 'Coding' },
@@ -54,26 +48,25 @@ test('FEED-01: Closed lobbies must NEVER appear on the discover feed', () => {
 
   const feed = filterAndSortFeed(lobbies);
   assert.equal(feed.some(l => l.status === 'Closed'), false, 'Closed lobbies must be excluded from feed');
-  assert.equal(feed.length, 3);
+  assert.equal(feed.some(l => l.status === 'Completed'), false, 'Completed lobbies must be excluded from feed');
+  assert.equal(feed.length, 2, 'Only running lobbies (Open, Full) appear on feed');
+  assert.equal(feed[0].id, '1');
+  assert.equal(feed[1].id, '4');
 });
 
-test('FEED-02: Completed lobbies must ALWAYS be sorted to the very last position in the feed', () => {
+test('FEED-02: Running lobbies are sorted by Admin pin and user preference', () => {
   const lobbies = [
     { id: '1', title: 'Active Lobby A', status: 'Open', category: 'Gaming', matchScore: 80 },
-    { id: '2', title: 'Completed Lobby B', status: 'Completed', category: 'Gaming', matchScore: 99 },
-    { id: '3', title: 'Active Lobby C', status: 'Full', category: 'Gaming', matchScore: 70 },
-    { id: '4', title: 'Completed Lobby D', status: 'Completed', category: 'Gaming', matchScore: 95 },
+    { id: '2', title: 'Pinned Lobby B', status: 'Open', category: 'Gaming', matchScore: 70, isPinned: true },
+    { id: '3', title: 'Active Lobby C', status: 'Full', category: 'Gaming', matchScore: 95 },
   ];
 
   const feed = filterAndSortFeed(lobbies, { sortBy: 'match' });
-  // The first 2 must be the active lobbies (Open or Full)
-  assert.equal(feed[0].id, '1', 'Active lobby with higher match score comes first');
-  assert.equal(feed[1].id, '3', 'Active lobby with lower match score comes second');
-  // Completed lobbies must be pushed to the very bottom regardless of higher matchScore!
-  assert.equal(feed[2].status, 'Completed');
-  assert.equal(feed[3].status, 'Completed');
-  assert.equal(feed[2].id, '2');
-  assert.equal(feed[3].id, '4');
+  // Pinned lobby comes first
+  assert.equal(feed[0].id, '2', 'Pinned lobby floats to the top');
+  // Highest match score among remaining running lobbies
+  assert.equal(feed[1].id, '3');
+  assert.equal(feed[2].id, '1');
 });
 
 test('NOTIF-01: Recipient filtering ensures user only sees their own notifications', () => {
@@ -254,6 +247,91 @@ test('ZINDEX-01: Slide-in chat panels z-index is strictly higher than announceme
   assert.ok(PANEL_BACKDROP_ZINDEX > BANNER_ZINDEX, 'Chat backdrop must dim announcement banner');
   assert.ok(MODAL_ZINDEX > PANEL_CONTAINER_ZINDEX, 'Modals must overlay above chat panel');
 });
+
+test('ADMIN-LOBBY-01: Admin panel filters default to running lobbies and allow viewing completed/closed on the same page', () => {
+  const lobbies = [
+    { id: '1', title: 'Open Valorant', status: 'Open' },
+    { id: '2', title: 'Full LeetCode', status: 'Full' },
+    { id: '3', title: 'Completed Project', status: 'Completed' },
+    { id: '4', title: 'Closed Hackathon', status: 'Closed' },
+  ];
+
+  const filterAdminLobbies = (statusFilter) => {
+    return lobbies.filter((l) => {
+      if (statusFilter === 'all') return true;
+      if (statusFilter === 'running') return l.status === 'Open' || l.status === 'Full' || l.status === 'In Progress';
+      if (statusFilter === 'finalized') return l.status === 'Completed' || l.status === 'Closed';
+      return l.status === statusFilter;
+    });
+  };
+
+  // 1. Default filter is "running" (shows Open & Full only)
+  const defaultLobbies = filterAdminLobbies('running');
+  assert.equal(defaultLobbies.length, 2);
+  assert.ok(defaultLobbies.every((l) => l.status === 'Open' || l.status === 'Full'));
+
+  // 2. Finalized filter (shows Completed & Closed)
+  const finalizedLobbies = filterAdminLobbies('finalized');
+  assert.equal(finalizedLobbies.length, 2);
+  assert.ok(finalizedLobbies.every((l) => l.status === 'Completed' || l.status === 'Closed'));
+
+  // 3. All filter (shows all 4 lobbies on the same page)
+  const allLobbies = filterAdminLobbies('all');
+  assert.equal(allLobbies.length, 4);
+});
+
+test('LOBBY-EDIT-01: Host can update lobby details and capacity dynamically', () => {
+  const initialLobby = {
+    id: 'lob_1',
+    title: 'Old Title',
+    max: 3,
+    joined: 3,
+    status: 'Full',
+    tags: ['#gaming'],
+  };
+
+  const applyUpdates = (lobby, updates) => {
+    const updated = { ...lobby, ...updates };
+    if (updated.max > updated.joined && updated.status === 'Full') {
+      updated.status = 'Open';
+    }
+    return updated;
+  };
+
+  // Host increases max members from 3 to 5
+  const edited = applyUpdates(initialLobby, {
+    title: 'New Title',
+    max: 5,
+    tags: ['#gaming', '#fps'],
+  });
+
+  assert.equal(edited.title, 'New Title');
+  assert.equal(edited.max, 5);
+  assert.equal(edited.status, 'Open', 'Lobby automatically re-opens when capacity increases above joined');
+  assert.deepEqual(edited.tags, ['#gaming', '#fps']);
+});
+
+test('ROSTER-KICK-01: Host can remove member from squad roster, decrementing joined count', () => {
+  const lobby = { id: 'lob_1', joined: 3, max: 3, status: 'Full' };
+  const members = [
+    { handle: 'hostUser', isHost: true },
+    { handle: 'memberA', isHost: false },
+    { handle: 'memberB', isHost: false },
+  ];
+
+  // Host kicks memberB
+  const remainingMembers = members.filter((m) => m.handle !== 'memberB');
+  const updatedLobby = {
+    ...lobby,
+    joined: remainingMembers.length,
+    status: remainingMembers.length < lobby.max && lobby.status === 'Full' ? 'Open' : lobby.status,
+  };
+
+  assert.equal(remainingMembers.length, 2);
+  assert.equal(updatedLobby.joined, 2);
+  assert.equal(updatedLobby.status, 'Open', 'Status reverts from Full to Open when member is kicked');
+});
+
 
 
 

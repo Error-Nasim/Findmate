@@ -75,3 +75,14 @@ func (h *Handler) SendMessage(w http.ResponseWriter, r *http.Request) {
 
 	util.SendData(w, msg, http.StatusCreated)
 }
+
+func (h *Handler) DeleteMessages(w http.ResponseWriter, r *http.Request) {
+	lobbyID := r.PathValue("id")
+	err := h.chatSvc.DeleteMessagesByLobby(lobbyID)
+	if err != nil {
+		util.SendError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	util.SendData(w, map[string]interface{}{"success": true, "lobbyId": lobbyID}, http.StatusOK)
+}

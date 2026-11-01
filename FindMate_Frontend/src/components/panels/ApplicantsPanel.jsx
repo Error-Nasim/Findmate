@@ -4,7 +4,14 @@ import { useNavigate } from "react-router-dom";
 import Avatar from "../ui/Avatar.jsx";
 import Tag from "../ui/Tag.jsx";
 
-export default function ApplicantsPanel({ applicants, lobbyId, lobbyTitle, onClose, onReview }) {
+export default function ApplicantsPanel({
+  applicants,
+  lobbyId,
+  lobbyTitle,
+  onClose,
+  onReview,
+  onRemoveMember,
+}) {
   const navigate = useNavigate();
   const lobbyApplicants = applicants.filter((a) => String(a.lobbyId) === String(lobbyId));
 
@@ -199,6 +206,35 @@ export default function ApplicantsPanel({ applicants, lobbyId, lobbyTitle, onClo
               </div>
 
               {/* Action */}
+              {a.status === "accepted" && onRemoveMember && (
+                <div style={{ marginTop: 12 }}>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to remove ${a.name || a.handle} from this squad?`)) {
+                        onRemoveMember(lobbyId, a);
+                      }
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      background: "rgba(239,68,68,0.08)",
+                      border: "1px solid rgba(239,68,68,0.25)",
+                      borderRadius: 8,
+                      color: "#EF4444",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                    }}
+                  >
+                    🚫 Remove from Squad
+                  </button>
+                </div>
+              )}
+
               {a.status === "pending" && (
                 <button
                   onClick={() => onReview(a)}

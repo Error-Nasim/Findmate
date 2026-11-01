@@ -206,3 +206,56 @@ func (s *service) DeclineApplicant(applicantID string) (*domain.Applicant, error
 
 	return app, nil
 }
+
+func (s *service) RemoveApplicant(applicantID string) (*domain.Applicant, error) {
+	app, err := s.appRepo.GetByID(applicantID)
+	if err != nil || app == nil {
+		return nil, errors.New("applicant not found")
+	}
+
+	wasAccepted := app.Status == "accepted"
+	err = s.appRepo.UpdateStatus(app.ID, "removed")
+	if err != nil {
+		return nil, err
+	}
+	app.Status = "removed"
+
+	if wasAccepted {
+		lobby, err := s.lobbyRepo.GetByID(app.LobbyID)
+		if err == nil && lobby != nil {
+			newJoined := lobby.Joined - 1
+			if newJoined < 1 {
+				newJoined = 1
+			}
+			newStatus := lobby.Status
+			if newStatus == "Full" && newJoined < lobby.Max {
+				newStatus = "Open"
+			}
+			_ = s.lobbyRepo.UpdateCapacity(lobby.ID, newJoined, lobby.Pending, newStatus)
+
+			if s.chatRepo != nil {
+				_, _ = s.chatRepo.AddMessage(domain.ChatMessage{
+					LobbyID: lobby.ID,
+					Sender:  "System",
+					Avatar:  "SYS",
+					Text:    fmt.Sprintf("⚠️ %s was removed from the squad by the host.", app.Name),
+					Type:    "system",
+					SentAt:  time.Now(),
+				})
+			}
+
+			if s.notifRepo != nil {
+				_, _ = s.notifRepo.Create(domain.Notification{
+					RecipientID: app.Handle,
+					Icon:        "🚫",
+					Type:        "removed",
+					Text:        fmt.Sprintf("You were removed from %s by the host.", lobby.Title),
+					Time:        "Just now",
+					Unread:      true,
+				})
+			}
+		}
+	}
+
+	return app, nil
+}
