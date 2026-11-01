@@ -192,20 +192,6 @@ export default function App() {
     });
   }, []);
 
-  useEffect(() => {
-    if (currentUser?.handle) {
-      api.getDeletedGroupChatIds(currentUser.handle).then((ids) => {
-        if (ids) setDeletedGroupChatIds(ids);
-      });
-      api.getDeletedDMThreadIds(currentUser.handle).then((ids) => {
-        if (ids) setDeletedDMThreadIds(ids);
-      });
-    } else {
-      setDeletedGroupChatIds(new Set());
-      setDeletedDMThreadIds(new Set());
-    }
-  }, [currentUser?.handle]);
-
   // Current user info
   const isNasim =
     user?.handle?.toLowerCase() === "error-nasim" ||
@@ -239,6 +225,21 @@ export default function App() {
           bio: user.bio || "",
         }
       : null;
+
+  // Load deleted chats persisted for active user
+  useEffect(() => {
+    if (currentUser?.handle) {
+      api.getDeletedGroupChatIds(currentUser.handle).then((ids) => {
+        if (ids) setDeletedGroupChatIds(ids);
+      });
+      api.getDeletedDMThreadIds(currentUser.handle).then((ids) => {
+        if (ids) setDeletedDMThreadIds(ids);
+      });
+    } else {
+      setDeletedGroupChatIds(new Set());
+      setDeletedDMThreadIds(new Set());
+    }
+  }, [currentUser?.handle]);
 
   // Synchronize notifications strictly for the active user (excluding DM messages)
   useEffect(() => {
