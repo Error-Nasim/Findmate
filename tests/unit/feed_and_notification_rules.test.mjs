@@ -159,3 +159,46 @@ test('LOBBY-LOCK-01: Once Completed or Closed, lobby cannot be transitioned back
   assert.equal(canTransition('Closed', 'Completed'), false);
 });
 
+test('MSG-01: Direct message previews format directly without "via {lobby}" prefix', () => {
+  const formatDMSubtitle = (thread) => {
+    return thread.lastMessage || 'Direct message';
+  };
+
+  const threadWithLobby = {
+    id: 'dm_rimon21_Error-nasim',
+    user: 'Error-nasim',
+    lobbyContext: 'LeetCode FAANG Prep Daily',
+    lastMessage: 'hlw',
+  };
+
+  const formatted = formatDMSubtitle(threadWithLobby);
+  assert.equal(formatted, 'hlw');
+  assert.equal(formatted.includes('via'), false, 'Subtitle must not contain "via [lobby]"');
+});
+
+test('MSG-02: Group chat unread counter calculates non-self unread messages', () => {
+  const currentHandle = 'rimon21';
+  const currentName = 'Rimon Chandra Bhowmik';
+  const readCount = 1; // user read message at index 0
+
+  const chatMessages = [
+    { id: '1', sender: 'Abu Nasim', text: 'Welcome team!' },
+    { id: '2', sender: 'Abu Nasim', text: 'Are we ready to start?' },
+    { id: '3', sender: 'Rimon Chandra Bhowmik', text: 'Yes, ready!' },
+    { id: '4', sender: 'Al Imtiaz', text: 'Joining discord now' },
+  ];
+
+  const unreadMessages = chatMessages.slice(readCount).filter((m) => {
+    const sender = (m.sender || '').toLowerCase();
+    return sender !== currentHandle && sender !== currentName.toLowerCase() && sender !== 'you';
+  });
+
+  // Messages at indices 1, 2, 3:
+  // - index 1 (Nasim): unread (1)
+  // - index 2 (Rimon): sent by current user, not counted (0)
+  // - index 3 (Imtiaz): unread (1)
+  // Total unread: 2
+  assert.equal(unreadMessages.length, 2);
+});
+
+

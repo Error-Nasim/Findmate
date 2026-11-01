@@ -116,7 +116,7 @@ export default function DMPanel({ thread, onClose, onSend, onBack }) {
                 )}
               </div>
               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                {thread.handle ? `@${thread.handle} · ` : ""}via {thread.lobbyContext}
+                {thread.handle ? `@${thread.handle} · ` : ""}Direct Message
               </div>
             </div>
           </div>

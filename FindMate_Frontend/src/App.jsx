@@ -298,6 +298,29 @@ export default function App() {
   const unreadNotifCount = notifsList.filter(
     (n) => n.unread && n.type !== "dm" && !n.text?.toLowerCase().includes("new message")
   ).length;
+
+  // Track read counts for group chats per user
+  const [readGroupChatCounts, setReadGroupChatCounts] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`findmate_read_group_chats_${currentUser?.handle || "guest"}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    if (currentUser?.handle) {
+      try {
+        const saved = localStorage.getItem(`findmate_read_group_chats_${currentUser.handle}`);
+        if (saved) setReadGroupChatCounts(JSON.parse(saved));
+        else setReadGroupChatCounts({});
+      } catch {
+        setReadGroupChatCounts({});
+      }
+    }
+  }, [currentUser?.handle]);
+
   const unreadDMCount = useMemo(() => {
     if (!currentUser) return 0;
     const myName = (currentUser.name || "").toLowerCase();
@@ -319,6 +342,31 @@ export default function App() {
       return acc + (thread.unread || 0);
     }, 0);
   }, [dmList, currentUser, activeDMThreadId]);
+
+  const unreadGroupCount = useMemo(() => {
+    if (!currentUser) return 0;
+    const myHandle = (currentUser.handle || "").replace(/^@/, "").toLowerCase();
+    const myName = (currentUser.name || "").toLowerCase();
+
+    const userLobbies = lobbiesList.filter((l) => {
+      const isHost = (myHandle && l.handle?.toLowerCase() === myHandle) || (myName && l.host?.toLowerCase() === myName);
+      const isAccepted = computedAcceptedLobbyIds.has(String(l.id)) || computedAcceptedLobbyIds.has(l.id);
+      return isHost || isAccepted;
+    });
+
+    return userLobbies.reduce((total, lobby) => {
+      if (String(lobby.id) === String(activeChatLobbyId)) return total;
+      const msgs = lobby.chatMessages || [];
+      const readCount = readGroupChatCounts[String(lobby.id)] ?? 0;
+      const unread = msgs.slice(readCount).filter((m) => {
+        const sender = (m.sender || "").replace(/^@/, "").toLowerCase();
+        return sender !== myHandle && sender !== myName && sender !== "you";
+      });
+      return total + unread.length;
+    }, 0);
+  }, [lobbiesList, computedAcceptedLobbyIds, currentUser, activeChatLobbyId, readGroupChatCounts]);
+
+  const totalUnreadMessages = unreadDMCount + unreadGroupCount;
 
   const activeDMThread = dmList.find((t) => t.id === activeDMThreadId);
   const activeChatLobby = lobbiesList.find((l) => String(l.id) === String(activeChatLobbyId));
@@ -712,6 +760,17 @@ export default function App() {
     setActiveApplicantsLobbyId(null);
     setShowNotifsDropdown(false);
 
+    // Mark current group chat as read
+    const targetLobby = lobbiesList.find((l) => String(l.id) === strId);
+    const msgCount = targetLobby?.chatMessages?.length || 0;
+    setReadGroupChatCounts((prev) => {
+      const next = { ...prev, [strId]: msgCount };
+      if (currentUser?.handle) {
+        localStorage.setItem(`findmate_read_group_chats_${currentUser.handle}`, JSON.stringify(next));
+      }
+      return next;
+    });
+
     api.getChatMessages(strId).then((messages) => {
       if (Array.isArray(messages) && messages.length > 0) {
         setLobbiesList((prev) =>
@@ -719,6 +778,13 @@ export default function App() {
             String(l.id) === strId ? { ...l, chatMessages: messages } : l,
           ),
         );
+        setReadGroupChatCounts((prev) => {
+          const next = { ...prev, [strId]: messages.length };
+          if (currentUser?.handle) {
+            localStorage.setItem(`findmate_read_group_chats_${currentUser.handle}`, JSON.stringify(next));
+          }
+          return next;
+        });
       }
     });
   };
@@ -1272,7 +1338,7 @@ export default function App() {
       <Navbar
         isAuthed={isAuthed}
         notifCount={unreadNotifCount}
-        dmUnread={unreadDMCount}
+        dmUnread={totalUnreadMessages}
         onAuth={() => openAuth("signin")}
         onToggleNotifs={() => setShowNotifsDropdown((prev) => !prev)}
         isMobile={isMobile}
@@ -1396,6 +1462,8 @@ export default function App() {
                 threads={dmList}
                 lobbies={lobbiesList}
                 acceptedLobbyIds={computedAcceptedLobbyIds}
+                currentUser={currentUser}
+                readGroupChatCounts={readGroupChatCounts}
                 onOpenDM={openDMThread}
                 onOpenGroupChat={openGroupChat}
               />
@@ -1659,6 +1727,14 @@ export default function App() {
                   : l,
               ),
             );
+            setReadGroupChatCounts((prev) => {
+              const current = prev[String(lobbyId)] || 0;
+              const next = { ...prev, [String(lobbyId)]: current + 1 };
+              if (currentUser?.handle) {
+                localStorage.setItem(`findmate_read_group_chats_${currentUser.handle}`, JSON.stringify(next));
+              }
+              return next;
+            });
             api.sendLobbyMessage(lobbyId, text, senderName, senderAvatar).then((saved) => {
               if (saved && saved.id) {
                 setLobbiesList((prev) =>
