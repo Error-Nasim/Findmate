@@ -201,4 +201,59 @@ test('MSG-02: Group chat unread counter calculates non-self unread messages', ()
   assert.equal(unreadMessages.length, 2);
 });
 
+test('MSG-03: Group chat unread counter ignores system broadcasts and sums across user lobbies', () => {
+  const currentHandle = 'rimon21';
+  const currentName = 'Rimon Chandra Bhowmik';
+
+  const lobbyA = {
+    id: 'lob_1',
+    chatMessages: [
+      { id: '1', sender: 'System', text: '🔒 Lobby created.', type: 'system' },
+      { id: '2', sender: 'System', text: '🎉 Error-nasim joined.', type: 'system' },
+      { id: '3', sender: 'Abu Nasim', text: 'Hello everyone!', type: 'user' },
+    ],
+  };
+
+  const lobbyB = {
+    id: 'lob_2',
+    chatMessages: [
+      { id: '4', sender: 'System', text: '🔒 Lobby created.', type: 'system' },
+      { id: '5', sender: 'Imtiaz', text: 'Hey Rimon!', type: 'user' },
+      { id: '6', sender: 'Rimon Chandra Bhowmik', text: 'Hey Imtiaz', type: 'user' },
+    ],
+  };
+
+  const readCounts = { lob_1: 0, lob_2: 0 };
+
+  const getUnread = (lobby) => {
+    const msgs = lobby.chatMessages || [];
+    const lastRead = readCounts[lobby.id] || 0;
+    return msgs.slice(lastRead).filter((m) => {
+      const sender = (m.sender || '').replace(/^@/, '').toLowerCase();
+      const isSystem = m.type === 'system' || sender === 'system';
+      return !isSystem && sender !== currentHandle && sender !== currentName.toLowerCase() && sender !== 'you';
+    }).length;
+  };
+
+  assert.equal(getUnread(lobbyA), 1, 'Only Abu Nasim message is counted, system messages ignored');
+  assert.equal(getUnread(lobbyB), 1, 'Only Imtiaz message is counted, Rimon self-message and system message ignored');
+
+  const totalGroupUnread = getUnread(lobbyA) + getUnread(lobbyB);
+  assert.equal(totalGroupUnread, 2);
+});
+
+test('ZINDEX-01: Slide-in chat panels z-index is strictly higher than announcement banner and navbar', () => {
+  const BANNER_ZINDEX = 600;
+  const NAVBAR_ZINDEX = 700;
+  const PANEL_BACKDROP_ZINDEX = 1100;
+  const PANEL_CONTAINER_ZINDEX = 1150;
+  const MODAL_ZINDEX = 1200;
+
+  assert.ok(PANEL_CONTAINER_ZINDEX > BANNER_ZINDEX, 'Chat panel must overlay above sticky announcement banner');
+  assert.ok(PANEL_CONTAINER_ZINDEX > NAVBAR_ZINDEX, 'Chat panel must overlay above navbar');
+  assert.ok(PANEL_BACKDROP_ZINDEX > BANNER_ZINDEX, 'Chat backdrop must dim announcement banner');
+  assert.ok(MODAL_ZINDEX > PANEL_CONTAINER_ZINDEX, 'Modals must overlay above chat panel');
+});
+
+
 

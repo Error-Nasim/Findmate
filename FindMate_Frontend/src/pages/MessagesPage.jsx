@@ -108,7 +108,8 @@ export default function MessagesPage({
     const lastRead = readGroupChatCounts[String(lobby.id)] ?? 0
     const unreadMsgs = lobby.chatMessages.slice(lastRead).filter((m) => {
       const sender = (m.sender || '').replace(/^@/, '').toLowerCase()
-      return sender !== myHandle && sender !== myName && sender !== 'you'
+      const isSystem = m.type === 'system' || sender === 'system'
+      return !isSystem && sender !== myHandle && sender !== myName && sender !== 'you'
     })
     return unreadMsgs.length
   }

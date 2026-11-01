@@ -15,6 +15,7 @@ export default function MyLobbiesPage({
   acceptedLobbyIds = new Set(),
   pendingLobbyIds = new Set(),
   currentUser = null,
+  readGroupChatCounts = {},
   onReviewApplicants,
   onOpenChat,
   onStatusChange,
@@ -46,6 +47,18 @@ export default function MyLobbiesPage({
     if (currentUser?.handle) {
       api.saveDismissedActivityIds(currentUser.handle, new Set())
     }
+  }
+
+  const getLobbyUnreadCount = (lobby) => {
+    if (!lobby || !Array.isArray(lobby.chatMessages)) return 0
+    const lastRead = readGroupChatCounts?.[String(lobby.id)] ?? 0
+    const myH = (currentUser?.handle || '').replace(/^@/, '').toLowerCase()
+    const myN = (currentUser?.name || '').toLowerCase()
+    return lobby.chatMessages.slice(lastRead).filter((m) => {
+      const sender = (m.sender || '').replace(/^@/, '').toLowerCase()
+      const isSystem = m.type === 'system' || sender === 'system'
+      return !isSystem && sender !== myH && sender !== myN && sender !== 'you'
+    }).length
   }
 
   const userHandle = currentUser?.handle?.toLowerCase()
@@ -331,7 +344,7 @@ export default function MyLobbiesPage({
                         </div>
                       )}
                       <Button v="line" sm onClick={() => onOpenChat(lobby.id)}>
-                        💬 Group Chat
+                        💬 Group Chat{getLobbyUnreadCount(lobby) > 0 ? ` (${getLobbyUnreadCount(lobby)})` : ''}
                       </Button>
                       {lobby.status === 'Completed' ? (
                         <Button
@@ -443,7 +456,7 @@ export default function MyLobbiesPage({
                 </div>
                 <StatusBadge status={lobby.status} />
                 <Button v="ghost" sm onClick={() => onOpenChat(lobby.id)}>
-                  💬 Open Live Chat
+                  💬 Open Live Chat{getLobbyUnreadCount(lobby) > 0 ? ` (${getLobbyUnreadCount(lobby)})` : ''}
                 </Button>
                 <Button
                   v="line"

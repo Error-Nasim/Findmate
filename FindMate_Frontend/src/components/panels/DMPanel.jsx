@@ -32,7 +32,7 @@ export default function DMPanel({ thread, onClose, onSend, onBack }) {
           inset: 0,
           background: "rgba(0,0,0,0.5)",
           backdropFilter: "blur(4px)",
-          zIndex: 850,
+          zIndex: 1100,
         }}
         onClick={onClose}
       />
@@ -49,7 +49,7 @@ export default function DMPanel({ thread, onClose, onSend, onBack }) {
           maxWidth: 440,
           background: "var(--bg-card)",
           borderLeft: "1px solid var(--border-subtle)",
-          zIndex: 900,
+          zIndex: 1150,
           display: "flex",
           flexDirection: "column",
           boxShadow: "-8px 0 32px rgba(0,0,0,0.15)",

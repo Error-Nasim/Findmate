@@ -1,7 +1,7 @@
 // App.jsx — Master Root Component with Centralized State, API Persistence, and Clean Routes
 // Routes: / (landing/feed), /feed, /activities, /messages, /profile, /admin, /lobby/:id
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   Routes,
   Route,
@@ -360,7 +360,8 @@ export default function App() {
       const readCount = readGroupChatCounts[String(lobby.id)] ?? 0;
       const unread = msgs.slice(readCount).filter((m) => {
         const sender = (m.sender || "").replace(/^@/, "").toLowerCase();
-        return sender !== myHandle && sender !== myName && sender !== "you";
+        const isSystem = m.type === "system" || sender === "system";
+        return !isSystem && sender !== myHandle && sender !== myName && sender !== "you";
       });
       return total + unread.length;
     }, 0);
@@ -371,17 +372,53 @@ export default function App() {
   const activeDMThread = dmList.find((t) => t.id === activeDMThreadId);
   const activeChatLobby = lobbiesList.find((l) => String(l.id) === String(activeChatLobbyId));
 
+  // Refs to allow background polling loops to access fresh state without stale closures
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+  const computedAcceptedLobbyIdsRef = useRef(computedAcceptedLobbyIds);
+  computedAcceptedLobbyIdsRef.current = computedAcceptedLobbyIds;
+  const lobbiesListRef = useRef(lobbiesList);
+  lobbiesListRef.current = lobbiesList;
+  const activeChatLobbyIdRef = useRef(activeChatLobbyId);
+  activeChatLobbyIdRef.current = activeChatLobbyId;
+  const activeDMThreadIdRef = useRef(activeDMThreadId);
+  activeDMThreadIdRef.current = activeDMThreadId;
+
+  // Initial group chat message loader whenever user or lobby list changes
+  useEffect(() => {
+    if (!currentUser) return;
+    const myH = (currentUser.handle || "").replace(/^@/, "").toLowerCase();
+    const myN = (currentUser.name || "").toLowerCase();
+
+    const userLobbies = lobbiesList.filter((l) => {
+      const isHost = (myH && l.handle?.toLowerCase() === myH) || (myN && l.host?.toLowerCase() === myN);
+      const isAccepted = computedAcceptedLobbyIds.has(String(l.id)) || computedAcceptedLobbyIds.has(l.id);
+      return isHost || isAccepted;
+    });
+
+    userLobbies.forEach((lobby) => {
+      api.getChatMessages(lobby.id).then((freshMsgs) => {
+        if (Array.isArray(freshMsgs) && freshMsgs.length > 0) {
+          setLobbiesList((prev) =>
+            prev.map((l) => (String(l.id) === String(lobby.id) ? { ...l, chatMessages: freshMsgs } : l))
+          );
+        }
+      }).catch(() => {});
+    });
+  }, [currentUser?.handle, lobbiesList.length, computedAcceptedLobbyIds.size]);
+
   // ── Real-Time Reactive Polling Engine ──
   // Keeps active DM, active Lobby Group Chat, notifications, unread counters, lobbies & applicants in sync in real-time with zero manual page refreshes
   useEffect(() => {
     // 1. High-frequency sync (every 1.5s) for open active conversations (Chat & DM)
     const fastInterval = setInterval(() => {
-      if (activeChatLobbyId) {
-        api.getChatMessages(activeChatLobbyId).then((newMsgs) => {
+      const curChatId = activeChatLobbyIdRef.current;
+      if (curChatId) {
+        api.getChatMessages(curChatId).then((newMsgs) => {
           if (!Array.isArray(newMsgs)) return;
           setLobbiesList((prev) =>
             prev.map((l) => {
-              if (String(l.id) === String(activeChatLobbyId)) {
+              if (String(l.id) === String(curChatId)) {
                 const currentMsgs = l.chatMessages || [];
                 if (
                   currentMsgs.length !== newMsgs.length ||
@@ -394,15 +431,26 @@ export default function App() {
               return l;
             }),
           );
-        });
+          // Keep read count updated while viewing active chat
+          setReadGroupChatCounts((prev) => {
+            if (prev[String(curChatId)] === newMsgs.length) return prev;
+            const next = { ...prev, [String(curChatId)]: newMsgs.length };
+            const u = currentUserRef.current;
+            if (u?.handle) {
+              localStorage.setItem(`findmate_read_group_chats_${u.handle}`, JSON.stringify(next));
+            }
+            return next;
+          });
+        }).catch(() => {});
       }
 
-      if (activeDMThreadId) {
-        api.getDMMessages(activeDMThreadId).then((newMsgs) => {
+      const curDMId = activeDMThreadIdRef.current;
+      if (curDMId) {
+        api.getDMMessages(curDMId).then((newMsgs) => {
           if (!Array.isArray(newMsgs)) return;
           setDmList((prev) =>
             prev.map((t) => {
-              if (t.id === activeDMThreadId) {
+              if (t.id === curDMId) {
                 const currentMsgs = t.messages || [];
                 if (
                   currentMsgs.length !== newMsgs.length ||
@@ -415,15 +463,17 @@ export default function App() {
               return t;
             }),
           );
-        });
+        }).catch(() => {});
       }
     }, 1500);
 
-    // 2. Medium-frequency sync (every 3s) for global state (Notifications, DM threads, Lobbies, Applicants)
+    // 2. Medium-frequency sync (every 3s) for global state (Notifications, DM threads, Group chats, Lobbies, Applicants)
     const normalInterval = setInterval(() => {
+      const user = currentUserRef.current;
+
       // Real-time notifications strictly targeted for current user
-      if (currentUser?.handle) {
-        api.getNotifications(currentUser.handle).then((freshNotifs) => {
+      if (user?.handle) {
+        api.getNotifications(user.handle).then((freshNotifs) => {
           if (!Array.isArray(freshNotifs)) return;
           const clean = freshNotifs.filter(
             (n) => n.type !== "dm" && !n.text?.toLowerCase().includes("new message")
@@ -437,7 +487,7 @@ export default function App() {
             }
             return prev;
           });
-        });
+        }).catch(() => {});
       } else {
         setNotifsList([]);
       }
@@ -465,26 +515,68 @@ export default function App() {
           });
           return changed || merged.length !== prev.length ? merged : prev;
         });
-      });
+      }).catch(() => {});
 
-      // Real-time lobbies
+      // Real-time Group Chat sync for user's joined and hosted lobbies
+      if (user) {
+        const myH = (user.handle || "").replace(/^@/, "").toLowerCase();
+        const myN = (user.name || "").toLowerCase();
+        const acceptedIds = computedAcceptedLobbyIdsRef.current;
+        const allLobbies = lobbiesListRef.current;
+
+        const myLobbies = allLobbies.filter((l) => {
+          const isHost = (myH && l.handle?.toLowerCase() === myH) || (myN && l.host?.toLowerCase() === myN);
+          const isAccepted = acceptedIds.has(String(l.id)) || acceptedIds.has(l.id);
+          return isHost || isAccepted;
+        });
+
+        myLobbies.forEach((lobby) => {
+          // Skip polling active chat since fastInterval handles it
+          if (String(lobby.id) === String(activeChatLobbyIdRef.current)) return;
+
+          api.getChatMessages(lobby.id).then((freshMsgs) => {
+            if (!Array.isArray(freshMsgs)) return;
+            setLobbiesList((prev) =>
+              prev.map((l) => {
+                if (String(l.id) === String(lobby.id)) {
+                  const curMsgs = l.chatMessages || [];
+                  if (
+                    curMsgs.length !== freshMsgs.length ||
+                    (freshMsgs.length > 0 && freshMsgs[freshMsgs.length - 1].id !== curMsgs[curMsgs.length - 1]?.id)
+                  ) {
+                    return { ...l, chatMessages: freshMsgs };
+                  }
+                }
+                return l;
+              })
+            );
+          }).catch(() => {});
+        });
+      }
+
+      // Real-time lobbies (safely preserving chatMessages)
       api.getLobbies().then((freshLobbies) => {
         if (!Array.isArray(freshLobbies)) return;
         setLobbiesList((prev) => {
-          if (prev.length !== freshLobbies.length) return freshLobbies;
-          const hasDiff = freshLobbies.some((fl) => {
+          const merged = freshLobbies.map((fl) => {
             const cur = prev.find((l) => String(l.id) === String(fl.id));
-            return !cur || cur.joined !== fl.joined || cur.status !== fl.status || cur.pending !== fl.pending;
+            return cur ? { ...fl, chatMessages: cur.chatMessages || [] } : fl;
           });
-          if (hasDiff) {
-            return freshLobbies.map((fl) => {
-              const cur = prev.find((l) => String(l.id) === String(fl.id));
-              return cur ? { ...fl, chatMessages: cur.chatMessages || [] } : fl;
+          const hasDiff =
+            merged.length !== prev.length ||
+            merged.some((m, idx) => {
+              const p = prev[idx];
+              return (
+                !p ||
+                String(p.id) !== String(m.id) ||
+                p.joined !== m.joined ||
+                p.status !== m.status ||
+                p.pending !== m.pending
+              );
             });
-          }
-          return prev;
+          return hasDiff ? merged : prev;
         });
-      });
+      }).catch(() => {});
 
       // Real-time applicants
       api.getApplicants().then((freshApps) => {
@@ -498,14 +590,14 @@ export default function App() {
           }
           return prev;
         });
-      });
+      }).catch(() => {});
     }, 3000);
 
     return () => {
       clearInterval(fastInterval);
       clearInterval(normalInterval);
     };
-  }, [activeChatLobbyId, activeDMThreadId]);
+  }, []);
 
   // Auth triggers
   const openAuth = (view = "signin") => {
@@ -1302,7 +1394,7 @@ export default function App() {
               boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
               position: "sticky",
               top: 0,
-              zIndex: 1000,
+              zIndex: 600,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "0 auto" }}>
@@ -1435,6 +1527,7 @@ export default function App() {
                 acceptedLobbyIds={computedAcceptedLobbyIds}
                 pendingLobbyIds={computedPendingLobbyIds}
                 currentUser={currentUser}
+                readGroupChatCounts={readGroupChatCounts}
                 onCreateLobby={() => setShowCreateLobby(true)}
                 onReviewApplicants={(id, title) => {
                   setActiveApplicantsLobbyId(id);
@@ -1569,7 +1662,7 @@ export default function App() {
       {/* ── Mobile Bottom Navigation Bar (Hidden on Admin screen) ── */}
       {isMobile && !isAdminRoute && (
         <BottomNav
-          dmUnread={unreadDMCount}
+          dmUnread={totalUnreadMessages}
           isAuthed={isAuthed}
           onAuth={() => openAuth("signin")}
         />
@@ -1695,7 +1788,19 @@ export default function App() {
           lobbyId={activeChatLobbyId}
           lobbyTitle={activeChatLobby.title}
           messages={activeChatLobby.chatMessages || []}
-          onClose={() => setActiveChatLobbyId(null)}
+          onClose={() => {
+            if (activeChatLobby) {
+              const totalCount = activeChatLobby.chatMessages?.length || 0;
+              setReadGroupChatCounts((prev) => {
+                const next = { ...prev, [String(activeChatLobbyId)]: totalCount };
+                if (currentUser?.handle) {
+                  localStorage.setItem(`findmate_read_group_chats_${currentUser.handle}`, JSON.stringify(next));
+                }
+                return next;
+              });
+            }
+            setActiveChatLobbyId(null);
+          }}
           onCompleteLobby={handleCompleteLobby}
           onSend={(lobbyId, text) => {
             const senderName = currentUser?.name || "Player";
