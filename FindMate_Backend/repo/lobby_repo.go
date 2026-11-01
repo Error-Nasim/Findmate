@@ -164,8 +164,13 @@ func (r *lobbyRepo) Update(id string, updates map[string]interface{}) (*domain.L
 }
 
 func (r *lobbyRepo) UpdateStatus(id, status string) error {
+	var currentStatus string
+	err := r.db.Get(&currentStatus, `SELECT status FROM lobbies WHERE id = $1`, id)
+	if err == nil && (currentStatus == "Completed" || currentStatus == "Closed") && status != currentStatus {
+		return fmt.Errorf("lobby %s is finalized (%s) and cannot be reopened or modified", id, currentStatus)
+	}
 	query := `UPDATE lobbies SET status = $1, updated_at = $2 WHERE id = $3`
-	_, err := r.db.Exec(query, status, time.Now(), id)
+	_, err = r.db.Exec(query, status, time.Now(), id)
 	return err
 }
 

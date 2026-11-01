@@ -132,28 +132,6 @@ func (h *Handler) SendMessage(w http.ResponseWriter, r *http.Request) {
 		msg.Time = msg.SentAt.Format("3:04 PM")
 	}
 
-	// Trigger real-time notification for recipient
-	if h.notifSvc != nil {
-		var recipient string
-		parts := strings.Split(strings.TrimPrefix(threadID, "dm_"), "_")
-		if len(parts) >= 2 {
-			cleanSender := strings.ToLower(strings.ReplaceAll(req.Sender, " ", ""))
-			p0 := strings.ToLower(parts[0])
-			p1 := strings.ToLower(parts[1])
-			if strings.Contains(cleanSender, p0) || p0 == cleanSender {
-				recipient = parts[1]
-			} else {
-				recipient = parts[0]
-			}
-			_ = p1
-		}
-		preview := req.Text
-		if len(preview) > 50 {
-			preview = preview[:47] + "..."
-		}
-		_, _ = h.notifSvc.Create(recipient, "💬", "💬 New message from "+req.Sender+": \""+preview+"\"", "dm", "", threadID)
-	}
-
 	util.SendData(w, msg, http.StatusCreated)
 }
 

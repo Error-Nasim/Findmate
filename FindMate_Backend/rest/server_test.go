@@ -141,7 +141,7 @@ func (m *mockNotificationRepo) ListByUser(recipientID string) ([]*domain.Notific
 	return []*domain.Notification{}, nil
 }
 func (m *mockNotificationRepo) MarkRead(id string) error              { return nil }
-func (m *mockNotificationRepo) MarkAllRead() error                  { return nil }
+func (m *mockNotificationRepo) MarkAllRead(recipientID ...string) error { return nil }
 func (m *mockNotificationRepo) Delete(id string) error                { return nil }
 func (m *mockNotificationRepo) ClearAll(recipientID string) error    { return nil }
 

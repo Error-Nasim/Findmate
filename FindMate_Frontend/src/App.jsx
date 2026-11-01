@@ -175,7 +175,6 @@ export default function App() {
     api.getLobbies().then((data) => setLobbiesList(Array.isArray(data) ? data : []));
     api.getApplicants().then((data) => setApplicantsList(Array.isArray(data) ? data : []));
     api.getDMThreads().then((data) => setDmList(Array.isArray(data) ? data : []));
-    api.getNotifications().then((data) => setNotifsList(Array.isArray(data) ? data : []));
     api.getReports().then((data) => setReportsList(Array.isArray(data) ? data : []));
     api.getTags().then((data) => setPlatformTags(Array.isArray(data) ? data : []));
     api.getUsers().then((data) => setUsersList(Array.isArray(data) ? data : []));
@@ -220,6 +219,20 @@ export default function App() {
           bio: user.bio || "",
         }
       : null;
+
+  // Synchronize notifications strictly for the active user (excluding DM messages)
+  useEffect(() => {
+    if (currentUser?.handle) {
+      api.getNotifications(currentUser.handle).then((data) => {
+        const clean = (Array.isArray(data) ? data : []).filter(
+          (n) => n.type !== "dm" && !n.text?.toLowerCase().includes("new message")
+        );
+        setNotifsList(clean);
+      });
+    } else {
+      setNotifsList([]);
+    }
+  }, [currentUser?.handle]);
 
   // Dynamically compute accepted and pending lobby IDs from applicantsList and currentUser
   const currentUserHandle = currentUser?.handle?.toLowerCase();
@@ -282,7 +295,9 @@ export default function App() {
   const [activeDMThreadId, setActiveDMThreadId] = useState("");
 
   // Derived counts
-  const unreadNotifCount = notifsList.filter((n) => n.unread).length;
+  const unreadNotifCount = notifsList.filter(
+    (n) => n.unread && n.type !== "dm" && !n.text?.toLowerCase().includes("new message")
+  ).length;
   const unreadDMCount = useMemo(() => {
     if (!currentUser) return 0;
     const myName = (currentUser.name || "").toLowerCase();
@@ -358,19 +373,26 @@ export default function App() {
 
     // 2. Medium-frequency sync (every 3s) for global state (Notifications, DM threads, Lobbies, Applicants)
     const normalInterval = setInterval(() => {
-      // Real-time notifications
-      api.getNotifications().then((freshNotifs) => {
-        if (!Array.isArray(freshNotifs)) return;
-        setNotifsList((prev) => {
-          if (
-            prev.length !== freshNotifs.length ||
-            (freshNotifs.length > 0 && freshNotifs[0].id !== prev[0]?.id)
-          ) {
-            return freshNotifs;
-          }
-          return prev;
+      // Real-time notifications strictly targeted for current user
+      if (currentUser?.handle) {
+        api.getNotifications(currentUser.handle).then((freshNotifs) => {
+          if (!Array.isArray(freshNotifs)) return;
+          const clean = freshNotifs.filter(
+            (n) => n.type !== "dm" && !n.text?.toLowerCase().includes("new message")
+          );
+          setNotifsList((prev) => {
+            if (
+              prev.length !== clean.length ||
+              (clean.length > 0 && clean[0].id !== prev[0]?.id)
+            ) {
+              return clean;
+            }
+            return prev;
+          });
         });
-      });
+      } else {
+        setNotifsList([]);
+      }
 
       // Real-time DM threads & unread status
       api.getDMThreads().then((freshThreads) => {
@@ -451,12 +473,20 @@ export default function App() {
     // Refresh entities from backend
     api.getLobbies().then((data) => setLobbiesList(Array.isArray(data) ? data : []));
     api.getApplicants().then((data) => setApplicantsList(Array.isArray(data) ? data : []));
-    api.getNotifications().then((data) => setNotifsList(Array.isArray(data) ? data : []));
+    if (userData?.handle) {
+      api.getNotifications(userData.handle).then((data) => {
+        const clean = (Array.isArray(data) ? data : []).filter(
+          (n) => n.type !== "dm" && !n.text?.toLowerCase().includes("new message")
+        );
+        setNotifsList(clean);
+      });
+    }
     api.getDMThreads().then((data) => setDmList(Array.isArray(data) ? data : []));
   };
 
   const handleLogout = () => {
     logout();
+    setNotifsList([]);
     navigate("/");
     showToast("You've been signed out.");
   };
@@ -552,17 +582,6 @@ export default function App() {
       ),
     );
 
-    const newNotif = {
-      id: String(Date.now()),
-      icon: "✋",
-      text: `Your pitch note for "${lobby.title}" was submitted to host @${lobby.handle}`,
-      time: "Just now",
-      unread: true,
-      type: "reminder",
-    };
-    setNotifsList((prev) => [newNotif, ...prev]);
-    api.addNotification(newNotif);
-
     setApplyingLobby(null);
     showToast("Application submitted with your pitch note!");
   };
@@ -646,17 +665,6 @@ export default function App() {
           : n,
       ),
     );
-
-    const acceptNotif = {
-      id: String(Date.now()),
-      icon: "🎉",
-      unread: true,
-      type: "accepted",
-      text: `🎉 ${applicant.name} was accepted into your "${lobby?.title || "lobby"}" lobby!`,
-      time: "Just now",
-    };
-    setNotifsList((prev) => [acceptNotif, ...prev]);
-    api.addNotification(acceptNotif);
 
     setReviewingApplicant(null);
     setActiveApplicantsLobbyId(null);
@@ -1519,7 +1527,7 @@ export default function App() {
             }}
             onMarkRead={markNotifRead}
             onMarkAll={() => {
-              api.markAllNotificationsRead();
+              api.markAllNotificationsRead(currentUser?.handle);
               setNotifsList((prev) =>
                 prev.map((n) => ({ ...n, unread: false })),
               );
@@ -1532,7 +1540,7 @@ export default function App() {
             }}
             onClearAll={() => {
               setNotifsList([]);
-              api.clearAllNotifications();
+              api.clearAllNotifications(currentUser?.handle);
               showToast("All notifications cleared.");
             }}
           />

@@ -283,14 +283,14 @@ All API endpoints are prefixed with `/api`. Responses adhere to a consistent JSO
 
 ### 7. Interactive Notifications (`/api/notifications`)
 
-| Method   | Endpoint                       | Auth | Description                                                 |
-| :------- | :----------------------------- | :--: | :---------------------------------------------------------- |
-| `GET`    | `/api/notifications`           | None | Query notifications list with unread flags and timestamps.  |
-| `POST`   | `/api/notifications`           | None | Publish notification alert for a specific recipient.        |
-| `PATCH`  | `/api/notifications/{id}/read` | None | Mark specific notification as read.                         |
-| `PATCH`  | `/api/notifications/read-all`  | None | Mark all notifications as read.                             |
-| `DELETE` | `/api/notifications/{id}`      | None | Delete individual notification permanently from PostgreSQL. |
-| `DELETE` | `/api/notifications`           | None | Clear all notifications from PostgreSQL.                    |
+| Method   | Endpoint                                  | Auth | Description                                                                      |
+| :------- | :---------------------------------------- | :--: | :------------------------------------------------------------------------------- |
+| `GET`    | `/api/notifications?recipientId={handle}` | None | Query notifications list strictly isolated by recipient handle.                  |
+| `POST`   | `/api/notifications`                      | None | Publish targeted notification alert for a specific recipient.                   |
+| `PATCH`  | `/api/notifications/{id}/read`            | None | Mark specific notification as read.                                              |
+| `PATCH`  | `/api/notifications/read-all?recipientId=`| None | Mark all notifications as read for a recipient.                                 |
+| `DELETE` | `/api/notifications/{id}`                 | None | Delete individual notification permanently from PostgreSQL.                      |
+| `DELETE` | `/api/notifications?recipientId={handle}` | None | Clear all notifications for a recipient from PostgreSQL.                         |
 
 ### 8. Incident Reporting & Moderation (`/api/reports`)
 

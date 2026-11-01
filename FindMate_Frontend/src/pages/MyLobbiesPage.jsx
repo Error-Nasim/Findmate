@@ -1,12 +1,13 @@
 // MyLobbiesPage — Activities management matching Figma design exactly
 // 3 Dynamic Tabs: Created Lobbies (with status switcher & pending review), Joined Teams, Pending Requests
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Avatar from '../components/ui/Avatar.jsx'
 import Button from '../components/ui/Button.jsx'
 import Tag from '../components/ui/Tag.jsx'
 import StatusBadge from '../components/ui/StatusBadge.jsx'
+import api from '../api/index.js'
 
 export default function MyLobbiesPage({
   lobbies = [],
@@ -22,6 +23,30 @@ export default function MyLobbiesPage({
 }) {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('created') // 'created' | 'joined' | 'pending'
+  const [dismissedIds, setDismissedIds] = useState(new Set())
+
+  useEffect(() => {
+    if (currentUser?.handle) {
+      api.getDismissedActivityIds(currentUser.handle).then(setDismissedIds)
+    }
+  }, [currentUser?.handle])
+
+  const handleDismissActivity = (lobbyId) => {
+    setDismissedIds((prev) => {
+      const next = new Set([...prev, String(lobbyId)])
+      if (currentUser?.handle) {
+        api.saveDismissedActivityIds(currentUser.handle, next)
+      }
+      return next
+    })
+  }
+
+  const handleRestoreActivities = () => {
+    setDismissedIds(new Set())
+    if (currentUser?.handle) {
+      api.saveDismissedActivityIds(currentUser.handle, new Set())
+    }
+  }
 
   const userHandle = currentUser?.handle?.toLowerCase()
   const userName = currentUser?.name?.toLowerCase()
@@ -30,8 +55,9 @@ export default function MyLobbiesPage({
     (userHandle && l.handle?.toLowerCase() === userHandle) ||
     (userName && l.host?.toLowerCase() === userName)
 
-  // 1. Created Lobbies: Hosted by current user
-  const createdLobbies = lobbies.filter(isHost)
+  // 1. Created Lobbies: Hosted by current user (including closed lobbies, excluding dismissed)
+  const allCreatedLobbies = lobbies.filter(isHost)
+  const createdLobbies = allCreatedLobbies.filter((l) => !dismissedIds.has(String(l.id)))
 
   const hasAccepted = (id) =>
     acceptedLobbyIds instanceof Set
@@ -44,13 +70,17 @@ export default function MyLobbiesPage({
       : (pendingLobbyIds || []).includes(String(id)) || (pendingLobbyIds || []).includes(id)
 
   // 2. Joined Teams: Accepted lobbies excluding user's own hosted lobbies
-  const joinedLobbies = lobbies.filter((l) => hasAccepted(l.id) && !isHost(l))
+  const joinedLobbies = lobbies
+    .filter((l) => hasAccepted(l.id) && !isHost(l))
+    .filter((l) => !dismissedIds.has(String(l.id)))
 
   // 3. Pending Requests: Lobbies the user applied to and awaiting host response
-  const pendingLobbies = lobbies.filter((l) => hasPending(l.id) && !isHost(l))
+  const pendingLobbies = lobbies
+    .filter((l) => hasPending(l.id) && !isHost(l))
+    .filter((l) => !dismissedIds.has(String(l.id)))
 
   // Badge metrics
-  const createdLobbyIds = new Set(createdLobbies.map((l) => String(l.id)))
+  const createdLobbyIds = new Set(allCreatedLobbies.map((l) => String(l.id)))
   const incomingReviewCount = applicants.filter(
     (a) => createdLobbyIds.has(String(a.lobbyId)) && a.status === 'pending'
   ).length
@@ -158,6 +188,8 @@ export default function MyLobbiesPage({
                 (a) => String(a.lobbyId) === String(lobby.id) && a.status === 'accepted'
               )
 
+              const isFinalized = lobby.status === 'Completed' || lobby.status === 'Closed'
+
               return (
                 <div
                   key={lobby.id}
@@ -192,42 +224,86 @@ export default function MyLobbiesPage({
                         </div>
                       </div>
 
-                      {/* Status switcher */}
+                      {/* Status switcher: Once Completed or Closed, status is permanently locked */}
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                        <StatusBadge status={lobby.status} />
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                          {['Open', 'Full', 'Completed', 'Closed'].map((st) => (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <StatusBadge status={lobby.status} />
+                          {isFinalized && (
+                            <span style={{ fontSize: 11, color: 'var(--text-faint)', fontWeight: 600 }}>
+                              🔒 Finalized
+                            </span>
+                          )}
+                        </div>
+                        {!isFinalized ? (
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            {['Open', 'Full'].map((st) => (
+                              <button
+                                key={st}
+                                onClick={() => onStatusChange(lobby.id, st)}
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: 6,
+                                  background: lobby.status === st ? 'var(--primary-light)' : 'var(--bg-surface)',
+                                  border: `1px solid ${lobby.status === st ? 'var(--primary-border)' : 'var(--border-subtle)'}`,
+                                  color: lobby.status === st ? 'var(--primary-text)' : 'var(--text-muted)',
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  fontFamily: 'var(--font-inter)',
+                                }}
+                              >
+                                {st}
+                              </button>
+                            ))}
                             <button
-                              key={st}
                               onClick={() => {
-                                if (st === 'Completed' && onCompleteLobby) {
-                                  onCompleteLobby(lobby.id)
-                                } else {
-                                  onStatusChange(lobby.id, st)
-                                }
+                                if (onCompleteLobby) onCompleteLobby(lobby.id)
+                                else onStatusChange(lobby.id, 'Completed')
                               }}
                               style={{
                                 padding: '4px 10px',
                                 borderRadius: 6,
-                                background: lobby.status === st ? 'var(--primary-light)' : 'var(--bg-surface)',
-                                border: `1px solid ${lobby.status === st ? 'var(--primary-border)' : 'var(--border-subtle)'}`,
-                                color: lobby.status === st ? 'var(--primary-text)' : 'var(--text-muted)',
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                border: '1px solid rgba(16, 185, 129, 0.25)',
+                                color: '#10B981',
                                 fontSize: 11,
                                 fontWeight: 700,
                                 cursor: 'pointer',
                                 fontFamily: 'var(--font-inter)',
                               }}
+                              title="Mark session as Completed permanently (cannot be undone)"
                             >
-                              {st}
+                              🏆 Complete
                             </button>
-                          ))}
-                        </div>
+                            <button
+                              onClick={() => onStatusChange(lobby.id, 'Closed')}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                background: 'rgba(239, 68, 68, 0.08)',
+                                border: '1px solid rgba(239, 68, 68, 0.25)',
+                                color: '#EF4444',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontFamily: 'var(--font-inter)',
+                              }}
+                              title="Close lobby permanently (cannot be undone)"
+                            >
+                              🚫 Close Lobby
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 
                     {/* Pending / Review row */}
                     <div style={{ marginTop: 18, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                      {pendingApplicants.length > 0 ? (
+                      {isFinalized ? (
+                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                          {lobby.status === 'Completed' ? '🏆 Session completed' : '🔒 Lobby shut down'} · {acceptedApplicants.length} accepted
+                        </div>
+                      ) : pendingApplicants.length > 0 ? (
                         <>
                           <div
                             style={{
@@ -257,14 +333,35 @@ export default function MyLobbiesPage({
                       <Button v="line" sm onClick={() => onOpenChat(lobby.id)}>
                         💬 Group Chat
                       </Button>
+                      {lobby.status === 'Completed' ? (
+                        <Button
+                          v="ghost"
+                          sm
+                          onClick={() => {
+                            if (onCompleteLobby) onCompleteLobby(lobby.id)
+                          }}
+                        >
+                          ⭐ Rate Teammates
+                        </Button>
+                      ) : !isFinalized ? (
+                        <Button
+                          v="line"
+                          sm
+                          onClick={() => {
+                            if (onCompleteLobby) onCompleteLobby(lobby.id)
+                          }}
+                        >
+                          🏆 Complete Session
+                        </Button>
+                      ) : null}
                       <Button
-                        v={lobby.status === 'Completed' ? 'ghost' : 'line'}
+                        v="ghost"
                         sm
-                        onClick={() => {
-                          if (onCompleteLobby) onCompleteLobby(lobby.id)
-                        }}
+                        onClick={() => handleDismissActivity(lobby.id)}
+                        style={{ color: 'var(--text-muted)' }}
+                        title="Remove from your personal activities list"
                       >
-                        {lobby.status === 'Completed' ? '⭐ Rate Teammates' : '🏆 Complete Session'}
+                        ✕ Remove from Activities
                       </Button>
                     </div>
                   </div>
@@ -357,6 +454,15 @@ export default function MyLobbiesPage({
                 >
                   ⭐ Rate Teammates
                 </Button>
+                <Button
+                  v="ghost"
+                  sm
+                  onClick={() => handleDismissActivity(lobby.id)}
+                  style={{ color: 'var(--text-muted)' }}
+                  title="Remove from your personal activities list"
+                >
+                  ✕ Remove
+                </Button>
               </div>
             ))
           )}
@@ -432,9 +538,38 @@ export default function MyLobbiesPage({
                 <Button v="line" sm onClick={() => navigate(`/lobby/${lobby.id}`)}>
                   View Lobby →
                 </Button>
+                <Button
+                  v="ghost"
+                  sm
+                  onClick={() => handleDismissActivity(lobby.id)}
+                  style={{ color: 'var(--text-muted)' }}
+                  title="Remove from your personal activities list"
+                >
+                  ✕
+                </Button>
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {dismissedIds.size > 0 && (
+        <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
+          <span>{dismissedIds.size} lobby activity item{dismissedIds.size > 1 ? 's' : ''} hidden from this view. </span>
+          <button
+            onClick={handleRestoreActivities}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#6366F1',
+              fontWeight: 700,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              padding: 0,
+            }}
+          >
+            ↺ Restore All Hidden Activities
+          </button>
         </div>
       )}
     </div>

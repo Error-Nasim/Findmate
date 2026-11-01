@@ -91,13 +91,24 @@ export default function ProfilePage({
     return calculateUserRating(displayedUser.ratings || [])
   }, [displayedUser.ratings])
 
-  // Lobbies currently running by this user
+  // Lobbies currently running by this user (Active LFGs)
   const runningLobbies = useMemo(() => {
     return (lobbies || []).filter(
       (l) =>
         (l.handle?.toLowerCase() === displayedUser.handle?.toLowerCase() ||
           l.host?.toLowerCase() === displayedUser.name?.toLowerCase()) &&
-        l.status !== 'Closed'
+        l.status !== 'Closed' &&
+        l.status !== 'Completed'
+    )
+  }, [lobbies, displayedUser])
+
+  // Past / Closed / Completed lobbies for this user's profile activity history
+  const pastLobbies = useMemo(() => {
+    return (lobbies || []).filter(
+      (l) =>
+        (l.handle?.toLowerCase() === displayedUser.handle?.toLowerCase() ||
+          l.host?.toLowerCase() === displayedUser.name?.toLowerCase()) &&
+        (l.status === 'Closed' || l.status === 'Completed')
     )
   }, [lobbies, displayedUser])
 
@@ -817,6 +828,114 @@ export default function ProfilePage({
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                       <Button
                         v="primary"
+                        sm
+                        onClick={() => {
+                          if (onSelectLobby) onSelectLobby(lobby)
+                          else navigate(`/lobby/${lobby.id}`)
+                        }}
+                      >
+                        View Lobby →
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── ACTIVITY HISTORY & CLOSED SESSIONS ── */}
+          <div style={{ marginBottom: 28 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 12,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: 'var(--text-faint)',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                ACTIVITY & PAST SESSIONS ({pastLobbies.length})
+              </div>
+            </div>
+
+            {pastLobbies.length === 0 ? (
+              <div
+                style={{
+                  padding: '20px',
+                  background: 'var(--bg-surface-alt)',
+                  border: '1px dashed var(--border-subtle)',
+                  borderRadius: 14,
+                  textAlign: 'center',
+                  color: 'var(--text-muted)',
+                  fontSize: 13,
+                }}
+              >
+                {isSelf
+                  ? "You have no closed or archived sessions yet."
+                  : `@${displayedUser.handle} has no closed activity history yet.`}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {pastLobbies.map((lobby) => (
+                  <div
+                    key={lobby.id}
+                    style={{
+                      background: 'var(--bg-surface-alt)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 14,
+                      padding: '16px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 14,
+                      opacity: 0.88,
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 240 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            background: 'var(--primary-light)',
+                            color: 'var(--primary-text)',
+                          }}
+                        >
+                          {lobby.category}
+                        </span>
+                        <StatusBadge status={lobby.status} />
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                          📍 {lobby.location}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 800,
+                          color: 'var(--text-primary)',
+                          marginBottom: 4,
+                        }}
+                      >
+                        {lobby.title}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+                        {lobby.joined}/{lobby.max} members · {lobby.time}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <Button
+                        v="line"
                         sm
                         onClick={() => {
                           if (onSelectLobby) onSelectLobby(lobby)

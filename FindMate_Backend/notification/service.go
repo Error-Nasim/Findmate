@@ -45,8 +45,8 @@ func (s *service) MarkRead(id string) error {
 	return s.notifRepo.MarkRead(id)
 }
 
-func (s *service) MarkAllRead() error {
-	return s.notifRepo.MarkAllRead()
+func (s *service) MarkAllRead(recipientID ...string) error {
+	return s.notifRepo.MarkAllRead(recipientID...)
 }
 
 func (s *service) Delete(id string) error {

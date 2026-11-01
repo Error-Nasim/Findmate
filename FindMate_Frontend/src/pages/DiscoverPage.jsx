@@ -32,30 +32,47 @@ export default function DiscoverPage({
     )
   }
 
-  // Filter
+  // Filter: Closed lobbies are NEVER shown in the public feed
   let filtered = lobbies.filter(l => {
+    if (l.status === 'Closed') return false
+
     const matchCategory = activeCategory === 'All' || l.category === activeCategory
     const matchSearch =
       !search ||
-      l.title.toLowerCase().includes(search.toLowerCase()) ||
-      l.host.toLowerCase().includes(search.toLowerCase()) ||
-      l.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
+      l.title?.toLowerCase().includes(search.toLowerCase()) ||
+      l.host?.toLowerCase().includes(search.toLowerCase()) ||
+      (Array.isArray(l.tags) && l.tags.some(t => t.toLowerCase().includes(search.toLowerCase())))
     const matchTags =
-      selectedTags.length === 0 || selectedTags.some(t => l.tags.includes(t))
+      selectedTags.length === 0 || (Array.isArray(l.tags) && selectedTags.some(t => l.tags.includes(t)))
     return matchCategory && matchSearch && matchTags
   })
 
-  // Sort
-  if (sortBy === 'match') {
-    filtered = [...filtered].sort((a, b) => b.matchScore - a.matchScore)
-  } else if (sortBy === 'newest') {
-    filtered = [...filtered].sort((a, b) => Number(b.id) - Number(a.id))
-  } else if (sortBy === 'slots') {
-    filtered = [...filtered].sort((a, b) => (b.max - b.joined) - (a.max - a.joined))
-  }
+  // Sort: Active (non-completed) lobbies first; Completed lobbies go to the very bottom
+  filtered = [...filtered].sort((a, b) => {
+    // 1. Completed lobbies go to the very last
+    const aCompleted = a.status === 'Completed' ? 1 : 0
+    const bCompleted = b.status === 'Completed' ? 1 : 0
+    if (aCompleted !== bCompleted) {
+      return aCompleted - bCompleted
+    }
 
-  // Admin pinned lobbies float to top
-  filtered = [...filtered].sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))
+    // 2. Admin pinned lobbies float to top among active lobbies
+    const aPinned = a.isPinned ? 1 : 0
+    const bPinned = b.isPinned ? 1 : 0
+    if (aPinned !== bPinned) {
+      return bPinned - aPinned
+    }
+
+    // 3. User sort selection
+    if (sortBy === 'match') {
+      return (b.matchScore || 0) - (a.matchScore || 0)
+    } else if (sortBy === 'newest') {
+      return String(b.id).localeCompare(String(a.id), undefined, { numeric: true })
+    } else if (sortBy === 'slots') {
+      return (b.max - b.joined) - (a.max - a.joined)
+    }
+    return 0
+  })
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 20px 80px' }}>

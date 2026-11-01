@@ -393,14 +393,25 @@ export const api = {
   },
 
   // ── Notifications ──
-  getNotifications: async () => {
+  getNotifications: async (recipientId = "") => {
     try {
-      const res = await apiClient.get("/notifications");
+      const url = recipientId ? `/notifications?recipientId=${encodeURIComponent(recipientId)}` : "/notifications";
+      const res = await apiClient.get(url);
       if (Array.isArray(res.data)) return res.data;
     } catch (err) {
       console.warn("[API] getNotifications fallback:", err.message);
     }
     const data = readStorage(STORAGE_KEYS.NOTIFS, initialNotifications);
+    if (recipientId) {
+      const clean = String(recipientId).replace(/^@/, "").toLowerCase();
+      return Promise.resolve(
+        data.filter(
+          (n) =>
+            !n.recipientId ||
+            String(n.recipientId).replace(/^@/, "").toLowerCase() === clean
+        )
+      );
+    }
     return Promise.resolve([...data]);
   },
 
@@ -438,9 +449,10 @@ export const api = {
     return Promise.resolve({ success: true });
   },
 
-  markAllNotificationsRead: async () => {
+  markAllNotificationsRead: async (recipientId = "") => {
     try {
-      await apiClient.patch("/notifications/read-all");
+      const url = recipientId ? `/notifications/read-all?recipientId=${encodeURIComponent(recipientId)}` : "/notifications/read-all";
+      await apiClient.patch(url);
       return { success: true };
     } catch (err) {
       console.warn("[API] markAllNotificationsRead fallback:", err.message);
@@ -466,7 +478,7 @@ export const api = {
 
   clearAllNotifications: async (recipientId = "") => {
     try {
-      const res = await apiClient.delete(`/notifications${recipientId ? `?recipientId=${recipientId}` : ""}`);
+      const res = await apiClient.delete(`/notifications${recipientId ? `?recipientId=${encodeURIComponent(recipientId)}` : ""}`);
       if (res.data) return res.data;
     } catch (err) {
       console.warn("[API] clearAllNotifications fallback:", err.message);
@@ -746,4 +758,18 @@ export const api = {
     writeStorage(STORAGE_KEYS.ACCEPTED_IDS, Array.from(set));
     return Promise.resolve(true);
   },
+
+  getDismissedActivityIds: async (handle = "default") => {
+    const key = `findmate_dismissed_activities_${String(handle).replace(/^@/, "").toLowerCase()}`;
+    const data = readStorage(key, []);
+    return Promise.resolve(new Set(data));
+  },
+
+  saveDismissedActivityIds: async (handle = "default", set) => {
+    const key = `findmate_dismissed_activities_${String(handle).replace(/^@/, "").toLowerCase()}`;
+    writeStorage(key, Array.from(set));
+    return Promise.resolve(true);
+  },
 };
+
+export default api;

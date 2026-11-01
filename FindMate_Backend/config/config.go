@@ -11,6 +11,7 @@ import (
 var configurations *Config
 
 type DBConfig struct {
+	DatabaseURL   string
 	Host          string
 	Port          int
 	Name          string
@@ -45,6 +46,9 @@ func LoadConfig() {
 
 	httpPortStr := os.Getenv("HTTP_PORT")
 	if httpPortStr == "" {
+		httpPortStr = os.Getenv("PORT")
+	}
+	if httpPortStr == "" {
 		httpPortStr = "8080"
 	}
 	port, err := strconv.Atoi(httpPortStr)
@@ -57,6 +61,8 @@ func LoadConfig() {
 	if jwtSecretKey == "" {
 		jwtSecretKey = "findmate_secure_jwt_secret_key_2026"
 	}
+
+	databaseURL := os.Getenv("DATABASE_URL")
 
 	dbHost := os.Getenv("DB_HOST")
 	if dbHost == "" {
@@ -88,7 +94,7 @@ func LoadConfig() {
 	}
 
 	sslModeStr := os.Getenv("DB_SSL_MODE")
-	enableSSL := sslModeStr == "true" || sslModeStr == "enable"
+	enableSSL := sslModeStr == "true" || sslModeStr == "enable" || sslModeStr == "require"
 
 	configurations = &Config{
 		Version:      version,
@@ -96,6 +102,7 @@ func LoadConfig() {
 		HttpPort:     port,
 		JwtSecretKey: jwtSecretKey,
 		DB: &DBConfig{
+			DatabaseURL:   databaseURL,
 			Host:          dbHost,
 			Port:          dbPort,
 			Name:          dbName,

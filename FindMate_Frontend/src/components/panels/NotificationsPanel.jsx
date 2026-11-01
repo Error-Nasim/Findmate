@@ -10,7 +10,10 @@ export default function NotificationsPanel({
   onDelete,
   onClearAll,
 }) {
-  const unreadCount = notifs.filter((n) => n.unread).length;
+  const displayNotifs = notifs.filter(
+    (n) => n.type !== "dm" && !n.text?.toLowerCase().includes("new message")
+  );
+  const unreadCount = displayNotifs.filter((n) => n.unread).length;
   const isMobile = window.innerWidth < 768;
 
   return (
@@ -75,7 +78,7 @@ export default function NotificationsPanel({
 
       {/* List */}
       <div style={{ maxHeight: 420, overflowY: "auto" }}>
-        {notifs.length === 0 && (
+        {displayNotifs.length === 0 && (
           <div
             style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}
           >
@@ -83,7 +86,7 @@ export default function NotificationsPanel({
           </div>
         )}
 
-        {notifs.map((n) => {
+        {displayNotifs.map((n) => {
           const isApplyAction =
             n.type === "apply" && !n.text.startsWith("✅") && !n.text.startsWith("❌");
           const isClickable = isApplyAction || n.type === "dm";

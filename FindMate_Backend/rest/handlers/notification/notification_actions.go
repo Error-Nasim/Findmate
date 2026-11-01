@@ -55,7 +55,8 @@ func (h *Handler) MarkRead(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) MarkAllRead(w http.ResponseWriter, r *http.Request) {
-	err := h.notifSvc.MarkAllRead()
+	recipientID := r.URL.Query().Get("recipientId")
+	err := h.notifSvc.MarkAllRead(recipientID)
 	if err != nil {
 		util.SendError(w, http.StatusInternalServerError, err.Error())
 		return
