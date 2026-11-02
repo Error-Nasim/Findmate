@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ FindMate
+[# ⚡ FindMate](https://findmate-psi.vercel.app)
 
 **Instant Teammate Matchmaking & Micro-Lobby Collaboration Platform**  
 _No Event Planning Overhead. No Discord Clutter. Zero Ghosting._
