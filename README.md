@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ FindMate
+# ⚡ FindMate test
 
 **Instant Teammate Matchmaking & Micro-Lobby Collaboration Platform**  
 _No Event Planning Overhead. No Discord Clutter. Zero Ghosting._
@@ -14,7 +14,7 @@ _No Event Planning Overhead. No Discord Clutter. Zero Ghosting._
 [![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind_CSS_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Go](https://img.shields.io/badge/Backend-Go_1.22+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://golang.org/)
 [![CI Gate](https://img.shields.io/badge/CI_Gate-Passing-brightgreen?style=flat-square&logo=githubactions)](./.github/workflows/test.yml)
-[![Tests](<https://img.shields.io/badge/Tests-64%2F64_Passed_(100%25)-brightgreen?style=flat-square>)](./tests/README.md)
+[![Tests](<https://img.shields.io/badge/Tests-76%2F76_Passed_(100%25)-brightgreen?style=flat-square>)](./tests/README.md)
 [![Coverage](https://img.shields.io/badge/Coverage-99.00%25_Line-brightgreen?style=flat-square)](./tests/evidence/coverage_summary.txt)
 [![Capstone](https://img.shields.io/badge/Capstone_Report-v1.0.0_Delivered-indigo?style=flat-square)](./docs/Reports/final/Final_Report.md)
 [![Schedule](<https://img.shields.io/badge/Gantt_Schedule-14_Weeks_(Excel)-emerald?style=flat-square>)](./docs/Schedule/FindMate_14_Week_Gantt_Schedule.xlsx)
@@ -41,16 +41,17 @@ _No Event Planning Overhead. No Discord Clutter. Zero Ghosting._
 
 FindMate is fully deployed to production on a **100% free, high-performance cloud stack** with automated CI/CD:
 
-| Component | Platform | Live URL / Endpoint | Details |
-| :--- | :--- | :--- | :--- |
-| **Frontend Web App** | **Vercel** | [**https://findmate-psi.vercel.app/**](https://findmate-psi.vercel.app/) | React 19 SPA, global edge CDN, automated Git CD, instant SPA routing. |
-| **REST API Microservice** | **Render** | [`https://findmate-dctf.onrender.com`](https://findmate-dctf.onrender.com/api/health) | Go 1.22 compiled native binary, Docker runtime in AWS Singapore. |
-| **Relational Database** | **Neon** | Serverless PostgreSQL 18.6 | Managed pooled connection, 7 automated SQL schema migrations. |
-| **OAuth 2.0 Providers** | Google, Discord, Meta | `/auth/callback` | Cross-platform real-time authentication & account linking. |
+| Component                 | Platform              | Live URL / Endpoint                                                                   | Details                                                               |
+| :------------------------ | :-------------------- | :------------------------------------------------------------------------------------ | :-------------------------------------------------------------------- |
+| **Frontend Web App**      | **Vercel**            | [**https://findmate-psi.vercel.app/**](https://findmate-psi.vercel.app/)              | React 19 SPA, global edge CDN, automated Git CD, instant SPA routing. |
+| **REST API Microservice** | **Render**            | [`https://findmate-dctf.onrender.com`](https://findmate-dctf.onrender.com/api/health) | Go 1.22 compiled native binary, Docker runtime in AWS Singapore.      |
+| **Relational Database**   | **Neon**              | Serverless PostgreSQL 18.6                                                            | Managed pooled connection, 7 automated SQL schema migrations.         |
+| **OAuth 2.0 Providers**   | Google, Discord, Meta | `/auth/callback`                                                                      | Cross-platform real-time authentication & account linking.            |
 
 > **🔑 Live Test Accounts (Pre-Seeded in Neon DB)**:
-> - **Member 1**: `@rimon21` *(or `rimon@findmate.local`)* — Password: `1234`
-> - **Member 2**: `@imtiaz11` *(or `imtiaz@findmate.local`)* — Password: `1234`
+>
+> - **Member 1**: `@rimon21` _(or `rimon@findmate.local`)_ — Password: `1234`
+> - **Member 2**: `@imtiaz11` _(or `imtiaz@findmate.local`)_ — Password: `1234`
 > - **Direct Admin Portal**: [https://findmate-psi.vercel.app/admin](https://findmate-psi.vercel.app/admin) (passcode protected)
 > - **Live OAuth 2.0**: Sign in directly with your personal **Google**, **Discord**, or **Meta** accounts.
 
@@ -195,13 +196,13 @@ The project was executed across a 14-week lifecycle adhering to Agile Scrum prin
 
 ### Backend ([`/FindMate_Backend`](./FindMate_Backend/README.md))
 
-| Technology | Version | Description |
-| :--- | :--- | :--- |
-| **Go (Golang)** | `1.22+` | High-throughput, low-latency compiled runtime with DDD architecture |
-| **Standard Router** | `Go 1.22 http.ServeMux` | Native enhanced verb and pattern-based HTTP routing |
-| **sqlx** | `v1.4.0` | Ergonomic extensions to Go's standard `database/sql` library |
-| **PostgreSQL** | `16.0+` | Relational ACID database with automated SQL migrations |
-| **JWT & Bcrypt** | `golang-jwt/v5`, `bcrypt` | Stateless bearer token authentication & salted password hashing |
+| Technology          | Version                   | Description                                                         |
+| :------------------ | :------------------------ | :------------------------------------------------------------------ |
+| **Go (Golang)**     | `1.22+`                   | High-throughput, low-latency compiled runtime with DDD architecture |
+| **Standard Router** | `Go 1.22 http.ServeMux`   | Native enhanced verb and pattern-based HTTP routing                 |
+| **sqlx**            | `v1.4.0`                  | Ergonomic extensions to Go's standard `database/sql` library        |
+| **PostgreSQL**      | `16.0+`                   | Relational ACID database with automated SQL migrations              |
+| **JWT & Bcrypt**    | `golang-jwt/v5`, `bcrypt` | Stateless bearer token authentication & salted password hashing     |
 
 ---
 
@@ -256,11 +257,13 @@ flowchart LR
 ```
 
 ### 1. Database: Neon (neon.tech)
+
 1. Create a free project on [Neon](https://neon.tech) in `AWS Asia Pacific 1 (Singapore)`.
 2. Copy the pooled connection string (`postgresql://...`).
 3. Neon automatically scales to zero when idle and provides 1 GB free storage.
 
 ### 2. Backend: Render (render.com)
+
 1. Create a **New Web Service** connected to your GitHub repo.
 2. Settings:
    - **Root Directory**: `FindMate_Backend`
@@ -277,6 +280,7 @@ flowchart LR
    - `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` / `FACEBOOK_REDIRECT_URI`
 
 ### 3. Frontend: Vercel (vercel.com)
+
 1. Import repository to [Vercel](https://vercel.com).
 2. Framework: `Vite`, Root Directory: `FindMate_Frontend`.
 3. Pre-configured `.env.production` automatically links to `https://findmate-dctf.onrender.com/api`.
@@ -313,6 +317,7 @@ go run main.go
 ```
 
 > **Pre-Seeded Real Users (Password: `1234`)**:
+>
 > - `@rimon21` (Rimon Chandra Bhowmik — Member)
 > - `@imtiaz11` (Al Imtiaz — Member)
 
@@ -332,22 +337,22 @@ npm run dev
 The testing suite conforms to **ISO/IEC/IEEE 29119-3** and satisfies the course verification requirements (Experiment 9 & 10). Anyone can clone the repository and reproduce all test results with a single command:
 
 ```bash
-# Run all 64 automated tests in the unified test harness
+# Run all 76 automated tests in the unified test harness
 npm test
 ```
 
 ### Individual Test Commands
 
-| Command                 | Suite Scope           | Verification Target                                           |
-| :---------------------- | :-------------------- | :------------------------------------------------------------ |
-| `npm test`              | Full Test Suite       | 64 automated tests covering BVA, EP, journeys, RBAC, OAuth & data isolation |
-| `npm run test:coverage` | V8 Automated Coverage | Measures line, branch, and statement coverage across all core modules |
-| `npm run test:backend`  | Go Backend Unit       | Comprehensive Go domain, capacity, and REST endpoint test suites |
-| `npm run test:all`      | Full Test Harness     | Executes complete frontend and backend test suites            |
+| Command                 | Suite Scope           | Verification Target                                                                                                         |
+| :---------------------- | :-------------------- | :-------------------------------------------------------------------------------------------------------------------------- |
+| `npm test`              | Full Test Suite       | 76 automated tests covering BVA, EP, email/password validation, username uniqueness, journeys, RBAC, OAuth & data isolation |
+| `npm run test:coverage` | V8 Automated Coverage | Measures line, branch, and statement coverage across all core modules                                                       |
+| `npm run test:backend`  | Go Backend Unit       | Comprehensive Go domain, capacity, and REST endpoint test suites                                                            |
+| `npm run test:all`      | Full Test Harness     | Executes complete frontend and backend test suites                                                                          |
 
 ### Quality & Performance Evidence
 
-- **Test Execution Pass Rate**: **100% (64 / 64 tests passed)**
+- **Test Execution Pass Rate**: **100% (76 / 76 tests passed)**
 - **Code Coverage**: **99.00% Line**, **87.85% Branch**, **98.44% Function** ([`tests/evidence/coverage_summary.txt`](./tests/evidence/coverage_summary.txt))
 - **Load Performance**: **p95 Latency = 188.4 ms** under 20 concurrent virtual users ([`tests/evidence/performance_k6_summary.json`](./tests/evidence/performance_k6_summary.json))
 - **Security Audit**: **0 Vulnerabilities** (`npm audit`), OWASP ASVS Level 1 compliant ([`tests/evidence/security_zap_summary.md`](./tests/evidence/security_zap_summary.md))
