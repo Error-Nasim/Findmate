@@ -10,7 +10,7 @@ _No Event Planning Overhead. No Discord Clutter. Zero Ghosting._
 [![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind_CSS_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Go](https://img.shields.io/badge/Backend-Go_1.22+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://golang.org/)
 [![CI Gate](https://img.shields.io/badge/CI_Gate-Passing-brightgreen?style=flat-square&logo=githubactions)](./.github/workflows/test.yml)
-[![Tests](<https://img.shields.io/badge/Tests-31%2F31_Passed_(100%25)-brightgreen?style=flat-square>)](./tests/README.md)
+[![Tests](<https://img.shields.io/badge/Tests-64%2F64_Passed_(100%25)-brightgreen?style=flat-square>)](./tests/README.md)
 [![Coverage](https://img.shields.io/badge/Coverage-99.00%25_Line-brightgreen?style=flat-square)](./tests/evidence/coverage_summary.txt)
 [![Capstone](https://img.shields.io/badge/Capstone_Report-v1.0.0_Delivered-indigo?style=flat-square)](./docs/Reports/final/Final_Report.md)
 [![Schedule](<https://img.shields.io/badge/Gantt_Schedule-14_Weeks_(Excel)-emerald?style=flat-square>)](./docs/Schedule/FindMate_14_Week_Gantt_Schedule.xlsx)
@@ -58,27 +58,41 @@ Traditional platforms force users through cumbersome event planning tools, rigid
 
 ### 👑 2. Application Pitch & Vetting Flow
 
-- **Structured Pitch Notes**: Seekers submit focused introduction notes detailing rank, role, availability, and background.
+- **Structured Pitch Notes**: Seekers submit focused introduction notes detailing rank, role, availability, and background ($5-300$ chars).
 - **Host Review Queue**: Hosts inspect applicant reliability percentages, past team-ups, and connected accounts.
 - **Atomic Slot Locking**: Approvals automatically update lobby capacity, broadcast a squad announcement, and spawn a direct messaging thread.
+- **Roster Kick & Re-Application**: Hosts can remove members from the squad roster, automatically decrementing joined count, reopening the lobby if it was Full, broadcasting a squad departure alert, and allowing the kicked member to re-apply fresh.
 
-### 💬 3. Integrated Real-Time Messaging System
+### 💬 3. Integrated Real-Time Messaging & Isolated Notification Center
 
 - **Zero-Refresh Real-Time Engine**: Built-in reactive synchronization polls active chat and DM channels every 1.5 seconds and global state every 3 seconds, delivering real-time messages and notifications without page reloads.
 - **Lobby Squad Chat**: Dedicated group chat room automatically provisioned for host and approved teammates upon admission.
 - **1-on-1 Direct Messaging (DMs)**: Private bilateral chat threads with auto-updating unread badges and instant slide-in panel from user profiles.
-- **Navbar Unread Message Red Dot**: High-visibility red dot and unread badge on both Desktop and Mobile navigation bars whenever incoming messages arrive.
-- **Interactive Notification Center**: Dropdown notification panel for incoming applications, approvals, and messages with single-click individual deletion (`🗑️`) and a "Clear all" option.
+- **Navbar Unread Message Counter**: High-visibility `#F43F5E` red pill counter on both Desktop and Mobile navigation bars whenever incoming messages arrive.
+- **Zero-Leak Data Isolation**: Brand-new users start with a clean slate (0 DMs, 0 unread messages, 0 notifications). Demo and fake data are completely excluded.
+- **Strict Separation of Messages & Notifications**: Chat and DM messages are strictly isolated to the `/messages` page and Messages badge. Notifications panel strictly handles platform events (lobby applications, approvals, kicks, session reviews, admin alerts) with click-to-action shortcuts.
+- **Interactive Notification Center**: Dropdown notification panel with single-click individual deletion (`🗑️`), complete notification clearance (`Clear all`), and database-level duplicate rejection.
 
 ### 🛡️ 4. Full-Featured Admin Control Center (`/admin`)
 
+- **Role Governance & Super Admin Hierarchy**:
+  - **Abu Nasim (`@Error-nasim`)** is the permanent root Super Admin and cannot be demoted, banned, or deleted.
+  - Nasim has the exclusive privilege to promote Admins to Super Admin. Super Admins can manage and demote other Super Admins.
+  - **Two-Factor Access Guard**: Direct links to `/admin` prompt unauthorized users for BOTH administrative username and passcode credentials.
+- **Banned User Sandbox**: Banned users (`isBanned: true`) retain read access to view past activity and lobbies, but all write/interactive capabilities (creating lobbies, applying, squad/DM chat, rating) are securely disabled.
+- **User Deletion & Governance**: Searchable member directory with user deletion by admin, reliability adjustments (`+2%` boost / `-5%` penalty), and instant ban/unban enforcement.
 - **Executive KPI Dashboard**: Live platform metrics tracking total users (active vs. banned), open vs. completed lobbies, squad completion percentage, and average reliability score.
 - **Multi-Status Moderation Queue**: Triage incident reports across `Pending`, `Resolved`, and `Dismissed` with evidence inspection and action execution (`Delete Lobby`, `Ban User`, `Dismiss`).
-- **User Governance & RBAC**: Searchable member directory with role toggles (`Admin` / `Member`), reliability adjustments, and instant ban/unban enforcement.
 - **Lobby & Squad Oversight**: Monitor active lobbies, inspect chat messages, force-complete sessions, and pin featured lobbies (`📌 Featured`).
 - **Tag Taxonomy Management**: Curate official hashtags with live usage statistics across active lobbies and interested users.
 - **Global Broadcast Banners**: Publish real-time global announcement banners (`Info`, `Warning`, `Alert`, `Celebration`) displayed across all active sessions.
 - **Immutable Audit Trail**: Append-only administrative activity log with one-click JSON export.
+
+### 🔑 5. Real-Time OAuth 2.0 & Multi-Account Linking
+
+- **Native Provider Support**: One-click authentication with **Google**, **Discord**, and **Facebook** OAuth 2.0.
+- **Cross-Platform Account Linking**: Authenticate with any provider (e.g. Google), then link additional third-party accounts (Discord, Facebook) in the profile page to enable seamless login from any connected provider.
+- **Manual Authentication**: Clean credential sign-in without test user shortcuts.
 
 ### 🎨 5. Modern UI & Theme System
 
@@ -256,22 +270,22 @@ npm run dev
 The testing suite conforms to **ISO/IEC/IEEE 29119-3** and satisfies the course verification requirements (Experiment 9 & 10). Anyone can clone the repository and reproduce all test results with a single command:
 
 ```bash
-# Run all 31 unified tests (27 Node.js native + 4 Go unit tests)
-npm run test:all
+# Run all 64 automated tests in the unified test harness
+npm test
 ```
 
 ### Individual Test Commands
 
 | Command                 | Suite Scope           | Verification Target                                           |
 | :---------------------- | :-------------------- | :------------------------------------------------------------ |
-| `npm test`              | Frontend Unit & E2E   | 27 tests covering BVA, EP, journeys, and admin RBAC           |
-| `npm run test:coverage` | V8 Automated Coverage | Measures line, branch, and statement coverage                 |
-| `npm run test:backend`  | Go Backend Unit       | 4 unit tests covering serialization, capacity, and timestamps |
+| `npm test`              | Full Test Suite       | 64 automated tests covering BVA, EP, journeys, RBAC, OAuth & data isolation |
+| `npm run test:coverage` | V8 Automated Coverage | Measures line, branch, and statement coverage across all core modules |
+| `npm run test:backend`  | Go Backend Unit       | Comprehensive Go domain, capacity, and REST endpoint test suites |
 | `npm run test:all`      | Full Test Harness     | Executes complete frontend and backend test suites            |
 
 ### Quality & Performance Evidence
 
-- **Test Execution Pass Rate**: **100% (31 / 31 tests passed)**
+- **Test Execution Pass Rate**: **100% (64 / 64 tests passed)**
 - **Code Coverage**: **99.00% Line**, **87.85% Branch**, **98.44% Function** ([`tests/evidence/coverage_summary.txt`](./tests/evidence/coverage_summary.txt))
 - **Load Performance**: **p95 Latency = 188.4 ms** under 20 concurrent virtual users ([`tests/evidence/performance_k6_summary.json`](./tests/evidence/performance_k6_summary.json))
 - **Security Audit**: **0 Vulnerabilities** (`npm audit`), OWASP ASVS Level 1 compliant ([`tests/evidence/security_zap_summary.md`](./tests/evidence/security_zap_summary.md))

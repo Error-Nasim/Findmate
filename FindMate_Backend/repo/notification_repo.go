@@ -40,6 +40,35 @@ func (r *notificationRepo) Create(n domain.Notification) (*domain.Notification, 
 	}
 	n.Unread = true
 
+	// Deduplication: prevent inserting duplicate notifications within a short window
+	cleanRecipient := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(n.RecipientID), "@"))
+	if cleanRecipient != "" {
+		if n.ApplicantID != "" {
+			var count int
+			_ = r.db.Get(&count, `
+				SELECT COUNT(*) FROM notifications 
+				WHERE LOWER(TRIM(LEADING '@' FROM recipient_id)) = $1 
+				AND type = $2 AND applicant_id = $3
+			`, cleanRecipient, n.Type, n.ApplicantID)
+			if count > 0 {
+				return &n, nil
+			}
+		}
+
+		var count int
+		_ = r.db.Get(&count, `
+			SELECT COUNT(*) FROM notifications 
+			WHERE LOWER(TRIM(LEADING '@' FROM recipient_id)) = $1 
+			AND (
+				(type = $2 AND text = $3 AND created_at > $4)
+				OR (type = $2 AND created_at > $5 AND position(LOWER(SUBSTRING($3 FROM 1 FOR 15)) in LOWER(text)) > 0)
+			)
+		`, cleanRecipient, n.Type, n.Text, time.Now().Add(-60*time.Second), time.Now().Add(-20*time.Second))
+		if count > 0 {
+			return &n, nil
+		}
+	}
+
 	query := `
 		INSERT INTO notifications (id, recipient_id, icon, text, unread, type, applicant_id, dm_thread_id, created_at)
 		VALUES (:id, :recipient_id, :icon, :text, :unread, :type, :applicant_id, :dm_thread_id, :created_at)

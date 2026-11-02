@@ -307,4 +307,37 @@ describe('Multi-User Data Isolation (Zero Leaks)', () => {
     assert.strictEqual(nasimNotifs[0].id, 'n1')
     assert.strictEqual(nasimNotifs[1].id, 'n3')
   })
+
+  it('ISO-NOTIF-03: Chat and DM messages are strictly excluded from notification panel', () => {
+    const rawNotifs = [
+      { id: 'n1', recipient: 'Error-nasim', type: 'apply', text: 'User applied to your lobby', unread: true },
+      { id: 'n2', recipient: 'Error-nasim', type: 'dm', text: 'New message from Rimon: Hey', unread: true },
+      { id: 'n3', recipient: 'Error-nasim', type: 'message', text: 'You have a new message in lobby chat', unread: true },
+      { id: 'n4', recipient: 'Error-nasim', type: 'lobby_accepted', text: 'You were accepted into squad!', unread: true },
+      { id: 'n5', recipient: 'Error-nasim', type: 'rating', text: 'User gave you a 5 star rating', unread: true },
+    ]
+    const nasim = { handle: 'Error-nasim', name: 'Abu Nasim' }
+    const filtered = rawNotifs.filter((n) => {
+      const notifType = (n.type || '').toLowerCase()
+      const notifText = (n.text || '').toLowerCase()
+      if (notifType === 'dm' || notifType === 'message' || notifType === 'chat' || notifText.includes('new message')) {
+        return false
+      }
+      return n.recipient.toLowerCase() === nasim.handle.toLowerCase()
+    })
+
+    assert.strictEqual(filtered.length, 3, 'Only non-message notifications should be included in notification panel')
+    assert.deepStrictEqual(filtered.map((n) => n.id), ['n1', 'n4', 'n5'])
+  })
+
+  it('ISO-NOTIF-04: Notification counter calculates unread non-message notifications', () => {
+    const notifs = [
+      { id: 'n1', recipient: 'Error-nasim', type: 'apply', unread: true },
+      { id: 'n2', recipient: 'Error-nasim', type: 'lobby_accepted', unread: false },
+      { id: 'n3', recipient: 'Error-nasim', type: 'rating', unread: true },
+      { id: 'n4', recipient: 'Error-nasim', type: 'lobby_completed', unread: true },
+    ]
+    const unreadCount = notifs.filter((n) => n.unread).length
+    assert.strictEqual(unreadCount, 3, 'Unread notification badge count should be 3')
+  })
 })

@@ -92,14 +92,19 @@ flowchart TD
 
 ### Key Technical Characteristics
 
-1. **Native Enhanced Routing**: Leverages Go 1.22's standard library `http.ServeMux` with exact verb and path matching (`GET /api/lobbies/{id}`, `DELETE /api/notifications/{id}`) without bulky third-party router overhead.
-2. **Atomic Aggregate Coordination**: The `ApplicantService` orchestrates complex state transitions: accepting an applicant atomically updates room occupancy, records accepted applicant status, broadcasts a welcome message into squad group chat, provisions a bilateral 1-on-1 DM thread, and pushes a real-time notification to the applicant.
-3. **Defense-in-Depth Security**:
+1. **Native Enhanced Routing**: Leverages Go 1.22's standard library `http.ServeMux` with exact verb and path matching (`GET /api/lobbies/{id}`, `DELETE /api/notifications/{id}`, `DELETE /api/users/{id}`) without bulky third-party router overhead.
+2. **Atomic Aggregate Coordination**: The `ApplicantService` orchestrates complex state transitions:
+   - **Accepting an Applicant**: Atomically updates room occupancy, locks status to `Full` if capacity reached, records accepted status, broadcasts a welcome message into squad group chat, provisions a bilateral 1-on-1 DM thread, and pushes a real-time notification to the applicant.
+   - **Removing/Kicking a Member**: Atomically decrements room occupancy, reopens lobby to `Open` if previously full, updates join status to `removed`, emits a squad chat departure alert, and pushes an alert notification to the removed member.
+   - **Duplicate Application Guards**: Prevents duplicate pending or accepted applications for the same lobby.
+3. **Database-Level Notification Deduplication**: `repo/notification_repo.go` enforces a 60-second semantic deduplication window, rejecting duplicate notifications for identical recipients and events.
+4. **Defense-in-Depth Security**:
    - Passwords hashed with **Bcrypt** ($cost = 10$).
    - Signed **JWT** tokens (HS256) expiring in 24 hours.
-   - RBAC middleware (`AdminRoleRequired`) guards moderation and governance endpoints.
+   - Role-Based Access Control (`AdminRoleRequired`) guards moderation, user management, and governance endpoints.
+   - Root Super Admin permanence: Abu Nasim (`@Error-nasim`) is permanently protected from deletion, demotion, or bans.
    - Self-apply validation blocks lobby hosts from applying to their own squad.
-4. **Real-Time Integration Ready**: Optimized for reactive polling with sub-millisecond response times, connection-leak-free queries via `sqlx.NamedExec`, and auto-updating unread counters.
+5. **Real-Time Integration Ready**: Optimized for reactive polling with sub-millisecond response times, connection-leak-free queries via `sqlx.NamedExec`, and auto-updating unread counters.
 
 ---
 
@@ -214,7 +219,7 @@ The database schema is divided into 7 idempotent, bidirectional SQL migration sc
 
 | Name                      | Handle         | Email                   | System Role | Initial Password | Profile Avatar |
 | :------------------------ | :------------- | :---------------------- | :---------: | :--------------: | :------------: |
-| **Abu Nasim**             | `@Error-nasim` | `nasim@findmate.local`  |   `admin`   |      `1234`      |      `AN`      |
+| **Abu Nasim**             | `@Error-nasim` | `nasim@findmate.local`  | `superadmin` / `admin` | `1234` | `AN` |
 | **Rimon Chandra Bhowmik** | `@rimon21`     | `rimon@findmate.local`  |  `member`   |      `1234`      |      `RB`      |
 | **Al Imtiaz**             | `@imtiaz11`    | `imtiaz@findmate.local` |  `member`   |      `1234`      |      `AI`      |
 
@@ -237,12 +242,13 @@ All API endpoints are prefixed with `/api`. Responses adhere to a consistent JSO
 
 ### 2. User Directory & Ratings (`/api/users`)
 
-| Method | Endpoint               |    Auth    | Description                                                              |
-| :----- | :--------------------- | :--------: | :----------------------------------------------------------------------- |
-| `GET`  | `/api/users`           |    None    | List all active users with reliability scores and ratings.               |
-| `GET`  | `/api/users/{id}`      |    None    | Get detailed user dossier by ID or `@handle`.                            |
-| `PUT`  | `/api/users/{id}`      | Bearer JWT | Update authenticated user profile (name, bio, tags, connected accounts). |
-| `POST` | `/api/users/{id}/rate` | Bearer JWT | Submit a 1-5 star teammate rating with feedback note.                    |
+| Method   | Endpoint               |    Auth    | Description                                                              |
+| :------- | :--------------------- | :--------: | :----------------------------------------------------------------------- |
+| `GET`    | `/api/users`           |    None    | List all active users with reliability scores and ratings.               |
+| `GET`    | `/api/users/{id}`      |    None    | Get detailed user dossier by ID or `@handle`.                            |
+| `PUT`    | `/api/users/{id}`      | Bearer JWT | Update authenticated user profile (name, bio, tags, connected accounts). |
+| `POST`   | `/api/users/{id}/rate` | Bearer JWT | Submit a 1-5 star teammate rating with feedback note.                    |
+| `DELETE` | `/api/users/{id}`      | Admin RBAC | Delete user account permanently (root protection prevents deleting Nasim). |
 
 ### 3. Lobbies & Pitch Applications (`/api/lobbies`)
 
@@ -254,15 +260,17 @@ All API endpoints are prefixed with `/api`. Responses adhere to a consistent JSO
 | `PUT`    | `/api/lobbies/{id}`            | Bearer JWT | Update lobby metadata (host only).                                                           |
 | `PATCH`  | `/api/lobbies/{id}/status`     | Bearer JWT | Transition lobby status (`Open`, `Full`, `Completed`, `Closed`).                             |
 | `DELETE` | `/api/lobbies/{id}`            | Bearer JWT | Delete lobby (host or admin).                                                                |
-| `POST`   | `/api/lobbies/{id}/apply`      | Bearer JWT | Submit join application with pitch note ([5, 300] chars). Blocks host self-pitch.            |
+| `DELETE` | `/api/lobbies/{id}/chat`       | Bearer JWT | Remove group chat conversation for user session.                                             |
+| `POST`   | `/api/lobbies/{id}/apply`      | Bearer JWT | Submit join application with pitch note ([5, 300] chars). Blocks duplicate and host self-pitch. |
 | `GET`    | `/api/lobbies/{id}/applicants` | Bearer JWT | List join applications for this lobby.                                                       |
 
 ### 4. Applicant Decision Engine (`/api/applicants`)
 
-| Method | Endpoint                      |    Auth    | Description                                                                                                                                       |
-| :----- | :---------------------------- | :--------: | :------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET`  | `/api/applicants`             | Bearer JWT | List all submitted applications across lobbies.                                                                                                   |
-| `PUT`  | `/api/applicants/{id}/status` | Bearer JWT | Accept or decline applicant. On accept: increments joined count, broadcasts squad welcome message, provisions DM thread, and pushes notification. |
+| Method   | Endpoint                      |    Auth    | Description                                                                                                                                       |
+| :------- | :---------------------------- | :--------: | :------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET`    | `/api/applicants`             | Bearer JWT | List all submitted applications across lobbies.                                                                                                   |
+| `PUT`    | `/api/applicants/{id}/status` | Bearer JWT | Accept or decline applicant. On accept: increments joined count, broadcasts squad welcome message, provisions DM thread, and pushes notification. |
+| `DELETE` | `/api/applicants/{id}`        | Bearer JWT | Remove/kick applicant from squad roster. Decrements joined count, re-opens lobby if Full, alerts squad, and notifies applicant.                    |
 
 ### 5. Squad Group Chat (`/api/lobbies/{id}/messages`)
 
@@ -273,13 +281,14 @@ All API endpoints are prefixed with `/api`. Responses adhere to a consistent JSO
 
 ### 6. Direct Messaging (`/api/dm`)
 
-| Method  | Endpoint                      | Auth | Description                                                                                |
-| :------ | :---------------------------- | :--: | :----------------------------------------------------------------------------------------- |
-| `GET`   | `/api/dm/threads`             | None | List all active 1-on-1 direct message conversations with unread indicators.                |
-| `POST`  | `/api/dm/threads`             | None | Create or retrieve bilateral DM conversation thread between two users.                     |
-| `GET`   | `/api/dm/{threadId}/messages` | None | Retrieve conversation message history for a DM thread.                                     |
-| `POST`  | `/api/dm/{threadId}/messages` | None | Send message in DM thread. Automatically increments unread flag and triggers notification. |
-| `PATCH` | `/api/dm/{threadId}/read`     | None | Mark DM thread as read, resetting unread counter to 0.                                     |
+| Method   | Endpoint                      | Auth | Description                                                                                |
+| :------- | :---------------------------- | :--: | :----------------------------------------------------------------------------------------- |
+| `GET`    | `/api/dm/threads`             | None | List all active 1-on-1 direct message conversations with unread indicators.                |
+| `POST`   | `/api/dm/threads`             | None | Create or retrieve bilateral DM conversation thread between two users.                     |
+| `GET`    | `/api/dm/{threadId}/messages` | None | Retrieve conversation message history for a DM thread.                                     |
+| `POST`   | `/api/dm/{threadId}/messages` | None | Send message in DM thread. Automatically increments unread flag and triggers notification. |
+| `PATCH`  | `/api/dm/{threadId}/read`     | None | Mark DM thread as read, resetting unread counter to 0.                                     |
+| `DELETE` | `/api/dm/{threadId}`          | None | Remove 1-on-1 direct message thread from active list.                                      |
 
 ### 7. Interactive Notifications (`/api/notifications`)
 

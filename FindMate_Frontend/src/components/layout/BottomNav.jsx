@@ -72,14 +72,24 @@ export default function BottomNav({ dmUnread, isAuthed = false, onAuth }) {
               <span
                 style={{
                   position: 'absolute',
-                  top: 8,
-                  right: 'calc(50% - 14px)',
-                  width: 7,
-                  height: 7,
+                  top: 5,
+                  right: 'calc(50% - 18px)',
+                  minWidth: 15,
+                  height: 15,
+                  padding: '0 3px',
                   background: '#F43F5E',
-                  borderRadius: '50%',
+                  borderRadius: 10,
+                  fontSize: 9,
+                  fontWeight: 800,
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 0 2px var(--bg-surface)',
                 }}
-              />
+              >
+                {dmUnread > 99 ? '99+' : dmUnread}
+              </span>
             )}
 
             {isActive && (

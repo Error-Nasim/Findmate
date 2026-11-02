@@ -331,23 +331,74 @@ export default function App() {
   const [activeChatLobbyId, setActiveChatLobbyId] = useState(null);
   const [activeDMThreadId, setActiveDMThreadId] = useState("");
 
-  // Filter notifications specifically for current user (Zero leakage to new/other users)
+  // Filter notifications specifically for current user (Zero leakage to new/other users, strictly excluding messages, and deduplicating identical events)
   const userNotifsList = useMemo(() => {
     if (!currentUser) return [];
     const myHandle = (currentUser.handle || "").replace(/^@/, "").toLowerCase();
     const myName = (currentUser.name || "").toLowerCase();
 
-    return notifsList.filter((n) => {
-      if (!n.recipient) return false;
-      const rec = String(n.recipient).replace(/^@/, "").toLowerCase();
+    const matching = notifsList.filter((n) => {
+      // 1. Strictly exclude chat and direct message notifications from notifications panel
+      const notifType = (n.type || "").toLowerCase();
+      const notifText = (n.text || "").toLowerCase();
+      const notifTitle = (n.title || "").toLowerCase();
+      if (
+        notifType === "dm" ||
+        notifType === "message" ||
+        notifType === "chat" ||
+        notifText.includes("new message") ||
+        notifText.includes("sent a message") ||
+        notifTitle.includes("message")
+      ) {
+        return false;
+      }
+
+      // 2. Must belong to active user
+      if (!n.recipient && !n.recipientId) return false;
+      const rec = String(n.recipient || n.recipientId).replace(/^@/, "").toLowerCase();
       return rec === myHandle || rec === myName;
     });
+
+    // 3. Intelligent Deduplication
+    const seenIds = new Set();
+    const seenFingerprints = new Set();
+    const unique = [];
+
+    for (const n of matching) {
+      if (!n) continue;
+      const notifId = String(n.id || "");
+      if (notifId && seenIds.has(notifId)) continue;
+      if (notifId) seenIds.add(notifId);
+
+      // Extract core semantic tokens
+      const type = (n.type || "").toLowerCase().replace("lobby_", "").replace("kick", "remove");
+      const normalizedWords = (n.text || "")
+        .toLowerCase()
+        .replace(/[^\w\s]/g, " ")
+        .split(/\s+/)
+        .filter((w) => w.length >= 3 && !["applied", "lobby", "your", "squad", "were", "been", "host", "from", "into", "the"].includes(w))
+        .sort()
+        .join("_");
+
+      // Approximate time window (within 2 minutes) if timestamp available
+      const rawTime = n.createdAt || n.created_at || n.time;
+      let timeKey = "";
+      if (rawTime && !isNaN(new Date(rawTime).getTime())) {
+        timeKey = Math.floor(new Date(rawTime).getTime() / (2 * 60 * 1000));
+      }
+
+      const fingerprint = `${type}_${normalizedWords}${timeKey ? `_${timeKey}` : ""}`;
+      if (!seenFingerprints.has(fingerprint)) {
+        seenFingerprints.add(fingerprint);
+        unique.push(n);
+      }
+    }
+
+    return unique;
   }, [notifsList, currentUser]);
 
   const unreadNotifCount = useMemo(() => {
-    return userNotifsList.filter(
-      (n) => n.unread && n.type !== "dm" && !n.text?.toLowerCase().includes("new message")
-    ).length;
+    return userNotifsList.filter((n) => Boolean(n.unread)).length;
   }, [userNotifsList]);
 
   // Track read counts for group chats per user
@@ -818,26 +869,6 @@ export default function App() {
 
     setApplicantsList((prev) => [newApp, ...prev]);
 
-    // Dispatch host notification in real-time
-    if (hostHandle) {
-      const hostNotif = {
-        id: `notif_${Date.now()}`,
-        recipient: hostHandle,
-        recipientId: hostHandle,
-        icon: "✋",
-        title: "New Lobby Application",
-        text: `${currentUser.name || currentUser.handle} applied to your lobby "${lobby.title}"`,
-        unread: true,
-        type: "apply",
-        applicantId: newApp.id,
-        lobbyId: strId,
-        time: "Just now",
-        createdAt: new Date().toISOString(),
-      };
-      setNotifsList((prev) => [hostNotif, ...prev]);
-      api.addNotification(hostNotif);
-    }
-
     api.addApplicant(newApp).then((saved) => {
       if (saved && saved.id) {
         setApplicantsList((prev) =>
@@ -904,23 +935,6 @@ export default function App() {
       nextSet.add(String(applicant.lobbyId));
       api.saveAcceptedLobbyIds(cleanAppHandle, nextSet);
     });
-
-    // Notify applicant in real-time
-    const acceptedNotif = {
-      id: `notif_${Date.now()}`,
-      recipient: cleanAppHandle,
-      recipientId: cleanAppHandle,
-      icon: "🎉",
-      title: "Application Accepted!",
-      text: `You were accepted into the squad for "${lobby?.title || "Lobby"}"!`,
-      unread: true,
-      type: "lobby_accepted",
-      lobbyId: String(applicant.lobbyId),
-      time: "Just now",
-      createdAt: new Date().toISOString(),
-    };
-    setNotifsList((prev) => [acceptedNotif, ...prev]);
-    api.addNotification(acceptedNotif);
 
     setApplicantsList((prev) =>
       prev.map((a) =>
@@ -1030,6 +1044,27 @@ export default function App() {
       ),
     );
     setReviewingApplicant(null);
+
+    // Notify the applicant in real-time that their request was declined
+    const appHandle = (applicant.handle || "").replace(/^@/, "");
+    if (appHandle) {
+      const declineNotif = {
+        id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        recipient: appHandle,
+        recipientId: appHandle,
+        icon: "ℹ️",
+        title: "Application Update",
+        text: `Your request to join "${lobby?.title || "Lobby"}" was not accepted.`,
+        unread: true,
+        type: "lobby_declined",
+        lobbyId: String(applicant.lobbyId),
+        time: "Just now",
+        createdAt: new Date().toISOString(),
+      };
+      setNotifsList((prev) => [declineNotif, ...prev]);
+      api.addNotification(declineNotif);
+    }
+
     showToast(`${applicant.name} declined.`);
   };
 
@@ -1178,6 +1213,24 @@ export default function App() {
           .catch((err) => console.warn("Failed to persist user rating:", err));
       }
 
+      // Notify the rated user in real-time
+      const cleanTarget = targetHandle.replace(/^@/, "");
+      const raterName = currentUser?.name || (currentUser?.handle ? `@${currentUser.handle.replace(/^@/, "")}` : "A teammate");
+      const ratingNotif = {
+        id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        recipient: cleanTarget,
+        recipientId: cleanTarget,
+        icon: "⭐",
+        title: "New Teammate Review",
+        text: `⭐ ${raterName} gave you a ${newReview.score}★ rating${newReview.comment ? `: "${newReview.comment}"` : "!"}`,
+        unread: true,
+        type: "rating",
+        time: "Just now",
+        createdAt: new Date().toISOString(),
+      };
+      setNotifsList((prev) => [ratingNotif, ...prev]);
+      api.addNotification(ratingNotif);
+
       showToast(`⭐ Rating recorded for @${targetHandle}!`);
     },
     [currentUser, showToast],
@@ -1257,6 +1310,34 @@ export default function App() {
 
     setActiveChatLobbyId(null);
     setRatingLobby(target);
+
+    // Notify all squad members who were accepted into this lobby
+    const strLobbyId = String(lobbyId);
+    const hostHandle = (target.handle || "").replace(/^@/, "").toLowerCase();
+    const membersToNotify = applicantsList.filter(
+      (a) => String(a.lobbyId) === strLobbyId && a.status === "accepted"
+    );
+    membersToNotify.forEach((m) => {
+      const mHandle = (m.handle || "").replace(/^@/, "");
+      if (mHandle && mHandle.toLowerCase() !== hostHandle) {
+        const compNotif = {
+          id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          recipient: mHandle,
+          recipientId: mHandle,
+          icon: "🏆",
+          title: "Lobby Completed",
+          text: `🏆 Squad for "${target.title}" has been completed! Leave a review for your teammates.`,
+          unread: true,
+          type: "lobby_completed",
+          lobbyId: strLobbyId,
+          time: "Just now",
+          createdAt: new Date().toISOString(),
+        };
+        setNotifsList((prev) => [compNotif, ...prev]);
+        api.addNotification(compNotif);
+      }
+    });
+
     showToast(`🏆 Lobby "${target.title}" completed! Please rate your teammates.`);
   };
 
@@ -1487,26 +1568,6 @@ export default function App() {
         console.warn("Failed to remove applicant:", err.message);
       });
     }
-
-    // Send kick notification to the removed member in real-time
-    const lobby = lobbiesList.find((l) => String(l.id) === strLobbyId);
-    if (memberHandle) {
-      const kickNotif = {
-        id: `notif_${Date.now()}`,
-        recipient: memberHandle,
-        recipientId: memberHandle,
-        icon: "⚠️",
-        title: "Removed from Lobby",
-        text: `You have been removed from the lobby "${lobby?.title || "Lobby"}" by the host.`,
-        unread: true,
-        type: "lobby_kick",
-        lobbyId: strLobbyId,
-        time: "Just now",
-        createdAt: new Date().toISOString(),
-      };
-      setNotifsList((prev) => [kickNotif, ...prev]);
-      api.addNotification(kickNotif);
-    }
   };
 
   const handleMessageHost = (lobby) => {
@@ -1585,6 +1646,27 @@ export default function App() {
       details: reason,
     };
     api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+
+    // Notify the host if their lobby was deleted by an admin
+    const lobby = lobbiesList.find((l) => l.id === lobbyIdOrTarget || l.title === name);
+    const hostHandle = (lobby?.handle || "").replace(/^@/, "");
+    if (hostHandle && hostHandle.toLowerCase() !== (currentUser?.handle || "").replace(/^@/, "").toLowerCase()) {
+      const delNotif = {
+        id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        recipient: hostHandle,
+        recipientId: hostHandle,
+        icon: "⚠️",
+        title: "Lobby Removed",
+        text: `Your lobby "${name || lobby?.title || "Lobby"}" was removed by an administrator: ${reason}`,
+        unread: true,
+        type: "lobby_deleted",
+        time: "Just now",
+        createdAt: new Date().toISOString(),
+      };
+      setNotifsList((prev) => [delNotif, ...prev]);
+      api.addNotification(delNotif);
+    }
+
     showToast(`Lobby "${name || lobbyIdOrTarget}" deleted and removed from feed.`);
   };
 
@@ -1641,6 +1723,23 @@ export default function App() {
       details: reason,
     };
     api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+
+    // Notify the banned user in real-time
+    const banNotif = {
+      id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      recipient: cleanHandle,
+      recipientId: cleanHandle,
+      icon: "🚫",
+      title: "Account Suspended",
+      text: `Your account was placed in read-only mode by an administrator: ${reason}`,
+      unread: true,
+      type: "account_banned",
+      time: "Just now",
+      createdAt: new Date().toISOString(),
+    };
+    setNotifsList((prev) => [banNotif, ...prev]);
+    api.addNotification(banNotif);
+
     showToast(`User @${cleanHandle} banned from FindMate.`);
   };
 
@@ -1661,6 +1760,23 @@ export default function App() {
       details: "Account reinstated by admin",
     };
     api.addAuditLog(log).then((newEntry) => setAuditLogs((prev) => [newEntry, ...prev]));
+
+    // Notify the unbanned user in real-time
+    const unbanNotif = {
+      id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      recipient: cleanHandle,
+      recipientId: cleanHandle,
+      icon: "✅",
+      title: "Account Reinstated",
+      text: "Your account suspension has been lifted. Full access is restored.",
+      unread: true,
+      type: "account_reinstated",
+      time: "Just now",
+      createdAt: new Date().toISOString(),
+    };
+    setNotifsList((prev) => [unbanNotif, ...prev]);
+    api.addNotification(unbanNotif);
+
     showToast(`User @${cleanHandle} unbanned.`);
   };
 
@@ -2172,9 +2288,17 @@ export default function App() {
               handleNotifClickApply(appId, nId);
               setShowNotifsDropdown(false);
             }}
-            onClickDM={(threadId, nId) => {
-              markNotifRead(nId);
-              openDMThread(threadId);
+            onClickLobby={(lobbyId, nId) => {
+              if (nId) markNotifRead(nId);
+              setShowNotifsDropdown(false);
+              const lobby = lobbiesList.find((l) => String(l.id) === String(lobbyId));
+              if (lobby) {
+                openGroupChat(lobbyId);
+              }
+            }}
+            onClickProfile={() => {
+              setShowNotifsDropdown(false);
+              navigate("/profile");
             }}
             onMarkRead={markNotifRead}
             onMarkAll={() => {

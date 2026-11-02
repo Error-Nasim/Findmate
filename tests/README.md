@@ -6,7 +6,7 @@
 
 [![CI Test Gate](https://img.shields.io/badge/CI_Gate-Passing-brightgreen?style=flat-square&logo=githubactions)](../.github/workflows/test.yml)
 [![Code Coverage](https://img.shields.io/badge/Coverage-99%25_Line-brightgreen?style=flat-square)](./evidence/coverage_summary.txt)
-[![Tests Passing](https://img.shields.io/badge/Tests-31%2F31_Passing-brightgreen?style=flat-square)](#-how-to-run-the-tests)
+[![Tests Passing](https://img.shields.io/badge/Tests-64%2F64_Passing-brightgreen?style=flat-square)](#-how-to-run-the-tests)
 [![Quality Standard](https://img.shields.io/badge/Standard-ISO%2FIEC%2FIEEE_29119--3-blue?style=flat-square)](../docs/Reports/testing/Test_Report.md)
 
 ---
@@ -23,9 +23,12 @@ Every test case maps bidirectionally to the **Software Requirements Specificatio
 
 ```text
 tests/
-├── unit/                                  # Isolated unit tests for core algorithms & bounds
+├── unit/                                  # Isolated unit tests for core algorithms, bounds & governance
 │   ├── rating_calculator.test.mjs         # Teammate rating math & user query resolvers
-│   └── validation.test.mjs                # Input boundary testing (EP & BVA)
+│   ├── validation.test.mjs                # Input boundary testing (EP & BVA)
+│   ├── oauth.test.mjs                     # Google, Discord, and Facebook OAuth 2.0 flows & linking
+│   ├── admin_security_and_isolation.test.mjs # Super Admin governance, passcode guard, banned sandbox & zero leaks
+│   └── feed_and_notification_rules.test.mjs  # Feed filtering, roster kick, group chat counts & notifs
 ├── integration/                           # Multi-module state transition & security tests
 │   ├── lobby_workflow.test.mjs            # Application, slot locking, chat & auto-DM workflow
 │   └── admin_rbac.test.mjs                # Role-Based Access Control (403 Forbidden & audit)
@@ -54,10 +57,10 @@ All tests run out-of-the-box using **Node.js v20+** native test runner (`node:te
 From the project root:
 
 ```bash
-npm run test:all
+npm test
 ```
 
-> **Result**: Executes all 27 JavaScript Unit/Integration/E2E tests + 4 Go backend unit tests in **< 1 second** with 100% pass rate.
+> **Result**: Executes all **64 automated tests** across all 8 test modules in **< 350 ms** with 100% pass rate.
 
 ---
 
@@ -136,6 +139,48 @@ Applies **Boundary Value Analysis (BVA)** and **Equivalence Partitioning (EP)**:
 - **`TC-PITCH-03`**: Whitespace-only pitch notes rejected.
 - **`TC-TAG-01` & `TC-TAG-02`**: Taxonomy hashtag formatter auto-lowercases and prepends `#`.
 
+#### C. OAuth 2.0 Provider Construction & Flow (`oauth.test.mjs`)
+Tests third-party authentication and real-time account linking:
+- **`TC-OAUTH-01`**: Constructs valid Google OAuth 2.0 authorization URL with `openid profile email` scopes.
+- **`TC-OAUTH-02`**: Constructs valid Discord OAuth 2.0 authorization URL with `identify email` scopes.
+- **`TC-OAUTH-03`**: Constructs valid Facebook OAuth 2.0 authorization URL with `email` and `public_profile` scopes.
+- **`TC-OAUTH-04`**: Accurately infers OAuth provider from state parameter or fallback.
+- **`TC-OAUTH-05`**: Rejects missing client ID with descriptive error.
+- **`TC-OAUTH-06`**: Resolves linked accounts array dynamically based on provider and linked entries.
+- **`TC-OAUTH-07`**: Account unlinking marks provider disconnected without corrupting other links.
+
+#### D. Admin Security & Role Governance (`admin_security_and_isolation.test.mjs`)
+Verifies root privilege permanence, role hierarchy, and banned user restrictions:
+- **`SEC-ADMIN-01`**: Nasim (Superadmin) has automatic access to admin portal.
+- **`SEC-ADMIN-02`**: Approved admin (promoted by Nasim) has direct access to admin portal.
+- **`SEC-ADMIN-03`**: Regular member or unauthenticated visitor is blocked without admin passcode.
+- **`SEC-ADMIN-04`**: Member with valid admin passcode can unlock admin portal for session.
+- **`SEC-ADMIN-05`**: Only Superadmin Nasim can assign or change user roles to admin.
+- **`SEC-ADMIN-06`**: Admin unlock requires BOTH valid username AND password.
+- **`SEC-ADMIN-07`**: Nasim is permanent Super Admin and CANNOT be deleted, demoted, or banned.
+- **`SEC-ADMIN-08`**: Super Admin can promote Admin to Super Admin and demote another Super Admin.
+- **`SEC-ADMIN-09`**: Admin can delete regular users but not Nasim.
+- **`SEC-BANNED-01`**: Banned user can log in and view previous history, but CANNOT create, join, chat, or rate.
+
+#### E. Multi-User Data Isolation (`admin_security_and_isolation.test.mjs`)
+Verifies zero data leakage across different user sessions:
+- **`ISO-DM-01`**: Brand-new user sees 0 direct messages from other users.
+- **`ISO-DM-02`**: User only sees threads where they are an active participant.
+- **`ISO-NOTIF-01`**: Brand-new user sees 0 notifications from other users.
+- **`ISO-NOTIF-02`**: User only sees notifications specifically addressed to them.
+- **`ISO-NOTIF-03`**: Chat and DM messages are strictly excluded from notification panel.
+- **`ISO-NOTIF-04`**: Notification counter calculates unread non-message notifications.
+
+#### F. Feed Rules, Roster Kick & Notifications (`feed_and_notification_rules.test.mjs`)
+- **`FEED-01` & `FEED-02`**: Closed and Completed lobbies excluded from feed; running lobbies sorted by Admin pin.
+- **`NOTIF-01`..`03`**: Recipient filtering, self-notification exclusion, and strict separation between message and notification panels.
+- **`LOBBY-LOCK-01`**: Once Completed or Closed, lobby cannot transition back to Open or Full.
+- **`MSG-01`..`04`**: Clean DM previews, group chat non-self unread calculations, system message exclusions, and chat deletions.
+- **`ZINDEX-01`**: Slide-in chat panels z-index is strictly higher than announcement banner and navbar.
+- **`ADMIN-LOBBY-01`**: Admin panel default filter to running lobbies with completed/closed toggle.
+- **`LOBBY-EDIT-01`**: Host can update lobby details and capacity dynamically.
+- **`ROSTER-KICK-01`**: Host can remove member from squad roster, decrementing joined count and reopening lobby if full.
+
 ---
 
 ### 2. Integration Tests (`tests/integration/`)
@@ -193,6 +238,12 @@ Verifies authorization barriers conforming to **OWASP ASVS Level 1**:
 | **FR-06** | Real-time squad group chat and 1-on-1 direct messaging | High | `TC-INT-01`, `TC-INT-03`, `TC-E2E-02` | Integ, UI | **PASS** |
 | **FR-07** | Admin Control Center: report triage, ban user, purge lobby | High | `TC-SEC-01`..`05`, `TC-E2E-03` | Integ, Sec | **PASS** |
 | **FR-08** | Post-lobby session completion and teammate review prompt | Med | `TC-INT-05`, `TC-RATE-04` | Integ, Unit | **PASS** |
+| **FR-09** | Real-time OAuth 2.0 authentication & profile account linking | High | `TC-OAUTH-01`..`07` | Unit | **PASS** |
+| **FR-10** | Super Admin hierarchy, two-factor passcode guard & root permanence | High | `SEC-ADMIN-01`..`09` | Security | **PASS** |
+| **FR-11** | Banned user restricted sandbox (read-only history, write disabled) | High | `SEC-BANNED-01` | Security | **PASS** |
+| **FR-12** | Multi-user data isolation (zero demo leaks, private DMs & notifs) | High | `ISO-DM-01`..`02`, `ISO-NOTIF-01`..`04` | Isolation | **PASS** |
+| **FR-13** | Squad roster kick, member removal, and fresh re-application | High | `ROSTER-KICK-01`, `LOBBY-EDIT-01` | Integ | **PASS** |
+| **FR-14** | Message panel isolation, non-message notifications & deduplication | High | `NOTIF-01`..`03`, `MSG-01`..`04` | Unit, UI | **PASS** |
 | **NFR-01** | Feed API response latency under 20 concurrent VUs $< 500\text{ ms}$ | High | `TC-PERF-01` | Perf (k6) | **PASS** |
 | **NFR-02** | Role-based access control (non-admin blocked with `403`) | High | `TC-SEC-02`, `TC-SEC-04` | Security | **PASS** |
 | **NFR-03** | WCAG 2.2 AA accessibility score $\ge 90$ across all viewports | Med | `TC-A11Y-01` | Lighthouse | **PASS** |

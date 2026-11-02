@@ -529,29 +529,35 @@ export const api = {
     if (recipientId) {
       const clean = String(recipientId).replace(/^@/, "").toLowerCase();
       return Promise.resolve(
-        data.filter(
-          (n) =>
-            !n.recipientId ||
-            String(n.recipientId).replace(/^@/, "").toLowerCase() === clean
-        )
+        data.filter((n) => {
+          const rec = String(n.recipientId || n.recipient || "").replace(/^@/, "").toLowerCase();
+          return rec === clean;
+        })
       );
     }
     return Promise.resolve([...data]);
   },
 
   addNotification: async (notif) => {
+    const cleanRecipient = String(notif.recipientId || notif.recipient || "").replace(/^@/, "");
+    const payload = {
+      ...notif,
+      recipientId: cleanRecipient,
+      recipient: cleanRecipient,
+    };
     try {
-      const res = await apiClient.post("/notifications", notif);
+      const res = await apiClient.post("/notifications", payload);
       if (res.data) return res.data;
     } catch (err) {
       console.warn("[API] addNotification fallback:", err.message);
     }
     const notifs = readStorage(STORAGE_KEYS.NOTIFS, initialNotifications);
     const newNotif = {
-      id: String(Date.now()),
+      id: notif.id || `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       unread: true,
-      time: "Just now",
-      ...notif,
+      time: notif.time || "Just now",
+      createdAt: notif.createdAt || new Date().toISOString(),
+      ...payload,
     };
     const updated = [newNotif, ...notifs];
     writeStorage(STORAGE_KEYS.NOTIFS, updated);

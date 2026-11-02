@@ -1,5 +1,5 @@
 // AuthModal — Sign In / Sign Up modal matching original Figma design exactly
-// Features authentic Google (4-color) and Discord vector logos, email auth, quick accounts, and interest tags
+// Features authentic Google (4-color) and Discord vector logos, email auth, and interest tags
 
 import { useState } from "react";
 import Button from "../ui/Button.jsx";
@@ -35,16 +35,6 @@ export default function AuthModal({
     setSelectedInterests((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
-  };
-
-  const fillQuickUser = (handle, password = "1234") => {
-    setFormData((prev) => ({
-      ...prev,
-      email: handle,
-      username: handle,
-      password: password,
-    }));
-    setErrorMsg("");
   };
 
   const handleInitiateOAuth = async (provider, overrideClientId = "") => {
@@ -431,91 +421,6 @@ export default function AuthModal({
             <span style={{ padding: "0 10px" }}>or continue with email</span>
             <div style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
           </div>
-
-          {/* Quick Real User Picker (Sign In View) */}
-          {view === "signin" && (
-            <div
-              style={{
-                background: "var(--bg-surface-alt)",
-                border: "1px solid var(--border-subtle)",
-                borderRadius: 12,
-                padding: "12px 14px",
-                marginBottom: 18,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "var(--text-muted)",
-                  letterSpacing: "0.05em",
-                  marginBottom: 8,
-                  textTransform: "uppercase",
-                }}
-              >
-                Quick Accounts (Password: 1234)
-              </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={() => fillQuickUser("Error-nasim", "1234")}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 8,
-                    background: "rgba(99, 102, 241, 0.15)",
-                    border: "1px solid rgba(99, 102, 241, 0.4)",
-                    color: "#818cf8",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  👑 Nasim (Admin)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillQuickUser("rimon21", "1234")}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 8,
-                    background: "rgba(16, 185, 129, 0.15)",
-                    border: "1px solid rgba(16, 185, 129, 0.4)",
-                    color: "#34d399",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  ⚡ Rimon
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillQuickUser("imtiaz11", "1234")}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 8,
-                    background: "rgba(245, 158, 11, 0.15)",
-                    border: "1px solid rgba(245, 158, 11, 0.4)",
-                    color: "#fbbf24",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  🏀 Al Imtiaz
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Form fields */}
           <form

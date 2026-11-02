@@ -214,6 +214,7 @@ export default function Navbar({
             </Link>
             <button
               onClick={onToggleNotifs}
+              aria-label="Notifications"
               style={{
                 position: 'relative',
                 background: 'none',
@@ -222,6 +223,9 @@ export default function Navbar({
                 fontSize: 18,
                 cursor: 'pointer',
                 padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               🔔
@@ -229,21 +233,23 @@ export default function Navbar({
                 <span
                   style={{
                     position: 'absolute',
-                    top: 2,
-                    right: 2,
+                    top: 1,
+                    right: 1,
                     minWidth: 15,
                     height: 15,
                     background: '#F43F5E',
-                    borderRadius: '50%',
+                    borderRadius: 10,
                     fontSize: 9,
-                    fontWeight: 700,
+                    fontWeight: 800,
                     color: '#fff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    padding: '0 3px',
+                    boxShadow: '0 0 0 2px var(--bg-surface)',
                   }}
                 >
-                  {notifCount}
+                  {notifCount > 99 ? '99+' : notifCount}
                 </span>
               )}
             </button>
@@ -498,6 +504,7 @@ export default function Navbar({
 
             <button
               onClick={onToggleNotifs}
+              aria-label="Notifications"
               style={{
                 position: 'relative',
                 background: 'var(--bg-surface-alt)',
@@ -511,7 +518,15 @@ export default function Navbar({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'all 0.15s',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#6366F1'
+                e.currentTarget.style.transform = 'translateY(-1px)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-subtle)'
+                e.currentTarget.style.transform = 'translateY(0)'
               }}
             >
               🔔
@@ -519,22 +534,23 @@ export default function Navbar({
                 <span
                   style={{
                     position: 'absolute',
-                    top: -2,
-                    right: -2,
+                    top: -3,
+                    right: -3,
                     minWidth: 16,
                     height: 16,
                     background: '#F43F5E',
-                    borderRadius: '50%',
+                    borderRadius: 10,
                     fontSize: 10,
-                    fontWeight: 700,
+                    fontWeight: 800,
                     color: '#fff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '0 3px',
+                    boxShadow: '0 0 0 2px var(--bg-surface)',
                   }}
                 >
-                  {notifCount}
+                  {notifCount > 99 ? '99+' : notifCount}
                 </span>
               )}
             </button>

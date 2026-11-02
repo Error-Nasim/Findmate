@@ -55,6 +55,21 @@ func (s *service) Apply(lobbyID, userID, name, handle, avatar string, tags []str
 		return nil, errors.New("you cannot apply to your own lobby")
 	}
 
+	// Check if applicant already has a pending or accepted status in this lobby
+	existingApps, err := s.appRepo.ListByLobby(lobbyID)
+	if err == nil {
+		for _, existing := range existingApps {
+			if strings.EqualFold(strings.TrimPrefix(existing.Handle, "@"), cleanHandle) || (userID != "" && existing.UserID == userID) {
+				if existing.Status == "pending" {
+					return nil, errors.New("you have already applied to this lobby")
+				}
+				if existing.Status == "accepted" {
+					return nil, errors.New("you are already a member of this lobby")
+				}
+			}
+		}
+	}
+
 	app := domain.Applicant{
 		ID:          fmt.Sprintf("app_%d", time.Now().UnixNano()),
 		LobbyID:     lobbyID,
@@ -84,7 +99,7 @@ func (s *service) Apply(lobbyID, userID, name, handle, avatar string, tags []str
 		_, _ = s.notifRepo.Create(domain.Notification{
 			RecipientID: lobby.Handle,
 			Icon:        "✋",
-			Text:        fmt.Sprintf("%s applied to your %s lobby", name, lobby.Title),
+			Text:        fmt.Sprintf("%s applied to your lobby \"%s\"", name, lobby.Title),
 			Type:        "apply",
 			ApplicantID: created.ID,
 			CreatedAt:   time.Now(),
@@ -173,9 +188,9 @@ func (s *service) AcceptApplicant(applicantID string) (*domain.Applicant, error)
 	if s.notifRepo != nil {
 		_, _ = s.notifRepo.Create(domain.Notification{
 			RecipientID: app.Handle,
-			Icon:        "✅",
-			Text:        fmt.Sprintf("You were accepted into %s's %s lobby", lobby.Host, lobby.Title),
-			Type:        "accepted",
+			Icon:        "🎉",
+			Text:        fmt.Sprintf("🎉 You were accepted into the squad for \"%s\"!", lobby.Title),
+			Type:        "lobby_accepted",
 			CreatedAt:   time.Now(),
 		})
 	}
@@ -247,9 +262,9 @@ func (s *service) RemoveApplicant(applicantID string) (*domain.Applicant, error)
 			if s.notifRepo != nil {
 				_, _ = s.notifRepo.Create(domain.Notification{
 					RecipientID: app.Handle,
-					Icon:        "🚫",
-					Type:        "removed",
-					Text:        fmt.Sprintf("You were removed from %s by the host.", lobby.Title),
+					Icon:        "⚠️",
+					Type:        "lobby_kick",
+					Text:        fmt.Sprintf("⚠️ You have been removed from the lobby \"%s\" by the host.", lobby.Title),
 					Time:        "Just now",
 					Unread:      true,
 				})
