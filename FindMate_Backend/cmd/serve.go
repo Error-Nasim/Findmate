@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log"
+	"os"
 
 	"findmate-backend/admin"
 	"findmate-backend/applicant"
@@ -39,7 +40,13 @@ func Serve() {
 	defer dbConn.Close()
 
 	// 3. Run Database Migrations
-	if err := db.MigrateDB(dbConn, "./migrations"); err != nil {
+	migrationDir := "./migrations"
+	if _, err := os.Stat(migrationDir); os.IsNotExist(err) {
+		if _, err := os.Stat("./FindMate_Backend/migrations"); err == nil {
+			migrationDir = "./FindMate_Backend/migrations"
+		}
+	}
+	if err := db.MigrateDB(dbConn, migrationDir); err != nil {
 		log.Printf("[MIGRATE WARNING] Failed to apply migrations automatically: %v", err)
 	}
 
