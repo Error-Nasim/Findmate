@@ -8,9 +8,14 @@ import { dmThreads as initialDMThreads } from "../data/dmThreads.js";
 import { notifications as initialNotifications } from "../data/notifications.js";
 import { initialUsers } from "../data/users.js";
 
-// Axios client ready for Go REST server
+// Axios client ready for Go REST server (automatically appends /api if omitted)
+const rawBaseURL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+const normalizedBaseURL = rawBaseURL.replace(/\/+$/, "").endsWith("/api")
+  ? rawBaseURL.replace(/\/+$/, "")
+  : `${rawBaseURL.replace(/\/+$/, "")}/api`;
+
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
+  baseURL: normalizedBaseURL,
   headers: {
     "Content-Type": "application/json",
   },
