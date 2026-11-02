@@ -1,11 +1,15 @@
 # 🎨 FindMate Frontend — React 19 Architecture & Component Guide
 
+[![Live App](https://img.shields.io/badge/Live_App-findmate--psi.vercel.app-2ea44f?style=flat-square&logo=vercel&logoColor=white)](https://findmate-psi.vercel.app/)
 [![React 19](https://img.shields.io/badge/Frontend-React_19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![Vite 6](https://img.shields.io/badge/Bundler-Vite_6-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind_CSS_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![React Router](https://img.shields.io/badge/Routing-React_Router_v6-CA4245?style=flat-square&logo=reactrouter&logoColor=white)](https://reactrouter.com/)
 [![Figma Prototype](https://img.shields.io/badge/UI_Design-Figma_Prototype-F24E1E?style=flat-square&logo=figma&logoColor=white)](https://appeal-rich-26498266.figma.site)
 [![Tests Passing](https://img.shields.io/badge/Tests-64%2F64_Passed-brightgreen?style=flat-square)](../tests/README.md)
+
+> **🚀 Live Production App**: [**https://findmate-psi.vercel.app/**](https://findmate-psi.vercel.app/)  
+> Connected to live Render Go REST API (`https://findmate-dctf.onrender.com/api`) and Neon PostgreSQL.
 
 This directory houses the single-page web client for **FindMate**, built with **React 19**, **Vite 6**, and **Tailwind CSS 3**. The frontend implements the official [FindMate Figma UI Specification](https://appeal-rich-26498266.figma.site) with real-time reactive synchronization and direct integration with the [Go DDD REST Backend](../FindMate_Backend/README.md).
 
@@ -159,6 +163,36 @@ The `/admin` route is a dedicated executive control suite protected by role chec
 8. **Multi-User Data Isolation (Zero Leaks)**: Clean slate for brand-new users with zero demo or fake data leakage across user sessions.
 9. **Squad Roster Management**: Hosts can remove/kick squad members from the roster (`handleRemoveMember`), automatically decrementing joined count, reopening the lobby if it was Full, broadcasting a squad departure alert, and allowing the kicked member to re-apply fresh.
 10. **Interactive Notification Management**: Notifications panel allows single-click individual notification deletion (`🗑️`) and complete notification clearance (`Clear all`), persisting changes directly to the PostgreSQL database with smart deduplication.
+
+---
+
+## ☁️ Live Cloud Production Deployment (Vercel)
+
+The frontend is continuously deployed to production on **Vercel** with global edge CDN caching:
+
+- **Live Production URL**: [**https://findmate-psi.vercel.app/**](https://findmate-psi.vercel.app/)
+- **Live Backend API Target**: [`https://findmate-dctf.onrender.com/api`](https://findmate-dctf.onrender.com/api) (Render Go REST Microservice)
+- **SPA Routing & Deep Linking**: Single-Page Application client routing is resolved seamlessly on Vercel edge nodes via `vercel.json` and `public/_redirects`:
+  ```json
+  {
+    "rewrites": [
+      {
+        "source": "/(.*)",
+        "destination": "/"
+      }
+    ]
+  }
+  ```
+- **Automatic API Endpoint Normalization**: [`src/api/index.js`](./src/api/index.js) dynamically normalizes the base URL. If `/api` is omitted from `VITE_API_URL`, the client gracefully appends `/api`, preventing 404 route mismatches across environments.
+- **Production Environment Configuration (`.env.production`)**:
+  ```env
+  VITE_API_URL=https://findmate-dctf.onrender.com/api
+  VITE_GOOGLE_CLIENT_ID=436900222452-f1h0iq4kcf0q26t7v93r3s78o0qftg3i.apps.googleusercontent.com
+  VITE_DISCORD_CLIENT_ID=1344445580005740595
+  VITE_FACEBOOK_APP_ID=1164998278489812
+  VITE_OAUTH_REDIRECT_URI=https://findmate-psi.vercel.app/auth/callback
+  ```
+- **Clean Production Authentication**: In [`src/components/modals/AuthModal.jsx`](./src/components/modals/AuthModal.jsx), development test shortcuts have been removed. Users authenticate via authentic credentials or live OAuth 2.0 (Google, Discord, Meta).
 
 ---
 

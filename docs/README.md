@@ -1,5 +1,15 @@
 # 📚 FindMate — Master Documentation Hub
 
+[![Live Demo](https://img.shields.io/badge/Live_App-findmate--psi.vercel.app-2ea44f?style=flat-square&logo=vercel&logoColor=white)](https://findmate-psi.vercel.app/)
+[![Production API](https://img.shields.io/badge/Production_API-Render_Live-46E3B7?style=flat-square&logo=render&logoColor=white)](https://findmate-dctf.onrender.com/api/health)
+[![Cloud Database](https://img.shields.io/badge/Database-Neon_Postgres_18-00E599?style=flat-square&logo=postgresql&logoColor=white)](https://neon.tech/)
+
+> **🚀 Live Production Deployment**:
+> - **Web Application (Vercel Edge)**: [**https://findmate-psi.vercel.app/**](https://findmate-psi.vercel.app/)
+> - **REST API Service (Render Docker)**: [`https://findmate-dctf.onrender.com`](https://findmate-dctf.onrender.com/api/health)
+> - **Cloud Database**: Neon Serverless PostgreSQL 18.6 (AWS Singapore `ap-southeast-1`)
+> - **Live Super Admin**: `@Error-nasim` / `nasim@findmate.local` (Password: `1234`)
+
 Welcome to the central documentation archive for **FindMate**. This directory serves as the single source of truth for all project specifications, system architecture designs, academic laboratory reports, testing artifacts, API blueprints, and deployment manuals.
 
 ---
@@ -82,6 +92,9 @@ docs/
 | **Architecture** | **Use Case Diagrams & Specifications** | Completed | [`Diagrams/Usecase Diagram/UseCase_Diagram.md`](./Diagrams/Usecase%20Diagram/UseCase_Diagram.md) | High-level system boundary diagram and 4 subsystem-level use case models. |
 | **Backend** | **Go 1.22 DDD REST API Architecture** | Completed | [`FindMate_Backend/README.md`](../FindMate_Backend/README.md) | Endpoint catalog, Go domain services, PostgreSQL migrations, and passing backend unit tests. |
 | **Frontend** | **React 19 Frontend Architecture** | Completed | [`FindMate_Frontend/README.md`](../FindMate_Frontend/README.md) | Component hierarchy, client-side routes, mock persistence engine, and theme tokens. |
+| **Live App** | **Production Single-Page Application** | Live | [**https://findmate-psi.vercel.app/**](https://findmate-psi.vercel.app/) | Deployed on Vercel Edge CDN with client-side SPA routing and dark/light theme engine. |
+| **Live API** | **Production Go REST API Microservice** | Live | [`https://findmate-dctf.onrender.com`](https://findmate-dctf.onrender.com/api/health) | Docker container on Render in AWS Singapore with TLS connection to Neon DB. |
+| **Cloud DB** | **Neon Serverless PostgreSQL Database** | Live | Serverless PostgreSQL 18.6 | Managed pooled connection in AWS Singapore, 7 automated schema migrations applied. |
 
 ---
 

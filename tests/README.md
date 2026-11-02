@@ -4,10 +4,17 @@
 *Course: CSE0613316 — Software Project Design and Development (Lab) · Experiments 9 & 10*  
 *Target Tier: **Distinction (Grade Band 4)***
 
+[![Live App](https://img.shields.io/badge/Live_App-findmate--psi.vercel.app-2ea44f?style=flat-square&logo=vercel&logoColor=white)](https://findmate-psi.vercel.app/)
+[![Production API](https://img.shields.io/badge/Production_API-Render_Live-46E3B7?style=flat-square&logo=render&logoColor=white)](https://findmate-dctf.onrender.com/api/health)
 [![CI Test Gate](https://img.shields.io/badge/CI_Gate-Passing-brightgreen?style=flat-square&logo=githubactions)](../.github/workflows/test.yml)
 [![Code Coverage](https://img.shields.io/badge/Coverage-99%25_Line-brightgreen?style=flat-square)](./evidence/coverage_summary.txt)
 [![Tests Passing](https://img.shields.io/badge/Tests-64%2F64_Passing-brightgreen?style=flat-square)](#-how-to-run-the-tests)
 [![Quality Standard](https://img.shields.io/badge/Standard-ISO%2FIEC%2FIEEE_29119--3-blue?style=flat-square)](../docs/Reports/testing/Test_Report.md)
+
+> **🚀 Live Production Deployment**:
+> - **Frontend (Vercel)**: [**https://findmate-psi.vercel.app/**](https://findmate-psi.vercel.app/)
+> - **Backend API (Render)**: [`https://findmate-dctf.onrender.com/api/health`](https://findmate-dctf.onrender.com/api/health)
+> - **Database**: Neon Serverless PostgreSQL 18.6
 
 ---
 
@@ -111,6 +118,20 @@ To simulate 20 concurrent Virtual Users (VUs) and benchmark p95 latency:
 ```bash
 # Install k6 (if not already installed: sudo apt install k6)
 k6 run tests/performance/k6_load_test.js
+```
+
+---
+
+### 5. Live Production Smoke & Health Verification
+
+Verify that the live cloud infrastructure is responsive:
+
+```bash
+# Verify Live Frontend SPA (Vercel Edge)
+curl -I https://findmate-psi.vercel.app/
+
+# Verify Live Go REST API Microservice (Render Docker)
+curl -i https://findmate-dctf.onrender.com/api/health
 ```
 
 ---

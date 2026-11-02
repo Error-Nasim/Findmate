@@ -1,11 +1,19 @@
 # ⚡ FindMate Backend — High-Throughput Go REST API & DDD Architecture
 
+[![Production API](https://img.shields.io/badge/Live_API-Render_Live-46E3B7?style=flat-square&logo=render&logoColor=white)](https://findmate-dctf.onrender.com/api/health)
+[![Cloud Database](https://img.shields.io/badge/Database-Neon_Postgres_18-00E599?style=flat-square&logo=postgresql&logoColor=white)](https://neon.tech/)
+[![Live App](https://img.shields.io/badge/Live_App-findmate--psi.vercel.app-2ea44f?style=flat-square&logo=vercel&logoColor=white)](https://findmate-psi.vercel.app/)
 [![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://golang.org/)
 [![Architecture](<https://img.shields.io/badge/Architecture-Domain--Driven_Design_(DDD)-indigo?style=flat-square>)](./domain/)
 [![Database](https://img.shields.io/badge/Database-PostgreSQL_16-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![ORM / Data Access](https://img.shields.io/badge/Data_Access-sqlx-blue?style=flat-square)](https://github.com/jmoiron/sqlx)
 [![Security](https://img.shields.io/badge/Security-JWT_%2B_Bcrypt-emerald?style=flat-square)](./util/)
 [![Tests Passing](https://img.shields.io/badge/Go_Tests-100%25_Passing-brightgreen?style=flat-square)](./)
+
+> **🚀 Live Production API**: [`https://findmate-dctf.onrender.com`](https://findmate-dctf.onrender.com)  
+> **Health Check**: [`https://findmate-dctf.onrender.com/api/health`](https://findmate-dctf.onrender.com/api/health) (`HTTP 200 OK`)  
+> **Database**: Hosted on **Neon Serverless PostgreSQL** (AWS Singapore `ap-southeast-1`)  
+> **Frontend Web App**: [**https://findmate-psi.vercel.app/**](https://findmate-psi.vercel.app/)
 
 The backend service for **FindMate** is an enterprise-grade, high-throughput REST API written in **Go (Golang) 1.22+**. It is designed following **Domain-Driven Design (DDD)** and **Clean Hexagonal Architecture** principles, backed by a persistent **PostgreSQL 16** database with automated schema migrations, JWT stateless authentication, Bcrypt password hashing, and role-based access control (RBAC).
 
@@ -327,7 +335,50 @@ All API endpoints are prefixed with `/api`. Responses adhere to a consistent JSO
 
 ---
 
-## 🚀 Setup & Execution Guide
+## ☁️ Free Cloud Production Deployment (Render + Neon)
+
+The backend is fully configured for zero-cost deployment on **Render** (Docker Web Service) connected to **Neon** (Serverless PostgreSQL):
+
+```mermaid
+flowchart LR
+    Frontend["Vercel SPA\nfindmate-psi.vercel.app"] -->|"HTTPS /api/*"| Render["Render Go Web Service\nfindmate-dctf.onrender.com"]
+    Render -->|"TLS 5432"| Neon["Neon Serverless PostgreSQL\nAWS Singapore (ap-southeast-1)"]
+```
+
+### 1. Multi-Stage Dockerfile Architecture
+The backend container is built using a lightweight multi-stage Docker build:
+- **Build Stage**: Uses `golang:alpine` with `ENV GOTOOLCHAIN=auto` to dynamically fetch and compile modern Go toolchains.
+- **Runtime Stage**: Uses minimal `alpine:latest` with CA certificates and standard `/migrations` folder.
+- **Migration Auto-Detection**: `cmd/serve.go` dynamically verifies whether migrations reside in `./migrations` or `./FindMate_Backend/migrations`, ensuring seamless execution both locally and inside container runtimes.
+
+### 2. Render Environment Variables
+
+Configure these keys in Render's **Environment** tab:
+
+| Variable | Recommended Production Value | Description |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | `postgresql://neondb_owner:***@ep-***-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require` | Pooled Neon PostgreSQL connection string |
+| `DB_SSL_MODE` | `require` | Mandates TLS encryption for cloud database queries |
+| `PORT` | `8080` | Render port configuration |
+| `JWT_SECRET_KEY` | *(Strong random 32+ char secret)* | HS256 secret for signing authentication tokens |
+| `GOOGLE_CLIENT_ID` | `***.apps.googleusercontent.com` | Google Cloud OAuth 2.0 Web Client ID |
+| `GOOGLE_CLIENT_SECRET` | `GOCSPX-***` | Google Cloud OAuth 2.0 Web Client Secret |
+| `GOOGLE_REDIRECT_URI` | `https://findmate-psi.vercel.app/auth/callback` | OAuth redirect URI |
+| `DISCORD_CLIENT_ID` | `***` | Discord Developer Portal Application ID |
+| `DISCORD_CLIENT_SECRET` | `***` | Discord Application Secret |
+| `DISCORD_REDIRECT_URI` | `https://findmate-psi.vercel.app/auth/callback` | Discord OAuth redirect URI |
+
+### 3. Live Health & Smoke Verification
+
+```bash
+# Check Render API live health status
+curl -i https://findmate-dctf.onrender.com/api/health
+# Expected Response: HTTP/2 200 OK {"data":{"status":"ok","time":"..."},"status":200,"success":true}
+```
+
+---
+
+## 🚀 Local Setup & Execution Guide
 
 ### Prerequisites
 

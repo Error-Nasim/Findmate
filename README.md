@@ -5,6 +5,10 @@
 **Instant Teammate Matchmaking & Micro-Lobby Collaboration Platform**  
 _No Event Planning Overhead. No Discord Clutter. Zero Ghosting._
 
+[![Live Demo](https://img.shields.io/badge/Live_App-findmate--psi.vercel.app-2ea44f?style=for-the-badge&logo=vercel&logoColor=white)](https://findmate-psi.vercel.app/)
+[![API Status](https://img.shields.io/badge/Production_API-Render_Live-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://findmate-dctf.onrender.com/api/health)
+[![Cloud DB](https://img.shields.io/badge/Database-Neon_Postgres_18-00E599?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech/)
+
 [![React](https://img.shields.io/badge/Frontend-React_19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Bundler-Vite_6-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind_CSS_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
@@ -17,19 +21,39 @@ _No Event Planning Overhead. No Discord Clutter. Zero Ghosting._
 [![Figma](https://img.shields.io/badge/UI_Design-Figma_Prototype-F24E1E?style=flat-square&logo=figma&logoColor=white)](https://appeal-rich-26498266.figma.site)
 
 <p align="center">
+  <a href="#-live-production-deployment">Live Demo</a> •
   <a href="#-overview">Overview</a> •
   <a href="#-key-features">Key Features</a> •
   <a href="#-system-architecture--diagrams">Architecture</a> •
   <a href="#-14-week-schedule--gantt-chart">Gantt Schedule</a> •
   <a href="#-tech-stack">Tech Stack</a> •
-  <a href="#-project-structure">Structure</a> •
-  <a href="#-getting-started">Getting Started</a> •
+  <a href="#-cloud-deployment-100-free">Deployment</a> •
+  <a href="#-getting-started">Local Setup</a> •
   <a href="#-testing--verification-protocol">Testing & CI</a> •
-  <a href="#-capstone-deliverables--reports">Documentation Hub</a> •
   <a href="#-team--acknowledgments">Team</a>
 </p>
 
 </div>
+
+---
+
+## 🚀 Live Production Deployment
+
+FindMate is fully deployed to production on a **100% free, high-performance cloud stack** with automated CI/CD:
+
+| Component | Platform | Live URL / Endpoint | Details |
+| :--- | :--- | :--- | :--- |
+| **Frontend Web App** | **Vercel** | [**https://findmate-psi.vercel.app/**](https://findmate-psi.vercel.app/) | React 19 SPA, global edge CDN, automated Git CD, instant SPA routing. |
+| **REST API Microservice** | **Render** | [`https://findmate-dctf.onrender.com`](https://findmate-dctf.onrender.com/api/health) | Go 1.22 compiled native binary, Docker runtime in AWS Singapore. |
+| **Relational Database** | **Neon** | Serverless PostgreSQL 18.6 | Managed pooled connection, 7 automated SQL schema migrations. |
+| **OAuth 2.0 Providers** | Google, Discord, Meta | `/auth/callback` | Cross-platform real-time authentication & account linking. |
+
+> **🔑 Live Test Accounts (Pre-Seeded in Neon DB)**:
+> - **Super Admin**: `@Error-nasim` *(or `nasim@findmate.local`)* — Password: `1234`
+> - **Member 1**: `@rimon21` *(or `rimon@findmate.local`)* — Password: `1234`
+> - **Member 2**: `@imtiaz11` *(or `imtiaz@findmate.local`)* — Password: `1234`
+> - **Direct Admin Portal**: [https://findmate-psi.vercel.app/admin](https://findmate-psi.vercel.app/admin) (passcode protected)
+> - **Live OAuth 2.0**: Sign in directly with your personal **Google**, **Discord**, or **Meta** accounts.
 
 ---
 
@@ -221,7 +245,47 @@ Findmate/
 
 ---
 
-## 🚀 Getting Started
+## ☁️ Cloud Deployment (100% Free Production Stack)
+
+The entire full-stack platform can be deployed completely free in under 5 minutes with zero credit card required:
+
+```mermaid
+flowchart LR
+    Browser["User Browser"] --> Vercel["Vercel\n(React 19 SPA)"]
+    Vercel -->|"HTTPS / JSON"| Render["Render\n(Go REST API)"]
+    Render -->|"PostgreSQL TLS"| Neon["Neon\n(Serverless DB)"]
+```
+
+### 1. Database: Neon (neon.tech)
+1. Create a free project on [Neon](https://neon.tech) in `AWS Asia Pacific 1 (Singapore)`.
+2. Copy the pooled connection string (`postgresql://...`).
+3. Neon automatically scales to zero when idle and provides 1 GB free storage.
+
+### 2. Backend: Render (render.com)
+1. Create a **New Web Service** connected to your GitHub repo.
+2. Settings:
+   - **Root Directory**: `FindMate_Backend`
+   - **Runtime**: `Go` (or `Docker`)
+   - **Region**: `Singapore`
+   - **Instance Type**: `Free`
+3. Environment Variables:
+   - `DATABASE_URL`: Your Neon PostgreSQL connection string.
+   - `DB_SSL_MODE`: `require`
+   - `JWT_SECRET_KEY`: Custom secure key.
+   - `PORT`: `8080`
+   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`
+   - `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` / `DISCORD_REDIRECT_URI`
+   - `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` / `FACEBOOK_REDIRECT_URI`
+
+### 3. Frontend: Vercel (vercel.com)
+1. Import repository to [Vercel](https://vercel.com).
+2. Framework: `Vite`, Root Directory: `FindMate_Frontend`.
+3. Pre-configured `.env.production` automatically links to `https://findmate-dctf.onrender.com/api`.
+4. Deploy! Automatic edge CDN routing handled via `vercel.json` rewrites.
+
+---
+
+## 💻 Local Getting Started
 
 ### Prerequisites
 
