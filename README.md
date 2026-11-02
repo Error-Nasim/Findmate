@@ -313,7 +313,6 @@ go run main.go
 ```
 
 > **Pre-Seeded Real Users (Password: `1234`)**:
-> - `@Error-nasim` (Abu Nasim — Main Admin)
 > - `@rimon21` (Rimon Chandra Bhowmik — Member)
 > - `@imtiaz11` (Al Imtiaz — Member)
 
@@ -373,6 +372,6 @@ npm test
 
 ## 👥 Team & Acknowledgments
 
-- **Abu Nasim** (Registration ID: `0432320005101033`, Student ID: `211014022`, GitHub: [`@Error-nasim`](https://github.com/Error-nasim)) — Project Lead & Full-Stack Architect
-- **Rimon Chandra Bhowmik** (Registration ID: `0432320005101001`, Student ID: `211014035`) — Documentation Lead & Quality Assurance Engineer
+- **Abu Nasim** (Student ID: `0432320005101033`, GitHub: [`@Error-nasim`](https://github.com/Error-nasim)) — Project Lead & Full-Stack Architect
+- **Rimon Chandra Bhowmik** (Student ID: `0432320005101001`,) — Documentation Lead & Quality Assurance Engineer
 - **Course Supervisor**: **Al Imtiaz**, Associate Professor, Department of Computer Science & Engineering, University of Information Technology and Sciences (UITS), Dhaka.
