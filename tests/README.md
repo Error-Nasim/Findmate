@@ -8,7 +8,7 @@
 [![Production API](https://img.shields.io/badge/Production_API-Render_Live-46E3B7?style=flat-square&logo=render&logoColor=white)](https://findmate-dctf.onrender.com/api/health)
 [![CI Test Gate](https://img.shields.io/badge/CI_Gate-Passing-brightgreen?style=flat-square&logo=githubactions)](../.github/workflows/test.yml)
 [![Code Coverage](https://img.shields.io/badge/Coverage-99%25_Line-brightgreen?style=flat-square)](./evidence/coverage_summary.txt)
-[![Tests Passing](https://img.shields.io/badge/Tests-64%2F64_Passing-brightgreen?style=flat-square)](#-how-to-run-the-tests)
+[![Tests Passing](https://img.shields.io/badge/Tests-76%2F76_Passing-brightgreen?style=flat-square)](#-how-to-run-the-tests)
 [![Quality Standard](https://img.shields.io/badge/Standard-ISO%2FIEC%2FIEEE_29119--3-blue?style=flat-square)](../docs/Reports/testing/Test_Report.md)
 
 > **🚀 Live Production Deployment**:
@@ -67,7 +67,7 @@ From the project root:
 npm test
 ```
 
-> **Result**: Executes all **64 automated tests** across all 8 test modules in **< 350 ms** with 100% pass rate.
+> **Result**: Executes all **76 automated tests** across all 8 test modules in **< 350 ms** with 100% pass rate.
 
 ---
 

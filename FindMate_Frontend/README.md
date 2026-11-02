@@ -6,7 +6,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind_CSS_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![React Router](https://img.shields.io/badge/Routing-React_Router_v6-CA4245?style=flat-square&logo=reactrouter&logoColor=white)](https://reactrouter.com/)
 [![Figma Prototype](https://img.shields.io/badge/UI_Design-Figma_Prototype-F24E1E?style=flat-square&logo=figma&logoColor=white)](https://appeal-rich-26498266.figma.site)
-[![Tests Passing](https://img.shields.io/badge/Tests-64%2F64_Passed-brightgreen?style=flat-square)](../tests/README.md)
+[![Tests Passing](https://img.shields.io/badge/Tests-76%2F76_Passed-brightgreen?style=flat-square)](../tests/README.md)
 
 > **🚀 Live Production App**: [**https://findmate-psi.vercel.app/**](https://findmate-psi.vercel.app/)  
 > Connected to live Render Go REST API (`https://findmate-dctf.onrender.com/api`) and Neon PostgreSQL.
@@ -214,7 +214,7 @@ The frontend communicates with the Go backend via Axios (`src/api/index.js`):
 
 ## 🧪 Testing
 
-Frontend unit algorithms, authentication flows, data isolation, and user journeys are tested as part of the unified 64-test suite:
+Frontend unit algorithms, authentication flows, data isolation, and user journeys are tested as part of the unified 76-test suite:
 
 ```bash
 # Run all automated tests from the repository root

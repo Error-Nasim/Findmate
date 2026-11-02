@@ -713,10 +713,41 @@ export const api = {
       const res = await apiClient.put(`/users/${cleanHandle}`, updates);
       if (res.data) return res.data;
     } catch (err) {
+      if (err.response?.data?.error) {
+        throw new Error(err.response.data.error);
+      }
       console.warn("[API] updateUser fallback:", err.message);
     }
     const users = readStorage(STORAGE_KEYS.USERS, initialUsers);
     const cleanQuery = String(userQuery).replace(/^@/, "").toLowerCase();
+    const targetUser = users.find(
+      (u) =>
+        u.id === userQuery ||
+        u.handle.toLowerCase() === cleanQuery ||
+        u.name.toLowerCase() === cleanQuery
+    );
+
+    if (updates.handle) {
+      const newHandle = String(updates.handle).replace(/^@/, "").trim();
+      const isTaken = users.some(
+        (u) =>
+          u.handle.toLowerCase() === newHandle.toLowerCase() &&
+          u.id !== targetUser?.id
+      );
+      if (isTaken) {
+        throw new Error("Username is already taken");
+      }
+      updates.handle = newHandle;
+      updates.username = newHandle;
+    }
+
+    if (updates.password) {
+      const confirmPwd = updates.confirm_password || updates.confirmPassword || updates.password_again;
+      if (confirmPwd && updates.password !== confirmPwd) {
+        throw new Error("Passwords do not match");
+      }
+    }
+
     const updated = users.map((u) => {
       if (
         u.id === userQuery ||
@@ -728,12 +759,13 @@ export const api = {
       return u;
     });
     writeStorage(STORAGE_KEYS.USERS, updated);
+    const targetId = targetUser?.id || userQuery;
+    const finalNewHandle = (updates.handle || cleanQuery).toLowerCase();
     return Promise.resolve(
       updated.find(
         (u) =>
-          u.id === userQuery ||
-          u.handle.toLowerCase() === cleanQuery ||
-          u.name.toLowerCase() === cleanQuery
+          u.id === targetId ||
+          u.handle.toLowerCase() === finalNewHandle
       )
     );
   },

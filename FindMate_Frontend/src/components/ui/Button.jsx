@@ -12,6 +12,9 @@ export default function Button({
   sm = false,       // small size
   disabled = false,
   type = 'button',
+  title,
+  style = {},
+  ...rest
 }) {
   const base = {
     display: 'inline-flex',
@@ -59,7 +62,9 @@ export default function Button({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      style={{ ...base, ...variants[v] }}
+      title={title}
+      style={{ ...base, ...variants[v], ...style }}
+      {...rest}
       onMouseEnter={e => {
         if (disabled) return
         if (v === 'primary') {

@@ -12,22 +12,24 @@ function canAccessAdminPanel(user, sessionUnlocked) {
   const isNasim = Boolean(
     user && (
       (user.handle && user.handle.replace(/^@/, '').toLowerCase() === 'error-nasim') ||
-      (user.name && user.name.toLowerCase().includes('nasim')) ||
-      (user.email && user.email.toLowerCase().includes('nasim'))
+      user.id === 'u1' ||
+      (user.email && user.email.toLowerCase() === 'nasim@findmate.local')
     )
   )
-  const isApprovedAdmin = Boolean(user && user.role === 'admin')
+  const isApprovedAdmin = Boolean(user && (user.role === 'admin' || user.role === 'superadmin'))
   return isNasim || isApprovedAdmin || sessionUnlocked
 }
 
 function canChangeUserRole(actorUser) {
   if (!actorUser) return false
   const isNasim = Boolean(
-    (actorUser.handle && actorUser.handle.replace(/^@/, '').toLowerCase() === 'error-nasim') ||
-    (actorUser.name && actorUser.name.toLowerCase().includes('nasim')) ||
-    (actorUser.email && actorUser.email.toLowerCase().includes('nasim'))
+    actorUser && (
+      (actorUser.handle && actorUser.handle.replace(/^@/, '').toLowerCase() === 'error-nasim') ||
+      actorUser.id === 'u1' ||
+      (actorUser.email && actorUser.email.toLowerCase() === 'nasim@findmate.local')
+    )
   )
-  return isNasim
+  return isNasim || actorUser.role === 'superadmin'
 }
 
 function filterUserDMs(threads, currentUser) {
@@ -100,10 +102,10 @@ function validateAdminUnlock(username, password, users = []) {
 function canDeleteTargetUser(actorUser, targetUser) {
   if (!actorUser || !targetUser) return false
   const targetHandle = (targetUser.handle || '').toLowerCase().replace(/^@/, '')
-  const isNasimTarget = targetHandle === 'error-nasim' || (targetUser.name && targetUser.name.toLowerCase().includes('nasim'))
+  const isNasimTarget = targetHandle === 'error-nasim' || targetUser.id === 'u1' || targetUser.email === 'nasim@findmate.local'
   if (isNasimTarget) return false // Nasim is permanent and immune to deletion
 
-  const isActorNasim = (actorUser.handle || '').toLowerCase().replace(/^@/, '') === 'error-nasim' || (actorUser.name && actorUser.name.toLowerCase().includes('nasim'))
+  const isActorNasim = (actorUser.handle || '').toLowerCase().replace(/^@/, '') === 'error-nasim' || actorUser.id === 'u1' || actorUser.email === 'nasim@findmate.local'
   const isActorSuperAdmin = isActorNasim || actorUser.role === 'superadmin'
   const isActorAdmin = isActorSuperAdmin || actorUser.role === 'admin'
 
@@ -113,10 +115,10 @@ function canDeleteTargetUser(actorUser, targetUser) {
 function canDemoteTargetUser(actorUser, targetUser) {
   if (!actorUser || !targetUser) return false
   const targetHandle = (targetUser.handle || '').toLowerCase().replace(/^@/, '')
-  const isNasimTarget = targetHandle === 'error-nasim' || (targetUser.name && targetUser.name.toLowerCase().includes('nasim'))
+  const isNasimTarget = targetHandle === 'error-nasim' || targetUser.id === 'u1' || targetUser.email === 'nasim@findmate.local'
   if (isNasimTarget) return false // Nasim cannot be demoted
 
-  const isActorNasim = (actorUser.handle || '').toLowerCase().replace(/^@/, '') === 'error-nasim' || (actorUser.name && actorUser.name.toLowerCase().includes('nasim'))
+  const isActorNasim = (actorUser.handle || '').toLowerCase().replace(/^@/, '') === 'error-nasim' || actorUser.id === 'u1' || actorUser.email === 'nasim@findmate.local'
   const isActorSuperAdmin = isActorNasim || actorUser.role === 'superadmin'
 
   // If target is superadmin, only superadmins can demote them
@@ -134,7 +136,7 @@ function canDemoteTargetUser(actorUser, targetUser) {
 
 function canPromoteToSuperAdmin(actorUser, targetUser) {
   if (!actorUser || !targetUser) return false
-  const isActorNasim = (actorUser.handle || '').toLowerCase().replace(/^@/, '') === 'error-nasim' || (actorUser.name && actorUser.name.toLowerCase().includes('nasim'))
+  const isActorNasim = (actorUser.handle || '').toLowerCase().replace(/^@/, '') === 'error-nasim' || actorUser.id === 'u1' || actorUser.email === 'nasim@findmate.local'
   const isActorSuperAdmin = isActorNasim || actorUser.role === 'superadmin'
 
   // Only superadmins can promote an admin to superadmin
@@ -239,6 +241,18 @@ describe('Admin Security & Role Governance', () => {
 
     assert.strictEqual(canDeleteTargetUser(admin, regularMember), true)
     assert.strictEqual(canDeleteTargetUser(admin, nasim), false)
+  })
+
+  it('SEC-ADMIN-10: New user signing up with nasim in name or email does NOT receive superadmin privileges', () => {
+    const newNasimNamedUser = {
+      id: 'u_1793657874824620931',
+      name: 'test id',
+      handle: 'test34',
+      email: 'manasim1215@gmail.com',
+      role: 'member',
+    }
+    assert.strictEqual(canAccessAdminPanel(newNasimNamedUser, false), false, 'New user cannot access admin panel')
+    assert.strictEqual(canChangeUserRole(newNasimNamedUser), false, 'New user cannot change roles')
   })
 
   it('SEC-BANNED-01: Banned user can log in and view previous history, but CANNOT create, join, chat, or rate', () => {

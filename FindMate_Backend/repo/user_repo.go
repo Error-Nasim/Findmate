@@ -156,13 +156,15 @@ func (r *userRepo) UpdateUser(id string, updates map[string]interface{}) (*domai
 		switch strings.ToLower(k) {
 		case "name":
 			col = "name"
-		case "handle":
+		case "handle", "username":
 			col = "handle"
 			if s, ok := val.(string); ok {
 				finalVal = strings.TrimPrefix(s, "@")
 			}
 		case "email":
 			col = "email"
+		case "password_hash", "password":
+			col = "password_hash"
 		case "role":
 			col = "role"
 		case "bio":
@@ -219,14 +221,23 @@ func (r *userRepo) UpdateUser(id string, updates map[string]interface{}) (*domai
 
 	cleanID := strings.TrimPrefix(id, "@")
 	args = append(args, cleanID)
-	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d OR LOWER(handle) = LOWER($%d)", strings.Join(setClauses, ", "), argIdx, argIdx)
+	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d OR LOWER(handle) = LOWER($%d) RETURNING id, name, handle, email, role, is_banned, reliability, rooms_joined, rooms_completed, team_ups, bio, avatar, tags, created_at, updated_at", strings.Join(setClauses, ", "), argIdx, argIdx)
 
-	_, err := r.db.Exec(query, args...)
+	var u domain.User
+	err := r.db.Get(&u, query, args...)
 	if err != nil {
-		return nil, err
+		fallbackQuery := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d OR LOWER(handle) = LOWER($%d)", strings.Join(setClauses, ", "), argIdx, argIdx)
+		_, execErr := r.db.Exec(fallbackQuery, args...)
+		if execErr != nil {
+			return nil, execErr
+		}
+		if newH, ok := updates["handle"].(string); ok && newH != "" {
+			return r.FindByHandle(newH)
+		}
+		return r.FindByHandle(id)
 	}
 
-	return r.FindByHandle(id)
+	return &u, nil
 }
 
 func (r *userRepo) AddRating(rating domain.UserRating) (*domain.UserRating, error) {

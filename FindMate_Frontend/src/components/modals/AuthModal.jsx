@@ -22,6 +22,7 @@ export default function AuthModal({
     username: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
   const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
@@ -121,22 +122,60 @@ export default function AuthModal({
         onSuccess(res.user, res.token);
       } else {
         // Sign up
-        if (!formData.name.trim() || !formData.username.trim()) {
+        const cleanName = formData.name.trim();
+        const cleanUsername = formData.username.trim().replace(/^@/, '');
+        const cleanEmail = formData.email.trim();
+
+        if (!cleanName || !cleanUsername) {
           setErrorMsg("Name and username are required.");
           setLoading(false);
           return;
         }
-        if (!formData.email.trim() || !formData.password) {
-          setErrorMsg("Email and password are required.");
+
+        if (cleanUsername.length < 3) {
+          setErrorMsg("Username must be at least 3 characters long.");
+          setLoading(false);
+          return;
+        }
+
+        if (!cleanEmail) {
+          setErrorMsg("Email address is required.");
+          setLoading(false);
+          return;
+        }
+
+        // Strict email structure check
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(cleanEmail)) {
+          setErrorMsg("Please enter a valid email address (e.g. name@domain.com).");
+          setLoading(false);
+          return;
+        }
+
+        if (!formData.password) {
+          setErrorMsg("Password is required.");
+          setLoading(false);
+          return;
+        }
+
+        if (formData.password.length < 4) {
+          setErrorMsg("Password must be at least 4 characters long.");
+          setLoading(false);
+          return;
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+          setErrorMsg("Passwords do not match. Please verify your password.");
           setLoading(false);
           return;
         }
 
         const res = await api.register({
-          name: formData.name,
-          username: formData.username,
-          email: formData.email,
+          name: cleanName,
+          username: cleanUsername,
+          email: cleanEmail,
           password: formData.password,
+          confirmPassword: formData.confirmPassword,
           tags: selectedInterests.length > 0 ? selectedInterests : ["#gaming", "#coding"],
         });
 
@@ -498,7 +537,7 @@ export default function AuthModal({
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Enter password"
+                placeholder={view === "signup" ? "Create a password (min 4 chars)" : "Enter password"}
                 required
                 style={{
                   padding: "10px 14px",
@@ -510,6 +549,29 @@ export default function AuthModal({
                 }}
               />
             </div>
+
+            {view === "signup" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <label style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>
+                  Password Again / Confirm Password
+                </label>
+                <input
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  placeholder="Re-enter password"
+                  required
+                  style={{
+                    padding: "10px 14px",
+                    background: "var(--bg-input)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: 10,
+                    color: "var(--text-primary)",
+                    fontSize: 14,
+                  }}
+                />
+              </div>
+            )}
 
             {/* Interest pills for signup */}
             {view === "signup" && (

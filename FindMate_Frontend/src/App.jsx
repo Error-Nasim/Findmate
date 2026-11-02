@@ -147,7 +147,8 @@ export default function App() {
   // Current user info (defined early to prevent TDZ ReferenceError in hooks)
   const isNasim =
     user?.handle?.toLowerCase() === "error-nasim" ||
-    (user?.name && user.name.toLowerCase().includes("nasim"));
+    user?.id === "u1" ||
+    user?.email?.toLowerCase() === "nasim@findmate.local";
   const currentUserAvatar =
     user?.avatar && (isNasim || user.avatar !== "AN")
       ? user.avatar
@@ -767,6 +768,7 @@ export default function App() {
     // Refresh entities from backend
     api.getLobbies().then((data) => setLobbiesList(Array.isArray(data) ? data : []));
     api.getApplicants().then((data) => setApplicantsList(Array.isArray(data) ? data : []));
+    api.getUsers().then((data) => setUsersList(Array.isArray(data) ? data : []));
     if (userData?.handle) {
       api.getNotifications(userData.handle).then((data) => {
         const clean = (Array.isArray(data) ? data : []).filter(
@@ -1826,7 +1828,7 @@ export default function App() {
     const targetUser = usersList.find((u) => u.id === userId || u.handle === userId);
     const targetHandle = (targetUser?.handle || String(userId)).replace(/^@/, "").toLowerCase();
 
-    if (targetHandle === "error-nasim" || (targetUser?.name && targetUser.name.toLowerCase().includes("nasim"))) {
+    if (targetHandle === "error-nasim" || targetUser?.id === "u1" || targetUser?.email === "nasim@findmate.local") {
       showToast("Superadmin (Nasim) is permanent and cannot be deleted.", "error");
       return;
     }
@@ -1856,15 +1858,27 @@ export default function App() {
     showToast(`Reliability score updated to ${newScore}%`);
   };
 
-  const handleUpdateProfile = (updates) => {
+  const handleUpdateProfile = async (updates) => {
     if (currentUser?.handle) {
+      const oldHandle = currentUser.handle;
+      const res = await api.updateUser(oldHandle, updates);
       updateUser(updates);
-      api.updateUser(currentUser.handle, updates);
       setUsersList((prev) =>
         prev.map((u) =>
-          u.handle.toLowerCase() === currentUser.handle.toLowerCase() ? { ...u, ...updates } : u
+          u.handle.toLowerCase() === oldHandle.toLowerCase() ? { ...u, ...updates } : u
         )
       );
+      if (updates.handle && updates.handle.toLowerCase() !== oldHandle.toLowerCase()) {
+        const newHandle = updates.handle;
+        setLobbiesList((prev) =>
+          prev.map((l) =>
+            l.handle?.toLowerCase() === oldHandle.toLowerCase()
+              ? { ...l, handle: newHandle, host: updates.name || l.host }
+              : l
+          )
+        );
+      }
+      return res;
     }
   };
 

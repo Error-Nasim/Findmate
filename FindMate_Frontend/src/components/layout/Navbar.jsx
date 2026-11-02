@@ -20,7 +20,8 @@ export default function Navbar({
   const { user } = useAuth()
   const isNasim =
     user?.handle?.toLowerCase() === 'error-nasim' ||
-    (user?.name && user.name.toLowerCase().includes('nasim'))
+    user?.id === 'u1' ||
+    user?.email?.toLowerCase() === 'nasim@findmate.local'
   const userInitials =
     user?.avatar && (isNasim || user.avatar !== 'AN')
       ? user.avatar

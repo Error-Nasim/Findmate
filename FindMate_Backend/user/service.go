@@ -7,11 +7,14 @@ import (
 	"findmate-backend/util"
 	"fmt"
 	"math"
+	"regexp"
 	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
 type service struct {
 	usrRepo UserRepo
@@ -26,22 +29,36 @@ func NewService(usrRepo UserRepo, cnf *config.Config) Service {
 }
 
 func (s *service) Register(name, handle, email, password string, tags []string) (*domain.User, string, error) {
-	if strings.TrimSpace(name) == "" || strings.TrimSpace(handle) == "" {
-		return nil, "", errors.New("name and handle are required")
+	cleanName := strings.TrimSpace(name)
+	cleanHandle := strings.TrimPrefix(strings.TrimSpace(handle), "@")
+	cleanEmail := strings.TrimSpace(email)
+
+	if cleanName == "" || cleanHandle == "" {
+		return nil, "", errors.New("name and username are required")
 	}
 
-	cleanHandle := strings.TrimPrefix(strings.TrimSpace(handle), "@")
+	if len(cleanHandle) < 3 {
+		return nil, "", errors.New("username must be at least 3 characters long")
+	}
+
+	if cleanEmail != "" && !emailRegex.MatchString(cleanEmail) {
+		return nil, "", errors.New("invalid email address format (e.g. user@example.com)")
+	}
 
 	existing, _ := s.usrRepo.FindByHandle(cleanHandle)
 	if existing != nil {
-		return nil, "", errors.New("handle already taken")
+		return nil, "", errors.New("username is already taken")
 	}
 
-	if email != "" {
-		existingEmail, _ := s.usrRepo.FindByEmail(email)
+	if cleanEmail != "" {
+		existingEmail, _ := s.usrRepo.FindByEmail(cleanEmail)
 		if existingEmail != nil {
 			return nil, "", errors.New("email already in use")
 		}
+	}
+
+	if password != "" && len(password) < 4 {
+		return nil, "", errors.New("password must be at least 4 characters long")
 	}
 
 	var hash []byte
@@ -158,7 +175,88 @@ func (s *service) ListUsers(search, role, status string) ([]*domain.User, error)
 }
 
 func (s *service) UpdateUser(id string, updates map[string]interface{}) (*domain.User, error) {
-	return s.usrRepo.UpdateUser(id, updates)
+	cleanID := strings.TrimPrefix(strings.TrimSpace(id), "@")
+	target, _ := s.usrRepo.FindByID(cleanID)
+	if target == nil {
+		target, _ = s.usrRepo.FindByHandle(cleanID)
+	}
+	if target == nil {
+		return nil, errors.New("user not found")
+	}
+
+	// 1. Username / Handle uniqueness & availability check
+	var newHandle string
+	if val, ok := updates["handle"]; ok && val != nil {
+		newHandle = strings.TrimPrefix(strings.TrimSpace(fmt.Sprintf("%v", val)), "@")
+	} else if val, ok := updates["username"]; ok && val != nil {
+		newHandle = strings.TrimPrefix(strings.TrimSpace(fmt.Sprintf("%v", val)), "@")
+	}
+
+	if newHandle != "" {
+		if len(newHandle) < 3 {
+			return nil, errors.New("username must be at least 3 characters long")
+		}
+		if !strings.EqualFold(newHandle, target.Handle) {
+			existing, _ := s.usrRepo.FindByHandle(newHandle)
+			if existing != nil && existing.ID != target.ID {
+				return nil, errors.New("username is already taken")
+			}
+			updates["handle"] = newHandle
+		}
+	}
+
+	// 2. Email format validation if being updated
+	if val, ok := updates["email"]; ok && val != nil {
+		newEmail := strings.TrimSpace(fmt.Sprintf("%v", val))
+		if newEmail != "" {
+			if !emailRegex.MatchString(newEmail) {
+				return nil, errors.New("invalid email address format")
+			}
+			existingEmail, _ := s.usrRepo.FindByEmail(newEmail)
+			if existingEmail != nil && existingEmail.ID != target.ID {
+				return nil, errors.New("email already in use by another account")
+			}
+			updates["email"] = newEmail
+		}
+	}
+
+	// 3. Password change: two-field validation support (password + confirm_password)
+	if val, ok := updates["password"]; ok && val != nil {
+		pwdStr := strings.TrimSpace(fmt.Sprintf("%v", val))
+		if pwdStr != "" {
+			if len(pwdStr) < 4 {
+				return nil, errors.New("new password must be at least 4 characters long")
+			}
+
+			// Check password again / confirm password if supplied
+			confirmVal, hasConfirm := updates["confirm_password"]
+			if !hasConfirm {
+				confirmVal, hasConfirm = updates["confirmPassword"]
+			}
+			if !hasConfirm {
+				confirmVal, hasConfirm = updates["password_again"]
+			}
+
+			if hasConfirm && confirmVal != nil {
+				confirmStr := strings.TrimSpace(fmt.Sprintf("%v", confirmVal))
+				if pwdStr != confirmStr {
+					return nil, errors.New("passwords do not match")
+				}
+			}
+
+			hashed, err := bcrypt.GenerateFromPassword([]byte(pwdStr), bcrypt.DefaultCost)
+			if err != nil {
+				return nil, fmt.Errorf("failed to hash password: %w", err)
+			}
+			updates["password_hash"] = string(hashed)
+		}
+		delete(updates, "password")
+		delete(updates, "confirm_password")
+		delete(updates, "confirmPassword")
+		delete(updates, "password_again")
+	}
+
+	return s.usrRepo.UpdateUser(target.ID, updates)
 }
 
 func (s *service) AddRating(raterID, raterName, raterHandle, raterAvatar, rateeID string, score int, comment string) (*domain.UserRating, error) {
