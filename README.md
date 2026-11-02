@@ -49,7 +49,6 @@ FindMate is fully deployed to production on a **100% free, high-performance clou
 | **OAuth 2.0 Providers** | Google, Discord, Meta | `/auth/callback` | Cross-platform real-time authentication & account linking. |
 
 > **🔑 Live Test Accounts (Pre-Seeded in Neon DB)**:
-> - **Super Admin**: `@Error-nasim` *(or `nasim@findmate.local`)* — Password: `1234`
 > - **Member 1**: `@rimon21` *(or `rimon@findmate.local`)* — Password: `1234`
 > - **Member 2**: `@imtiaz11` *(or `imtiaz@findmate.local`)* — Password: `1234`
 > - **Direct Admin Portal**: [https://findmate-psi.vercel.app/admin](https://findmate-psi.vercel.app/admin) (passcode protected)
