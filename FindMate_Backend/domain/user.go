@@ -40,6 +40,7 @@ type User struct {
 	PasswordHash   string      `json:"-" db:"password_hash"`
 	Role           string      `json:"role" db:"role"`
 	IsBanned       bool        `json:"isBanned" db:"is_banned"`
+	IsVerified     bool        `json:"isVerified" db:"is_verified"`
 	Reliability    int         `json:"reliability" db:"reliability"`
 	RoomsJoined    int         `json:"roomsJoined" db:"rooms_joined"`
 	RoomsCompleted int         `json:"roomsCompleted" db:"rooms_completed"`

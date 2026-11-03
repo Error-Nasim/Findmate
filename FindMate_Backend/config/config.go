@@ -32,6 +32,14 @@ type OAuthConfig struct {
 	FacebookRedirectURI  string
 }
 
+type SMTPConfig struct {
+	Host string
+	Port int
+	User string
+	Pass string
+	From string
+}
+
 type Config struct {
 	Version      string
 	ServiceName  string
@@ -39,6 +47,7 @@ type Config struct {
 	JwtSecretKey string
 	DB           *DBConfig
 	OAuth        *OAuthConfig
+	SMTP         *SMTPConfig
 }
 
 func LoadConfig() {
@@ -133,6 +142,25 @@ func LoadConfig() {
 			FacebookAppID:        os.Getenv("FACEBOOK_APP_ID"),
 			FacebookAppSecret:    os.Getenv("FACEBOOK_APP_SECRET"),
 			FacebookRedirectURI:  os.Getenv("FACEBOOK_REDIRECT_URI"),
+		},
+		SMTP: &SMTPConfig{
+			Host: os.Getenv("SMTP_HOST"),
+			Port: func() int {
+				p, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+				if p == 0 {
+					return 587
+				}
+				return p
+			}(),
+			User: os.Getenv("SMTP_USER"),
+			Pass: os.Getenv("SMTP_PASS"),
+			From: func() string {
+				f := os.Getenv("SMTP_FROM")
+				if f == "" {
+					return "noreply@findmate.local"
+				}
+				return f
+			}(),
 		},
 	}
 }

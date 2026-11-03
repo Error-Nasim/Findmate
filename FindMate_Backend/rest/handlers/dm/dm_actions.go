@@ -10,12 +10,13 @@ import (
 )
 
 type ReqCreateDMThread struct {
-	ID           string `json:"id"`
-	User         string `json:"user"`
-	Handle       string `json:"handle"`
-	Avatar       string `json:"avatar"`
-	LobbyContext string `json:"lobbyContext"`
-	LastMessage  string `json:"lastMessage"`
+	ID           string   `json:"id"`
+	User         string   `json:"user"`
+	Handle       string   `json:"handle"`
+	Avatar       string   `json:"avatar"`
+	LobbyContext string   `json:"lobbyContext"`
+	LastMessage  string   `json:"lastMessage"`
+	Participants []string `json:"participants,omitempty"`
 }
 
 type ReqSendDMMessage struct {
@@ -63,6 +64,7 @@ func (h *Handler) CreateThread(w http.ResponseWriter, r *http.Request) {
 		Avatar:       req.Avatar,
 		LobbyContext: req.LobbyContext,
 		LastMessage:  req.LastMessage,
+		Participants: req.Participants,
 	}
 
 	created, err := h.dmSvc.GetOrCreateThread(thread)

@@ -109,7 +109,7 @@ func (r *applicantRepo) ListAll() ([]*domain.Applicant, error) {
 }
 
 func (r *applicantRepo) UpdateStatus(id, status string) error {
-	query := `UPDATE join_requests SET status = $1, updated_at = $2 WHERE id = $3 OR user_id = $3`
+	query := `UPDATE join_requests SET status = $1, updated_at = $2 WHERE id = $3`
 	_, err := r.db.Exec(query, status, time.Now(), id)
 	return err
 }

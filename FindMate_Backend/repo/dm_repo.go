@@ -5,9 +5,11 @@ import (
 	"errors"
 	"findmate-backend/domain"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 type DMRepo interface {
@@ -44,9 +46,18 @@ func (r *dmRepo) GetOrCreateThread(thread domain.DMThread) (*domain.DMThread, er
 		thread.UpdatedAt = time.Now()
 	}
 
+	if thread.Participants == nil {
+		parts := strings.Split(strings.TrimPrefix(thread.ID, "dm_"), "_")
+		if len(parts) >= 2 {
+			thread.Participants = pq.StringArray{strings.TrimPrefix(parts[0], "@"), strings.TrimPrefix(parts[1], "@")}
+		} else {
+			thread.Participants = pq.StringArray{}
+		}
+	}
+
 	query := `
-		INSERT INTO dm_threads (id, user_name, handle, avatar, lobby_context, unread, last_message, updated_at)
-		VALUES (:id, :user_name, :handle, :avatar, :lobby_context, :unread, :last_message, :updated_at)
+		INSERT INTO dm_threads (id, user_name, handle, avatar, lobby_context, unread, last_message, updated_at, participants)
+		VALUES (:id, :user_name, :handle, :avatar, :lobby_context, :unread, :last_message, :updated_at, :participants)
 		ON CONFLICT (id) DO NOTHING
 	`
 	_, err := r.db.NamedExec(query, thread)
@@ -83,12 +94,18 @@ func (r *dmRepo) AddMessage(msg domain.DMMessage) (*domain.DMMessage, error) {
 	// Auto-create thread record if missing so foreign-key constraint never fails
 	existing, _ := r.GetThreadByID(msg.ThreadID)
 	if existing == nil {
+		parts := strings.Split(strings.TrimPrefix(msg.ThreadID, "dm_"), "_")
+		var participants pq.StringArray
+		if len(parts) >= 2 {
+			participants = pq.StringArray{strings.TrimPrefix(parts[0], "@"), strings.TrimPrefix(parts[1], "@")}
+		}
 		_, _ = r.GetOrCreateThread(domain.DMThread{
 			ID:           msg.ThreadID,
 			User:         msg.Sender,
 			Handle:       msg.Sender,
 			Avatar:       msg.Avatar,
 			LobbyContext: "Direct Message",
+			Participants: participants,
 			Unread:       0,
 			LastMessage:  msg.Text,
 			UpdatedAt:    time.Now(),

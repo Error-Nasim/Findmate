@@ -176,6 +176,11 @@ func (r *userRepo) UpdateUser(id string, updates map[string]interface{}) (*domai
 			if b, ok := val.(bool); ok {
 				finalVal = b
 			}
+		case "isverified", "is_verified":
+			col = "is_verified"
+			if b, ok := val.(bool); ok {
+				finalVal = b
+			}
 		case "reliability":
 			col = "reliability"
 			if f, ok := val.(float64); ok {

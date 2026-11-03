@@ -113,6 +113,64 @@ export const api = {
     }
   },
 
+  requestSignupVerification: async (userData) => {
+    try {
+      const res = await apiClient.post("/auth/register-request", userData);
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Failed to send verification code";
+      throw new Error(msg);
+    }
+  },
+
+  verifySignupCode: async (email, code) => {
+    try {
+      const res = await apiClient.post("/auth/verify-signup", { email, code });
+      if (res.data?.token) {
+        localStorage.setItem("findmate_jwt_token", res.data.token);
+      }
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Verification failed";
+      throw new Error(msg);
+    }
+  },
+
+  forgotPassword: async (email) => {
+    try {
+      const res = await apiClient.post("/auth/forgot-password", { email });
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Failed to send reset code";
+      throw new Error(msg);
+    }
+  },
+
+  resetPassword: async ({ email, code, newPassword, confirmPassword }) => {
+    try {
+      const res = await apiClient.post("/auth/reset-password", {
+        email,
+        code,
+        newPassword,
+        confirmPassword,
+      });
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Failed to reset password";
+      throw new Error(msg);
+    }
+  },
+
+  resendVerificationCode: async (email, type = "signup") => {
+    try {
+      const res = await apiClient.post("/auth/resend-code", { email, type });
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Failed to resend code";
+      throw new Error(msg);
+    }
+  },
+
   // ── OAuth 2.0 (Google, Discord, LinkedIn) ──
   getOAuthConfig: async () => {
     try {

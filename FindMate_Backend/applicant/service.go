@@ -171,13 +171,16 @@ func (s *service) AcceptApplicant(applicantID string) (*domain.Applicant, error)
 
 	// 4. Auto-provision bilateral DM thread
 	if s.dmRepo != nil {
-		threadID := fmt.Sprintf("dm_%s_%s", lobby.Handle, app.Handle)
+		cleanHost := strings.TrimPrefix(lobby.Handle, "@")
+		cleanApp := strings.TrimPrefix(app.Handle, "@")
+		threadID := fmt.Sprintf("dm_%s_%s", cleanHost, cleanApp)
 		_, _ = s.dmRepo.GetOrCreateThread(domain.DMThread{
 			ID:           threadID,
 			User:         app.Name,
 			Handle:       app.Handle,
 			Avatar:       app.Avatar,
-			LobbyContext: lobby.Title,
+			LobbyContext: fmt.Sprintf("%s (Host: %s)", lobby.Title, lobby.Handle),
+			Participants: []string{cleanHost, cleanApp},
 			Unread:       0,
 			LastMessage:  fmt.Sprintf("Accepted into \"%s\"", lobby.Title),
 			UpdatedAt:    time.Now(),
@@ -191,6 +194,7 @@ func (s *service) AcceptApplicant(applicantID string) (*domain.Applicant, error)
 			Icon:        "🎉",
 			Text:        fmt.Sprintf("🎉 You were accepted into the squad for \"%s\"!", lobby.Title),
 			Type:        "lobby_accepted",
+			Unread:      true,
 			CreatedAt:   time.Now(),
 		})
 	}

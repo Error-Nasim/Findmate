@@ -1,11 +1,15 @@
 package user
 
 import (
+	"encoding/json"
 	"errors"
 	"findmate-backend/config"
 	"findmate-backend/domain"
+	"findmate-backend/infra/email"
+	"findmate-backend/repo"
 	"findmate-backend/util"
 	"fmt"
+	"log"
 	"math"
 	"regexp"
 	"strings"
@@ -17,15 +21,26 @@ import (
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
 type service struct {
-	usrRepo UserRepo
-	cnf     *config.Config
+	usrRepo  UserRepo
+	cnf      *config.Config
+	vcRepo   repo.VerificationRepo
+	emailSvc email.EmailService
 }
 
-func NewService(usrRepo UserRepo, cnf *config.Config) Service {
-	return &service{
+func NewService(usrRepo UserRepo, cnf *config.Config, extras ...interface{}) Service {
+	s := &service{
 		usrRepo: usrRepo,
 		cnf:     cnf,
 	}
+	for _, opt := range extras {
+		if vr, ok := opt.(repo.VerificationRepo); ok {
+			s.vcRepo = vr
+		}
+		if es, ok := opt.(email.EmailService); ok {
+			s.emailSvc = es
+		}
+	}
+	return s
 }
 
 func (s *service) Register(name, handle, email, password string, tags []string) (*domain.User, string, error) {
@@ -466,4 +481,273 @@ func (s *service) DeleteUser(idOrHandle string) error {
 		return errors.New("cannot delete founder Nasim")
 	}
 	return s.usrRepo.Delete(idOrHandle)
+}
+
+func (s *service) RequestSignup(name, handle, email, password string, tags []string) (string, error) {
+	cleanName := strings.TrimSpace(name)
+	cleanHandle := strings.TrimPrefix(strings.TrimSpace(handle), "@")
+	cleanEmail := strings.TrimSpace(email)
+
+	if cleanName == "" || cleanHandle == "" {
+		return "", errors.New("name and username are required")
+	}
+	if len(cleanHandle) < 3 {
+		return "", errors.New("username must be at least 3 characters long")
+	}
+	if cleanEmail == "" || !emailRegex.MatchString(cleanEmail) {
+		return "", errors.New("valid email address is required (e.g. user@example.com)")
+	}
+	if len(password) < 4 {
+		return "", errors.New("password must be at least 4 characters long")
+	}
+
+	existing, _ := s.usrRepo.FindByHandle(cleanHandle)
+	if existing != nil {
+		return "", errors.New("username is already taken")
+	}
+
+	existingEmail, _ := s.usrRepo.FindByEmail(cleanEmail)
+	if existingEmail != nil {
+		return "", errors.New("email already in use")
+	}
+
+	if s.vcRepo != nil {
+		count, _ := s.vcRepo.GetRecentRequestCount(cleanEmail, string(domain.VerificationTypeSignup), 60*time.Second)
+		if count > 0 {
+			return "", errors.New("please wait 60 seconds before requesting another verification code")
+		}
+	}
+
+	otp := "123456"
+	if s.emailSvc != nil {
+		otp = s.emailSvc.GenerateOTP()
+	}
+
+	payloadBytes, _ := json.Marshal(domain.PendingSignupPayload{
+		Name:     cleanName,
+		Handle:   cleanHandle,
+		Email:    cleanEmail,
+		Password: password,
+		Tags:     tags,
+	})
+
+	var createdCode *domain.VerificationCode
+	if s.vcRepo != nil {
+		c, err := s.vcRepo.Create(domain.VerificationCode{
+			Email:     cleanEmail,
+			Code:      otp,
+			Type:      string(domain.VerificationTypeSignup),
+			Payload:   payloadBytes,
+			ExpiresAt: time.Now().Add(15 * time.Minute),
+		})
+		if err != nil {
+			return "", fmt.Errorf("failed to generate verification code: %w", err)
+		}
+		createdCode = c
+	}
+
+	if s.emailSvc != nil {
+		if err := s.emailSvc.SendSignupCode(cleanEmail, otp); err != nil {
+			if s.vcRepo != nil && createdCode != nil {
+				_ = s.vcRepo.Delete(createdCode.ID)
+			}
+			return "", err
+		}
+	}
+
+	return otp, nil
+}
+
+func (s *service) VerifySignup(email, code string) (*domain.User, string, error) {
+	cleanEmail := strings.ToLower(strings.TrimSpace(email))
+	cleanCode := strings.TrimSpace(code)
+
+	if cleanEmail == "" || cleanCode == "" {
+		return nil, "", errors.New("email and verification code are required")
+	}
+
+	if s.vcRepo == nil {
+		return nil, "", errors.New("verification service not available")
+	}
+
+	vc, err := s.vcRepo.GetLatestValid(cleanEmail, string(domain.VerificationTypeSignup))
+	if err != nil {
+		log.Printf("[VerifySignup ERROR] GetLatestValid for %s: %v", cleanEmail, err)
+		return nil, "", errors.New("failed to retrieve verification code")
+	}
+	if vc == nil {
+		return nil, "", errors.New("invalid or expired verification code")
+	}
+
+	if vc.Code != cleanCode {
+		_ = s.vcRepo.IncrementAttempts(vc.ID)
+		return nil, "", errors.New("incorrect verification code")
+	}
+
+	_ = s.vcRepo.MarkUsed(vc.ID)
+
+	var payload domain.PendingSignupPayload
+	if err := json.Unmarshal(vc.Payload, &payload); err != nil {
+		return nil, "", errors.New("invalid signup payload")
+	}
+
+	user, token, err := s.Register(payload.Name, payload.Handle, payload.Email, payload.Password, payload.Tags)
+	if err != nil {
+		return nil, "", err
+	}
+
+	_, _ = s.usrRepo.UpdateUser(user.ID, map[string]interface{}{"is_verified": true})
+	user.IsVerified = true
+
+	return user, token, nil
+}
+
+func (s *service) ForgotPassword(email string) (string, error) {
+	cleanEmail := strings.ToLower(strings.TrimSpace(email))
+	if cleanEmail == "" {
+		return "", errors.New("email is required")
+	}
+
+	u, err := s.usrRepo.FindByEmail(cleanEmail)
+	if err != nil || u == nil {
+		return "", errors.New("no account found with this email address")
+	}
+
+	if s.vcRepo != nil {
+		count, _ := s.vcRepo.GetRecentRequestCount(cleanEmail, string(domain.VerificationTypePasswordReset), 60*time.Second)
+		if count > 0 {
+			return "", errors.New("please wait 60 seconds before requesting another reset code")
+		}
+	}
+
+	otp := "123456"
+	if s.emailSvc != nil {
+		otp = s.emailSvc.GenerateOTP()
+	}
+
+	var createdCode *domain.VerificationCode
+	if s.vcRepo != nil {
+		c, err := s.vcRepo.Create(domain.VerificationCode{
+			Email:     cleanEmail,
+			Code:      otp,
+			Type:      string(domain.VerificationTypePasswordReset),
+			ExpiresAt: time.Now().Add(15 * time.Minute),
+		})
+		if err != nil {
+			return "", fmt.Errorf("failed to create reset code: %w", err)
+		}
+		createdCode = c
+	}
+
+	if s.emailSvc != nil {
+		if err := s.emailSvc.SendPasswordResetCode(cleanEmail, otp); err != nil {
+			if s.vcRepo != nil && createdCode != nil {
+				_ = s.vcRepo.Delete(createdCode.ID)
+			}
+			return "", err
+		}
+	}
+
+	return otp, nil
+}
+
+func (s *service) ResetPassword(email, code, newPassword string) error {
+	cleanEmail := strings.ToLower(strings.TrimSpace(email))
+	cleanCode := strings.TrimSpace(code)
+
+	if cleanEmail == "" || cleanCode == "" {
+		return errors.New("email and verification code are required")
+	}
+	if len(newPassword) < 4 {
+		return errors.New("new password must be at least 4 characters long")
+	}
+
+	if s.vcRepo == nil {
+		return errors.New("verification service not available")
+	}
+
+	vc, err := s.vcRepo.GetLatestValid(cleanEmail, string(domain.VerificationTypePasswordReset))
+	if err != nil {
+		log.Printf("[ResetPassword ERROR] GetLatestValid for %s: %v", cleanEmail, err)
+		return errors.New("failed to retrieve reset code")
+	}
+	if vc == nil {
+		return errors.New("invalid or expired reset code")
+	}
+
+	if vc.Code != cleanCode {
+		_ = s.vcRepo.IncrementAttempts(vc.ID)
+		return errors.New("incorrect verification code")
+	}
+
+	_ = s.vcRepo.MarkUsed(vc.ID)
+
+	u, err := s.usrRepo.FindByEmail(cleanEmail)
+	if err != nil || u == nil {
+		return errors.New("user not found")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	_, err = s.usrRepo.UpdateUser(u.ID, map[string]interface{}{"password_hash": string(hash)})
+	return err
+}
+
+func (s *service) ResendVerificationCode(email, vType string) (string, error) {
+	cleanEmail := strings.TrimSpace(email)
+	if cleanEmail == "" {
+		return "", errors.New("email is required")
+	}
+
+	if vType == string(domain.VerificationTypePasswordReset) {
+		return s.ForgotPassword(cleanEmail)
+	}
+
+	if s.vcRepo == nil {
+		return "", errors.New("verification service not available")
+	}
+
+	count, _ := s.vcRepo.GetRecentRequestCount(cleanEmail, string(domain.VerificationTypeSignup), 60*time.Second)
+	if count > 0 {
+		return "", errors.New("please wait 60 seconds before requesting another code")
+	}
+
+	vc, err := s.vcRepo.GetLatestValid(cleanEmail, string(domain.VerificationTypeSignup))
+	if err != nil || vc == nil {
+		return "", errors.New("no active signup request found for this email")
+	}
+
+	otp := "123456"
+	if s.emailSvc != nil {
+		otp = s.emailSvc.GenerateOTP()
+	}
+
+	var createdCode *domain.VerificationCode
+	if s.vcRepo != nil {
+		c, err := s.vcRepo.Create(domain.VerificationCode{
+			Email:     cleanEmail,
+			Code:      otp,
+			Type:      string(domain.VerificationTypeSignup),
+			Payload:   vc.Payload,
+			ExpiresAt: time.Now().Add(15 * time.Minute),
+		})
+		if err != nil {
+			return "", err
+		}
+		createdCode = c
+	}
+
+	if s.emailSvc != nil {
+		if err := s.emailSvc.SendSignupCode(cleanEmail, otp); err != nil {
+			if s.vcRepo != nil && createdCode != nil {
+				_ = s.vcRepo.Delete(createdCode.ID)
+			}
+			return "", err
+		}
+	}
+
+	return otp, nil
 }

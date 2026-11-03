@@ -900,8 +900,9 @@ export default function App() {
     const lobby = lobbiesList.find((l) => String(l.id) === String(applicant.lobbyId));
     const hostHandle = lobby?.handle || currentUser?.handle || "host";
     const appHandle = applicant.handle || "player";
+    const cleanHostHandle = hostHandle.replace(/^@/, "");
     const cleanAppHandle = appHandle.replace(/^@/, "");
-    const threadId = `dm_${hostHandle}_${cleanAppHandle}`;
+    const threadId = `dm_${cleanHostHandle}_${cleanAppHandle}`;
 
     setApplicantsList((prev) =>
       prev.map((a) =>
@@ -938,34 +939,6 @@ export default function App() {
       api.saveAcceptedLobbyIds(cleanAppHandle, nextSet);
     });
 
-    setApplicantsList((prev) =>
-      prev.map((a) =>
-        String(a.id) === String(applicant.id) ? { ...a, status: "accepted" } : a,
-      ),
-    );
-
-    if (lobby) {
-      setLobbiesList((prev) =>
-        prev.map((l) =>
-          String(l.id) === String(applicant.lobbyId)
-            ? {
-                ...l,
-                joined: Math.min(l.joined + 1, l.max),
-                pending: Math.max(0, (l.pending || 1) - 1),
-                chatMessages: [
-                  ...(l.chatMessages || []),
-                  {
-                    id: `sys_${Date.now()}`,
-                    type: "system",
-                    text: `${applicant.name} was accepted and joined the team! 🎉`,
-                  },
-                ],
-              }
-            : l,
-        ),
-      );
-    }
-
     api.updateApplicantStatus(applicant.id, "accepted").then(() => {
       api.getApplicants().then((data) => setApplicantsList(Array.isArray(data) ? data : []));
       api.getLobbies().then((data) => setLobbiesList(Array.isArray(data) ? data : []));
@@ -980,6 +953,7 @@ export default function App() {
       handle: applicant.handle,
       avatar: applicant.avatar,
       lobbyContext: lobby?.title || "Lobby",
+      participants: [cleanHostHandle, cleanAppHandle],
       unread: 1,
       messages: [
         {
@@ -2426,6 +2400,11 @@ export default function App() {
           lobbyId={activeChatLobbyId}
           lobbyTitle={activeChatLobby.title}
           lobbyStatus={activeChatLobby.status}
+          lobbyHost={activeChatLobby.handle || activeChatLobby.host}
+          lobbyCategory={activeChatLobby.category}
+          lobbyAvatar={activeChatLobby.avatar}
+          lobbyJoined={activeChatLobby.joined}
+          lobbyMax={activeChatLobby.max}
           messages={activeChatLobby.chatMessages || []}
           onClose={() => {
             if (activeChatLobby) {
