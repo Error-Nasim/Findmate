@@ -15,6 +15,7 @@ export default function DiscoverPage({
   currentUser = null,
   onCreateLobby,
   onApply,
+  onCancelApplication,
   appliedLobbies = [],
   acceptedLobbyIds = new Set(),
   onOpenChat,
@@ -214,8 +215,9 @@ export default function DiscoverPage({
             currentUser={currentUser}
             onSelect={() => onSelectLobby(lobby)}
             onApply={onApply}
-            applied={appliedLobbies.includes(lobby.id)}
-            isAccepted={acceptedLobbyIds instanceof Set ? acceptedLobbyIds.has(lobby.id) : (acceptedLobbyIds || []).includes(lobby.id)}
+            onCancelApplication={onCancelApplication}
+            applied={appliedLobbies instanceof Set ? (appliedLobbies.has(lobby.id) || appliedLobbies.has(String(lobby.id))) : (appliedLobbies || []).some((id) => String(id) === String(lobby.id))}
+            isAccepted={acceptedLobbyIds instanceof Set ? (acceptedLobbyIds.has(lobby.id) || acceptedLobbyIds.has(String(lobby.id))) : (acceptedLobbyIds || []).some((id) => String(id) === String(lobby.id))}
             onOpenChat={onOpenChat}
             onReviewApplicants={onReviewApplicants}
             onViewProfile={(h) => navigate(`/profile/${h}`)}
@@ -255,7 +257,7 @@ export default function DiscoverPage({
   )
 }
 
-function LobbyCard({ lobby, currentUser, onSelect, onApply, applied, isAccepted, onOpenChat, onViewProfile, onReviewApplicants }) {
+function LobbyCard({ lobby, currentUser, onSelect, onApply, onCancelApplication, applied, isAccepted, onOpenChat, onViewProfile, onReviewApplicants }) {
   const [hovered, setHovered] = useState(false)
   const isFull = lobby.joined >= lobby.max
   const isHost =
@@ -464,22 +466,58 @@ function LobbyCard({ lobby, currentUser, onSelect, onApply, applied, isAccepted,
             💬 Joined · Open Chat
           </button>
         ) : applied ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              padding: '10px 14px',
-              background: 'rgba(245,158,11,0.1)',
-              border: '1px solid rgba(245,158,11,0.25)',
-              borderRadius: 10,
-              color: '#D97706',
-              fontSize: 13,
-              fontWeight: 700,
-            }}
-          >
-            ⏳ Pending Host Approval
+          <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '10px 12px',
+                background: 'rgba(245,158,11,0.1)',
+                border: '1px solid rgba(245,158,11,0.25)',
+                borderRadius: 10,
+                color: '#D97706',
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              ⏳ Pending Approval
+            </div>
+            {onCancelApplication && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCancelApplication(lobby.id);
+                }}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  background: 'rgba(239,68,68,0.1)',
+                  color: '#EF4444',
+                  border: '1px solid rgba(239,68,68,0.3)',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239,68,68,0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239,68,68,0.1)';
+                }}
+                title="Cancel your request to join"
+              >
+                ✕ Cancel
+              </button>
+            )}
           </div>
         ) : lobby.status === 'Open' ? (
           <button

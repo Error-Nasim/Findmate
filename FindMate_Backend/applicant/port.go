@@ -10,6 +10,7 @@ type Service interface {
 	AcceptApplicant(applicantID string) (*domain.Applicant, error)
 	DeclineApplicant(applicantID string) (*domain.Applicant, error)
 	RemoveApplicant(applicantID string) (*domain.Applicant, error)
+	CancelApplication(lobbyID, userIdentifier string) (*domain.Applicant, error)
 }
 
 type ApplicantRepo interface {

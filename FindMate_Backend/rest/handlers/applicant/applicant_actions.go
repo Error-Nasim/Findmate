@@ -151,7 +151,77 @@ func (h *Handler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.SendError(w, http.StatusBadRequest, "Invalid status (must be accepted, declined, or removed)")
+	if req.Status == "cancelled" {
+		app, err := h.applicantSvc.GetByID(applicantID)
+		if err != nil || app == nil {
+			util.SendError(w, http.StatusNotFound, "Applicant not found")
+			return
+		}
+		cancelledApp, err := h.applicantSvc.CancelApplication(app.LobbyID, applicantID)
+		if err != nil {
+			util.SendError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		util.SendData(w, map[string]interface{}{"success": true, "applicant": cancelledApp, "applicantId": cancelledApp.ID, "status": "cancelled"}, http.StatusOK)
+		return
+	}
+
+	util.SendError(w, http.StatusBadRequest, "Invalid status (must be accepted, declined, removed, or cancelled)")
+}
+
+func (h *Handler) CancelApply(w http.ResponseWriter, r *http.Request) {
+	lobbyID := r.PathValue("id")
+	userID := ""
+	handle := ""
+
+	if u, ok := r.Context().Value(middleware.ContextKeyUserID).(string); ok && u != "" {
+		userID = u
+	}
+	if un, ok := r.Context().Value(middleware.ContextKeyUsername).(string); ok && un != "" {
+		handle = un
+	}
+
+	// Also parse optional request body if provided
+	var body struct {
+		UserID      string `json:"userId"`
+		Handle      string `json:"handle"`
+		ApplicantID string `json:"applicantId"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+
+	userIdentifier := userID
+	if userIdentifier == "" {
+		userIdentifier = body.UserID
+	}
+	if userIdentifier == "" {
+		userIdentifier = handle
+	}
+	if userIdentifier == "" {
+		userIdentifier = body.Handle
+	}
+	if userIdentifier == "" {
+		userIdentifier = body.ApplicantID
+	}
+
+	if userIdentifier == "" {
+		util.SendError(w, http.StatusBadRequest, "User identity is required to cancel application")
+		return
+	}
+
+	app, err := h.applicantSvc.CancelApplication(lobbyID, userIdentifier)
+	if err != nil {
+		util.SendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	util.SendData(w, map[string]interface{}{
+		"success":     true,
+		"message":     "Join request has been cancelled",
+		"applicant":   app,
+		"applicantId": app.ID,
+		"lobbyId":     lobbyID,
+		"status":      "cancelled",
+	}, http.StatusOK)
 }
 
 func (h *Handler) DeleteApplicant(w http.ResponseWriter, r *http.Request) {

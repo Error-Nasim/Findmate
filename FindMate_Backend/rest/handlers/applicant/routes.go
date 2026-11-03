@@ -11,6 +11,14 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, manager *middleware.Manager
 		manager.With(http.HandlerFunc(h.Apply), h.middlewares.AuthenticateJwt),
 	)
 	mux.Handle(
+		"DELETE /api/lobbies/{id}/apply",
+		manager.With(http.HandlerFunc(h.CancelApply), h.middlewares.AuthenticateJwt),
+	)
+	mux.Handle(
+		"POST /api/lobbies/{id}/cancel-apply",
+		manager.With(http.HandlerFunc(h.CancelApply), h.middlewares.AuthenticateJwt),
+	)
+	mux.Handle(
 		"GET /api/lobbies/{id}/applicants",
 		manager.With(http.HandlerFunc(h.GetApplicantsByLobby)),
 	)

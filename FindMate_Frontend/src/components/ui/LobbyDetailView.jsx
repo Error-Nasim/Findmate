@@ -16,6 +16,7 @@ export default function LobbyDetailView({
   isAccepted,
   onBack,
   onJoin,
+  onCancelApplication,
   onReport,
   onGroupChat,
   onMsgHost,
@@ -543,22 +544,54 @@ export default function LobbyDetailView({
               💬 Open Group Chat
             </Button>
           ) : isPending ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                padding: "10px 14px",
-                background: "rgba(245,158,11,0.1)",
-                border: "1px solid rgba(245,158,11,0.25)",
-                borderRadius: 10,
-                color: "#D97706",
-                fontSize: 13,
-                fontWeight: 700,
-              }}
-            >
-              ⏳ Pending Host Approval
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  padding: "10px 14px",
+                  background: "rgba(245,158,11,0.1)",
+                  border: "1px solid rgba(245,158,11,0.25)",
+                  borderRadius: 10,
+                  color: "#D97706",
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
+                ⏳ Pending Host Approval
+              </div>
+              {onCancelApplication && (
+                <button
+                  type="button"
+                  onClick={() => onCancelApplication(lobby.id)}
+                  style={{
+                    width: "100%",
+                    padding: "10px 14px",
+                    background: "rgba(239,68,68,0.1)",
+                    border: "1px solid rgba(239,68,68,0.3)",
+                    borderRadius: 10,
+                    color: "#EF4444",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(239,68,68,0.2)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(239,68,68,0.1)";
+                  }}
+                >
+                  ✕ Cancel Join Request
+                </button>
+              )}
             </div>
           ) : lobby.status === "Open" ? (
             <button

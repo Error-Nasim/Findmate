@@ -340,9 +340,23 @@ export const api = {
       status: "pending",
       reliability: 100,
       teamUps: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       ...applicantData,
     };
-    const updated = [newApplicant, ...applicants];
+    const cleanAppHandle = String(applicantData.handle || "").replace(/^@/, "").toLowerCase();
+    const cleanAppUserId = String(applicantData.userId || applicantData.id || "");
+    const updated = [
+      newApplicant,
+      ...applicants.filter(
+        (a) =>
+          !(
+            String(a.lobbyId) === String(applicantData.lobbyId) &&
+            ((cleanAppHandle && String(a.handle || "").replace(/^@/, "").toLowerCase() === cleanAppHandle) ||
+              (cleanAppUserId && String(a.userId || a.id || "") === cleanAppUserId))
+          ),
+      ),
+    ];
     writeStorage(STORAGE_KEYS.APPLICANTS, updated);
 
     // Also persist host notification in fallback storage
@@ -408,6 +422,33 @@ export const api = {
       );
       writeStorage(STORAGE_KEYS.APPLICANTS, updatedApplicants);
       return { success: true, applicantId, status: "removed", fallback: true };
+    }
+  },
+
+  cancelApplication: async (lobbyId, applicantId, userIdentifier) => {
+    try {
+      const res = await apiClient.delete(`/lobbies/${lobbyId}/apply`, {
+        data: { applicantId, handle: userIdentifier, userId: userIdentifier },
+      });
+      const serverData = res.data;
+      const applicants = readStorage(STORAGE_KEYS.APPLICANTS, initialApplicants);
+      const updatedApplicants = applicants.map((a) =>
+        (a.id === applicantId || (String(a.lobbyId) === String(lobbyId) && a.status === "pending"))
+          ? { ...a, status: "cancelled" }
+          : a,
+      );
+      writeStorage(STORAGE_KEYS.APPLICANTS, updatedApplicants);
+      return serverData || { success: true, lobbyId, status: "cancelled" };
+    } catch (err) {
+      console.warn("[API] cancelApplication error, fallback to local:", err.message);
+      const applicants = readStorage(STORAGE_KEYS.APPLICANTS, initialApplicants);
+      const updatedApplicants = applicants.map((a) =>
+        (a.id === applicantId || (String(a.lobbyId) === String(lobbyId) && a.status === "pending"))
+          ? { ...a, status: "cancelled" }
+          : a,
+      );
+      writeStorage(STORAGE_KEYS.APPLICANTS, updatedApplicants);
+      return { success: true, lobbyId, status: "cancelled", fallback: true };
     }
   },
 

@@ -278,3 +278,57 @@ func (s *service) RemoveApplicant(applicantID string) (*domain.Applicant, error)
 
 	return app, nil
 }
+
+func (s *service) CancelApplication(lobbyID, userIdentifier string) (*domain.Applicant, error) {
+	cleanID := strings.TrimSpace(userIdentifier)
+	cleanHandle := strings.ToLower(strings.TrimPrefix(cleanID, "@"))
+	if cleanHandle == "" {
+		return nil, errors.New("user identifier is required to cancel application")
+	}
+
+	apps, err := s.appRepo.ListByLobby(lobbyID)
+	if err != nil {
+		return nil, err
+	}
+
+	var target *domain.Applicant
+	for _, a := range apps {
+		aHandle := strings.ToLower(strings.TrimPrefix(a.Handle, "@"))
+		if (a.UserID != "" && (a.UserID == cleanID || a.UserID == userIdentifier)) || aHandle == cleanHandle || a.ID == cleanID {
+			if a.Status == "pending" {
+				target = a
+				break
+			}
+		}
+	}
+
+	// Fallback lookup directly by ID if not matched in list
+	if target == nil {
+		a, err := s.appRepo.GetByID(cleanID)
+		if err == nil && a != nil && a.LobbyID == lobbyID && a.Status == "pending" {
+			target = a
+		}
+	}
+
+	if target == nil {
+		return nil, errors.New("no active pending application found to cancel")
+	}
+
+	err = s.appRepo.UpdateStatus(target.ID, "cancelled")
+	if err != nil {
+		return nil, err
+	}
+	target.Status = "cancelled"
+
+	// Decrement lobby pending count
+	lobby, err := s.lobbyRepo.GetByID(lobbyID)
+	if err == nil && lobby != nil {
+		newPending := lobby.Pending - 1
+		if newPending < 0 {
+			newPending = 0
+		}
+		_ = s.lobbyRepo.UpdateCapacity(lobby.ID, lobby.Joined, newPending, lobby.Status)
+	}
+
+	return target, nil
+}
