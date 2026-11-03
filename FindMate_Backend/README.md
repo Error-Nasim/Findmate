@@ -141,14 +141,17 @@ FindMate_Backend/
 │   ├── dm.go                    # 1-on-1 direct message threads & messages
 │   ├── notification.go          # Interactive notification alerts
 │   ├── report.go                # Incident reports & moderation triage states
-│   └── tag.go                   # Taxonomy hashtags & categories
+│   ├── tag.go                   # Taxonomy hashtags & categories
+│   └── verification.go          # Verification codes, NullableJSON & OTP states
 │
 ├── infra/
-│   └── db/
-│       ├── connection.go        # PostgreSQL connection pooling via sqlx
-│       ├── connection_test.go   # Connection verification test
-│       ├── migrate.go           # Automated SQL migration runner
-│       └── migrate_test.go      # Migration parsing tests
+│   ├── db/
+│   │   ├── connection.go        # PostgreSQL connection pooling via sqlx
+│   │   ├── connection_test.go   # Connection verification test
+│   │   ├── migrate.go           # Automated SQL migration runner
+│   │   └── migrate_test.go      # Migration parsing tests
+│   └── email/
+│       └── sender.go            # Multi-provider email engine (EmailJS, Resend, Brevo, SMTP with timeout)
 │
 ├── migrations/                  # Version-controlled idempotent schema migrations
 │   ├── 000001_create_users.up.sql / .down.sql
@@ -157,7 +160,8 @@ FindMate_Backend/
 │   ├── 000004_create_join_requests.up.sql / .down.sql
 │   ├── 000005_create_chats_and_dms.up.sql / .down.sql
 │   ├── 000006_create_reports_and_admin.up.sql / .down.sql
-│   └── 000007_seed_data.up.sql / .down.sql  # 3 Real pre-seeded users
+│   ├── 000007_seed_data.up.sql / .down.sql  # 3 Real pre-seeded users
+│   └── 000008_create_verification_codes.up.sql / .down.sql # 6-digit OTP codes & payloads
 │
 ├── repo/                        # Data Access Layer (PostgreSQL / sqlx)
 │   ├── user_repo.go             # User retrieval, creation, rating aggregation
@@ -167,7 +171,8 @@ FindMate_Backend/
 │   ├── dm_repo.go               # Bilateral DM thread tracking & unread flags
 │   ├── notification_repo.go     # Notification creation, read toggles, and deletion
 │   ├── report_repo.go           # Community incident filing & admin triage
-│   └── admin_repo.go            # Immutable audit logs, announcements, tag curation
+│   ├── admin_repo.go            # Immutable audit logs, announcements, tag curation
+│   └── verification_repo.go     # Verification code creation, attempt tracking & invalidation
 │
 ├── rest/                        # HTTP Transport Layer
 │   ├── server.go                # Server router assembly & handler registration
@@ -222,6 +227,7 @@ The database schema is divided into 7 idempotent, bidirectional SQL migration sc
 | `000005_create_chats_and_dms.up.sql`     | `chat_messages`, `dm_threads`, `dm_messages`, `notifications` | Squad chats, bilateral direct message threads, messages, and interactive notifications. |
 | `000006_create_reports_and_admin.up.sql` | `reports`, `audit_logs`, `announcements`                      | Incident reports, append-only administrative audit logs, and broadcast banners.         |
 | `000007_seed_data.up.sql`                | _Data Population_                                             | Seeds exactly 3 real user accounts with Bcrypt password `1234`.                         |
+| `000008_create_verification_codes.up.sql`| `verification_codes`                                          | 6-digit OTP verification codes with 15-min TTL, attempt limits, and payload storage.    |
 
 ### Pre-Seeded Real Production Accounts
 
@@ -242,11 +248,16 @@ All API endpoints are prefixed with `/api`. Responses adhere to a consistent JSO
 
 ### 1. Authentication (`/api/auth`)
 
-| Method | Endpoint             |    Auth    | Description                                                                           |
-| :----- | :------------------- | :--------: | :------------------------------------------------------------------------------------ |
-| `POST` | `/api/auth/register` |    None    | Register a new user account with Name, Handle, Email, Password, and Tags.             |
-| `POST` | `/api/auth/login`    |    None    | Authenticate with Handle/Email + Password. Returns User profile and signed JWT token. |
-| `GET`  | `/api/auth/me`       | Bearer JWT | Returns current authenticated user claims.                                            |
+| Method | Endpoint                    |    Auth    | Description                                                                           |
+| :----- | :-------------------------- | :--------: | :------------------------------------------------------------------------------------ |
+| `POST` | `/api/auth/register-request`|    None    | Validates signup info, generates 6-digit OTP, and delivers email via HTTPS/SMTP.     |
+| `POST` | `/api/auth/verify-signup`   |    None    | Verifies 6-digit OTP code, registers user in database, and returns JWT token.        |
+| `POST` | `/api/auth/forgot-password` |    None    | Initiates password recovery, generates 6-digit reset OTP, and dispatches email.       |
+| `POST` | `/api/auth/reset-password`  |    None    | Verifies 6-digit reset OTP and updates user's password hash in PostgreSQL.           |
+| `POST` | `/api/auth/resend-code`     |    None    | Resends active verification OTP with 60-second rate-limiting cooldown.               |
+| `POST` | `/api/auth/register`        |    None    | Direct user registration with Name, Handle, Email, Password, and Tags.                |
+| `POST` | `/api/auth/login`           |    None    | Authenticate with Handle/Email + Password. Returns User profile and signed JWT token. |
+| `GET`  | `/api/auth/me`              | Bearer JWT | Returns current authenticated user claims.                                            |
 
 ### 2. User Directory & Ratings (`/api/users`)
 
@@ -270,6 +281,8 @@ All API endpoints are prefixed with `/api`. Responses adhere to a consistent JSO
 | `DELETE` | `/api/lobbies/{id}`            | Bearer JWT | Delete lobby (host or admin).                                                                |
 | `DELETE` | `/api/lobbies/{id}/chat`       | Bearer JWT | Remove group chat conversation for user session.                                             |
 | `POST`   | `/api/lobbies/{id}/apply`      | Bearer JWT | Submit join application with pitch note ([5, 300] chars). Blocks duplicate and host self-pitch. |
+| `DELETE` | `/api/lobbies/{id}/apply`      | Bearer JWT | Cancel pending join application; atomically decrements lobby pending counter.                 |
+| `POST`   | `/api/lobbies/{id}/cancel-apply`| Bearer JWT| Alternative POST alias to cancel join application and decrement pending counter.              |
 | `GET`    | `/api/lobbies/{id}/applicants` | Bearer JWT | List join applications for this lobby.                                                       |
 
 ### 4. Applicant Decision Engine (`/api/applicants`)
@@ -367,6 +380,11 @@ Configure these keys in Render's **Environment** tab:
 | `DISCORD_CLIENT_ID` | `***` | Discord Developer Portal Application ID |
 | `DISCORD_CLIENT_SECRET` | `***` | Discord Application Secret |
 | `DISCORD_REDIRECT_URI` | `https://findmate-psi.vercel.app/auth/callback` | Discord OAuth redirect URI |
+| `EMAILJS_SERVICE_ID` | `service_***` | EmailJS Service ID connected to Gmail (Port 443 HTTPS) |
+| `EMAILJS_TEMPLATE_ID` | `template_***` | EmailJS Template ID for 6-digit OTP delivery |
+| `EMAILJS_PUBLIC_KEY` | `***` | EmailJS Account Public Key |
+| `EMAILJS_PRIVATE_KEY` | `***` | EmailJS Private Key (for non-browser backend API calls) |
+| `RESEND_API_KEY` | `re_***` | Alternative Resend HTTPS email delivery API key |
 
 ### 3. Live Health & Smoke Verification
 

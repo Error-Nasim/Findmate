@@ -6,7 +6,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind_CSS_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![React Router](https://img.shields.io/badge/Routing-React_Router_v6-CA4245?style=flat-square&logo=reactrouter&logoColor=white)](https://reactrouter.com/)
 [![Figma Prototype](https://img.shields.io/badge/UI_Design-Figma_Prototype-F24E1E?style=flat-square&logo=figma&logoColor=white)](https://appeal-rich-26498266.figma.site)
-[![Tests Passing](https://img.shields.io/badge/Tests-76%2F76_Passed-brightgreen?style=flat-square)](../tests/README.md)
+[![Tests Passing](https://img.shields.io/badge/Tests-77%2F77_Passed-brightgreen?style=flat-square)](../tests/README.md)
 
 > **🚀 Live Production App**: [**https://findmate-psi.vercel.app/**](https://findmate-psi.vercel.app/)  
 > Connected to live Render Go REST API (`https://findmate-dctf.onrender.com/api`) and Neon PostgreSQL.
@@ -76,7 +76,7 @@ FindMate_Frontend/
 │   │   │   ├── Navbar.jsx        # Pill navigation capsule, theme toggle & avatar dropdown
 │   │   │   └── BottomNav.jsx     # Mobile drawer navigation for small viewports
 │   │   ├── modals/
-│   │   │   ├── AuthModal.jsx     # Authentic OAuth 2.0 (Google, Discord, Facebook) & credential login
+│   │   │   ├── AuthModal.jsx     # 5-View modal: Sign In, Sign Up, Verify Code, Forgot Password, Reset Password
 │   │   │   ├── CreateLobbyModal.jsx # New lobby modal (category, capacity bounds [2,10], tags)
 │   │   │   ├── ApplyModal.jsx    # Application modal with custom pitch note ([5,300] chars)
 │   │   │   ├── ApplicantModal.jsx # Host review drawer: applicant reliability & vetting decisions
@@ -163,6 +163,9 @@ The `/admin` route is a dedicated executive control suite protected by role chec
 8. **Multi-User Data Isolation (Zero Leaks)**: Clean slate for brand-new users with zero demo or fake data leakage across user sessions.
 9. **Squad Roster Management**: Hosts can remove/kick squad members from the roster (`handleRemoveMember`), automatically decrementing joined count, reopening the lobby if it was Full, broadcasting a squad departure alert, and allowing the kicked member to re-apply fresh.
 10. **Interactive Notification Management**: Notifications panel allows single-click individual notification deletion (`🗑️`) and complete notification clearance (`Clear all`), persisting changes directly to the PostgreSQL database with smart deduplication.
+11. **Application Cancellation (`Cancel Request`)**: Seekers can cancel pending applications directly from the Discover Feed, Lobby Detail View, or My Lobbies Page ("Pending Requests" tab), atomically decrementing the lobby's pending counter.
+12. **Clean Re-Application Flow**: Client-side state resolutionPrunes obsolete application records, guaranteeing that re-applying after cancellation or host removal sets the user to "Pending Host Approval" without stale cache conflicts.
+13. **Freeze Prevention & Timeout Guards**: The Axios client enforces a 15-second timeout, ensuring network drops never leave buttons locked in a permanent loading state.
 
 ---
 

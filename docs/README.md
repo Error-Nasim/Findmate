@@ -81,7 +81,7 @@ docs/
 | **Project Schedule** | **14-Week WBS & Schedule Report** | Completed | [`Schedule/Project_Schedule_Gantt.md`](./Schedule/Project_Schedule_Gantt.md) | Complete 14-week WBS matrix, Mermaid flowcharts, and milestone quality gate dictionary. |
 | **Testing & QA** | **Official Software Test Report (Word)** | Completed | [`Reports/testing/Test_Report.docx`](./Reports/testing/Test_Report.docx) | Populated `.docx` document conforming to course template for Exp 9 & 10 grading. |
 | **Testing & QA** | **Official Software Test Report (Markdown)** | Completed | [`Reports/testing/Test_Report.md`](./Reports/testing/Test_Report.md) | 13-section ISO 29119-3 report covering RTM, BVA/EP, state transitions, CI, coverage, and sign-offs. |
-| **Testing & QA** | **Automated Testing Suite & QA Guide** | Completed | [`tests/README.md`](../tests/README.md) | Guide to running all 76 automated test cases, coverage measurement, and k6 performance scripts. |
+| **Testing & QA** | **Automated Testing Suite & QA Guide** | Completed | [`tests/README.md`](../tests/README.md) | Guide to running all 77 automated test cases, coverage measurement, and k6 performance scripts. |
 | **Testing Evidence** | **V8 Automated Code Coverage (99%)** | Completed | [`tests/evidence/coverage_summary.txt`](../tests/evidence/coverage_summary.txt) | Detailed line (99%), branch (87.85%), and function (98.44%) coverage report. |
 | **Testing Evidence** | **k6 Performance Report (p95 = 188ms)** | Completed | [`tests/evidence/performance_k6_summary.json`](../tests/evidence/performance_k6_summary.json) | High-concurrency load testing metrics under 20 concurrent virtual users. |
 | **Testing Evidence** | **OWASP Security & ASVS Audit** | Completed | [`tests/evidence/security_zap_summary.md`](../tests/evidence/security_zap_summary.md) | DAST scan findings, `npm audit` zero-vulnerability report, and RBAC security checks. |
@@ -94,7 +94,7 @@ docs/
 | **Frontend** | **React 19 Frontend Architecture** | Completed | [`FindMate_Frontend/README.md`](../FindMate_Frontend/README.md) | Component hierarchy, client-side routes, mock persistence engine, and theme tokens. |
 | **Live App** | **Production Single-Page Application** | Live | [**https://findmate-psi.vercel.app/**](https://findmate-psi.vercel.app/) | Deployed on Vercel Edge CDN with client-side SPA routing and dark/light theme engine. |
 | **Live API** | **Production Go REST API Microservice** | Live | [`https://findmate-dctf.onrender.com`](https://findmate-dctf.onrender.com/api/health) | Docker container on Render in AWS Singapore with TLS connection to Neon DB. |
-| **Cloud DB** | **Neon Serverless PostgreSQL Database** | Live | Serverless PostgreSQL 18.6 | Managed pooled connection in AWS Singapore, 7 automated schema migrations applied. |
+| **Cloud DB** | **Neon Serverless PostgreSQL Database** | Live | Serverless PostgreSQL 18.6 | Managed pooled connection in AWS Singapore, 8 automated schema migrations applied. |
 
 ---
 

@@ -14,7 +14,7 @@ _No Event Planning Overhead. No Discord Clutter. Zero Ghosting._
 [![Tailwind CSS](https://img.shields.io/badge/Styles-Tailwind_CSS_3-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Go](https://img.shields.io/badge/Backend-Go_1.22+-00ADD8?style=flat-square&logo=go&logoColor=white)](https://golang.org/)
 [![CI Gate](https://img.shields.io/badge/CI_Gate-Passing-brightgreen?style=flat-square&logo=githubactions)](./.github/workflows/test.yml)
-[![Tests](<https://img.shields.io/badge/Tests-64%2F64_Passed_(100%25)-brightgreen?style=flat-square>)](./tests/README.md)
+[![Tests](<https://img.shields.io/badge/Tests-77%2F77_Passed_(100%25)-brightgreen?style=flat-square>)](./tests/README.md)
 [![Coverage](https://img.shields.io/badge/Coverage-99.00%25_Line-brightgreen?style=flat-square)](./tests/evidence/coverage_summary.txt)
 [![Capstone](https://img.shields.io/badge/Capstone_Report-v1.0.0_Delivered-indigo?style=flat-square)](./docs/Reports/final/Final_Report.md)
 [![Schedule](<https://img.shields.io/badge/Gantt_Schedule-14_Weeks_(Excel)-emerald?style=flat-square>)](./docs/Schedule/FindMate_14_Week_Gantt_Schedule.xlsx)
@@ -84,7 +84,8 @@ Traditional platforms force users through cumbersome event planning tools, rigid
 - **Structured Pitch Notes**: Seekers submit focused introduction notes detailing rank, role, availability, and background ($5-300$ chars).
 - **Host Review Queue**: Hosts inspect applicant reliability percentages, past team-ups, and connected accounts.
 - **Atomic Slot Locking**: Approvals automatically update lobby capacity, broadcast a squad announcement, and spawn a direct messaging thread.
-- **Roster Kick & Re-Application**: Hosts can remove members from the squad roster, automatically decrementing joined count, reopening the lobby if it was Full, broadcasting a squad departure alert, and allowing the kicked member to re-apply fresh.
+- **Application Cancellation (`Cancel Request`)**: Seekers can withdraw their pending applications at any time from the Discover Feed, Lobby Detail View, or My Lobbies Page, atomically decrementing the lobby's pending counter.
+- **Roster Kick & Clean Re-Application**: Hosts can remove members from the squad roster, automatically decrementing joined count, reopening the lobby if it was Full, broadcasting a squad departure alert, and allowing the kicked member to re-apply fresh without cached state conflicts.
 
 ### 💬 3. Integrated Real-Time Messaging & Isolated Notification Center
 
@@ -117,7 +118,14 @@ Traditional platforms force users through cumbersome event planning tools, rigid
 - **Cross-Platform Account Linking**: Authenticate with any provider (e.g. Google), then link additional third-party accounts (Discord, Facebook) in the profile page to enable seamless login from any connected provider.
 - **Manual Authentication**: Clean credential sign-in without test user shortcuts.
 
-### 🎨 5. Modern UI & Theme System
+### 📧 6. Dynamic Email Verification & Password Recovery
+
+- **Real OTP Email Delivery**: Sends 6-digit verification codes to any user's email address during registration and password reset.
+- **Render-Friendly HTTPS API (EmailJS & Resend)**: Delivers emails over standard HTTPS (Port 443) via EmailJS (personal Gmail relay) or Resend, completely bypassing cloud container SMTP port blocks (Render Free Tier blocks port 587).
+- **Security & Expiration**: 15-minute token TTL, attempt rate-limiting, and 60-second resend cooldown backed by Neon PostgreSQL (`verification_codes` table).
+- **Clean Reset UX**: Does not auto-login on reset; redirects to the Sign In screen with a pre-filled email and success confirmation banner.
+
+### 🎨 7. Modern UI & Theme System
 
 - **Dual Theme Engine**: Seamless light and dark mode toggling powered by CSS variables and local storage persistence.
 - **Responsive Layout**: Desktop capsule pill navigation and mobile-optimized bottom navigation drawer.
@@ -275,6 +283,8 @@ flowchart LR
    - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`
    - `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` / `DISCORD_REDIRECT_URI`
    - `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` / `FACEBOOK_REDIRECT_URI`
+   - `EMAILJS_SERVICE_ID` / `EMAILJS_TEMPLATE_ID` / `EMAILJS_PUBLIC_KEY` / `EMAILJS_PRIVATE_KEY` (Free transactional email delivery via HTTPS Port 443 — bypasses Render Free Tier SMTP port 587 block)
+   - `RESEND_API_KEY` (Alternative HTTPS email delivery)
 
 ### 3. Frontend: Vercel (vercel.com)
 1. Import repository to [Vercel](https://vercel.com).
@@ -332,7 +342,7 @@ npm run dev
 The testing suite conforms to **ISO/IEC/IEEE 29119-3** and satisfies the course verification requirements (Experiment 9 & 10). Anyone can clone the repository and reproduce all test results with a single command:
 
 ```bash
-# Run all 64 automated tests in the unified test harness
+# Run all 77 automated tests in the unified test harness
 npm test
 ```
 
@@ -340,14 +350,14 @@ npm test
 
 | Command                 | Suite Scope           | Verification Target                                           |
 | :---------------------- | :-------------------- | :------------------------------------------------------------ |
-| `npm test`              | Full Test Suite       | 64 automated tests covering BVA, EP, journeys, RBAC, OAuth & data isolation |
+| `npm test`              | Full Test Suite       | 77 automated tests covering BVA, EP, email/password validation, username uniqueness, journeys, RBAC, OAuth & data isolation |
 | `npm run test:coverage` | V8 Automated Coverage | Measures line, branch, and statement coverage across all core modules |
 | `npm run test:backend`  | Go Backend Unit       | Comprehensive Go domain, capacity, and REST endpoint test suites |
 | `npm run test:all`      | Full Test Harness     | Executes complete frontend and backend test suites            |
 
 ### Quality & Performance Evidence
 
-- **Test Execution Pass Rate**: **100% (64 / 64 tests passed)**
+- **Test Execution Pass Rate**: **100% (77 / 77 tests passed)**
 - **Code Coverage**: **99.00% Line**, **87.85% Branch**, **98.44% Function** ([`tests/evidence/coverage_summary.txt`](./tests/evidence/coverage_summary.txt))
 - **Load Performance**: **p95 Latency = 188.4 ms** under 20 concurrent virtual users ([`tests/evidence/performance_k6_summary.json`](./tests/evidence/performance_k6_summary.json))
 - **Security Audit**: **0 Vulnerabilities** (`npm audit`), OWASP ASVS Level 1 compliant ([`tests/evidence/security_zap_summary.md`](./tests/evidence/security_zap_summary.md))
