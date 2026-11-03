@@ -34,13 +34,17 @@ type OAuthConfig struct {
 }
 
 type SMTPConfig struct {
-	Host         string
-	Port         int
-	User         string
-	Pass         string
-	From         string
-	ResendAPIKey string
-	BrevoAPIKey  string
+	Host              string
+	Port              int
+	User              string
+	Pass              string
+	From              string
+	ResendAPIKey      string
+	BrevoAPIKey       string
+	EmailJSServiceID  string
+	EmailJSTemplateID string
+	EmailJSPublicKey  string
+	EmailJSPrivateKey string
 }
 
 type Config struct {
@@ -164,8 +168,12 @@ func LoadConfig() {
 				}
 				return f
 			}(),
-			ResendAPIKey: strings.TrimSpace(os.Getenv("RESEND_API_KEY")),
-			BrevoAPIKey:  strings.TrimSpace(os.Getenv("BREVO_API_KEY")),
+			ResendAPIKey:     strings.TrimSpace(os.Getenv("RESEND_API_KEY")),
+			BrevoAPIKey:      strings.TrimSpace(os.Getenv("BREVO_API_KEY")),
+			EmailJSServiceID:  strings.TrimSpace(os.Getenv("EMAILJS_SERVICE_ID")),
+			EmailJSTemplateID: strings.TrimSpace(os.Getenv("EMAILJS_TEMPLATE_ID")),
+			EmailJSPublicKey:  strings.TrimSpace(os.Getenv("EMAILJS_PUBLIC_KEY")),
+			EmailJSPrivateKey: strings.TrimSpace(os.Getenv("EMAILJS_PRIVATE_KEY")),
 		},
 	}
 }

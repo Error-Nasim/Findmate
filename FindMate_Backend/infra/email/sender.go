@@ -23,24 +23,38 @@ type EmailService interface {
 }
 
 type emailService struct {
-	host         string
-	port         int
-	user         string
-	pass         string
-	from         string
-	resendAPIKey string
-	brevoAPIKey  string
+	host              string
+	port              int
+	user              string
+	pass              string
+	from              string
+	resendAPIKey      string
+	brevoAPIKey       string
+	emailJSServiceID  string
+	emailJSTemplateID string
+	emailJSPublicKey  string
+	emailJSPrivateKey string
 }
 
-func NewEmailService(host string, port int, user, pass, from, resendAPIKey, brevoAPIKey string) EmailService {
+func NewEmailService(
+	host string,
+	port int,
+	user, pass, from string,
+	resendAPIKey, brevoAPIKey string,
+	emailJSServiceID, emailJSTemplateID, emailJSPublicKey, emailJSPrivateKey string,
+) EmailService {
 	return &emailService{
-		host:         host,
-		port:         port,
-		user:         user,
-		pass:         pass,
-		from:         from,
-		resendAPIKey: resendAPIKey,
-		brevoAPIKey:  brevoAPIKey,
+		host:              host,
+		port:              port,
+		user:              user,
+		pass:              pass,
+		from:              from,
+		resendAPIKey:      resendAPIKey,
+		brevoAPIKey:       brevoAPIKey,
+		emailJSServiceID:  emailJSServiceID,
+		emailJSTemplateID: emailJSTemplateID,
+		emailJSPublicKey:  emailJSPublicKey,
+		emailJSPrivateKey: emailJSPrivateKey,
 	}
 }
 
@@ -88,7 +102,7 @@ func (s *emailService) SendSignupCode(email, code string) error {
 </html>
 `, code)
 
-	return s.sendMail(email, subject, bodyText, bodyHTML)
+	return s.sendMail(email, subject, code, bodyText, bodyHTML)
 }
 
 func (s *emailService) SendPasswordResetCode(email, code string) error {
@@ -126,13 +140,23 @@ func (s *emailService) SendPasswordResetCode(email, code string) error {
 </html>
 `, code)
 
-	return s.sendMail(email, subject, bodyText, bodyHTML)
+	return s.sendMail(email, subject, code, bodyText, bodyHTML)
 }
 
-func (s *emailService) sendMail(recipient, subject, bodyText, bodyHTML string) error {
+func (s *emailService) sendMail(recipient, subject, code, bodyText, bodyHTML string) error {
 	log.Printf("[EMAIL NOTIFICATION] Delivering email to %s (Subject: %s)", recipient, subject)
 
-	// 1. Try Resend HTTP API (Port 443 - works on Render Free Tier!)
+	// 1. Try EmailJS HTTP API (Port 443 HTTPS - sends from your personal Gmail to ANY recipient, no domain required!)
+	if s.emailJSServiceID != "" && s.emailJSTemplateID != "" && s.emailJSPublicKey != "" {
+		err := s.sendViaEmailJS(recipient, subject, code, bodyText, bodyHTML)
+		if err == nil {
+			log.Printf("[EMAIL SUCCESS] Email successfully delivered via EmailJS API to %s", recipient)
+			return nil
+		}
+		log.Printf("[EMAIL WARNING] EmailJS delivery failed: %v. Trying next method...", err)
+	}
+
+	// 2. Try Resend HTTP API (Port 443 HTTPS)
 	if s.resendAPIKey != "" {
 		err := s.sendViaResend(recipient, subject, bodyText, bodyHTML)
 		if err == nil {
@@ -142,7 +166,7 @@ func (s *emailService) sendMail(recipient, subject, bodyText, bodyHTML string) e
 		log.Printf("[EMAIL WARNING] Resend API delivery failed: %v. Trying next method...", err)
 	}
 
-	// 2. Try Brevo HTTP API (Port 443 - works on Render Free Tier!)
+	// 3. Try Brevo HTTP API (Port 443 HTTPS)
 	if s.brevoAPIKey != "" {
 		err := s.sendViaBrevo(recipient, subject, bodyText, bodyHTML)
 		if err == nil {
@@ -152,7 +176,7 @@ func (s *emailService) sendMail(recipient, subject, bodyText, bodyHTML string) e
 		log.Printf("[EMAIL WARNING] Brevo API delivery failed: %v. Trying next method...", err)
 	}
 
-	// 3. Try standard SMTP with strict 5-second connection timeout (prevents cloud container hangs)
+	// 4. Try standard SMTP with strict 5-second connection timeout
 	if s.host != "" && s.user != "" && s.pass != "" {
 		err := s.sendViaSMTP(recipient, subject, bodyText, bodyHTML)
 		if err == nil {
@@ -160,11 +184,67 @@ func (s *emailService) sendMail(recipient, subject, bodyText, bodyHTML string) e
 			return nil
 		}
 		log.Printf("[EMAIL ERROR] SMTP delivery failed: %v", err)
-		return fmt.Errorf("SMTP delivery failed: %w (Note: Render Free Tier blocks outbound SMTP ports 25/465/587; set RESEND_API_KEY in Render to send via HTTPS)", err)
+		return fmt.Errorf("SMTP delivery failed: %w (Note: Render Free Tier blocks outbound SMTP ports 25/465/587; set EMAILJS or RESEND credentials in Render to send via HTTPS)", err)
 	}
 
 	log.Printf("[EMAIL WARNING] No active email delivery service configured")
-	return fmt.Errorf("email service not configured: set RESEND_API_KEY or SMTP credentials")
+	return fmt.Errorf("email service not configured: set EMAILJS, RESEND_API_KEY, or SMTP credentials")
+}
+
+type emailJSPayload struct {
+	ServiceID      string                 `json:"service_id"`
+	TemplateID     string                 `json:"template_id"`
+	UserID         string                 `json:"user_id"`
+	AccessToken    string                 `json:"accessToken,omitempty"`
+	TemplateParams map[string]interface{} `json:"template_params"`
+}
+
+func (s *emailService) sendViaEmailJS(recipient, subject, code, bodyText, bodyHTML string) error {
+	params := map[string]interface{}{
+		"to_email":  recipient,
+		"email":     recipient,
+		"to_name":   recipient,
+		"subject":   subject,
+		"code":      code,
+		"otp_code":  code,
+		"passcode":  code,
+		"message":   bodyText,
+		"body_html": bodyHTML,
+	}
+
+	payload := emailJSPayload{
+		ServiceID:      s.emailJSServiceID,
+		TemplateID:     s.emailJSTemplateID,
+		UserID:         s.emailJSPublicKey,
+		AccessToken:    s.emailJSPrivateKey,
+		TemplateParams: params,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", "https://api.emailjs.com/api/v1.0/email/send", bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "FindMate-Backend/1.0")
+
+	client := &http.Client{Timeout: 8 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("emailJS request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("emailJS returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
 }
 
 type resendRequest struct {
