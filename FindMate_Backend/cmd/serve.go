@@ -68,9 +68,9 @@ func Serve() {
 	// 6. Initialize Domain Services (Domain-Driven Design)
 	var emailSvc email.EmailService
 	if cfg.SMTP != nil {
-		emailSvc = email.NewEmailService(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.User, cfg.SMTP.Pass, cfg.SMTP.From)
+		emailSvc = email.NewEmailService(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.User, cfg.SMTP.Pass, cfg.SMTP.From, cfg.SMTP.ResendAPIKey, cfg.SMTP.BrevoAPIKey)
 	} else {
-		emailSvc = email.NewEmailService("", 587, "", "", "noreply@findmate.local")
+		emailSvc = email.NewEmailService("", 587, "", "", "noreply@findmate.local", "", "")
 	}
 	userSvc := user.NewService(userRepo, cfg, vcRepo, emailSvc)
 	lobbySvc := lobby.NewService(lobbyRepo, chatRepo)

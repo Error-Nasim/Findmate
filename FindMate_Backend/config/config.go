@@ -34,11 +34,13 @@ type OAuthConfig struct {
 }
 
 type SMTPConfig struct {
-	Host string
-	Port int
-	User string
-	Pass string
-	From string
+	Host         string
+	Port         int
+	User         string
+	Pass         string
+	From         string
+	ResendAPIKey string
+	BrevoAPIKey  string
 }
 
 type Config struct {
@@ -162,6 +164,8 @@ func LoadConfig() {
 				}
 				return f
 			}(),
+			ResendAPIKey: strings.TrimSpace(os.Getenv("RESEND_API_KEY")),
+			BrevoAPIKey:  strings.TrimSpace(os.Getenv("BREVO_API_KEY")),
 		},
 	}
 }

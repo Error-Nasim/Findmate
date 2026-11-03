@@ -531,9 +531,8 @@ func (s *service) RequestSignup(name, handle, email, password string, tags []str
 		Tags:     tags,
 	})
 
-	var createdCode *domain.VerificationCode
 	if s.vcRepo != nil {
-		c, err := s.vcRepo.Create(domain.VerificationCode{
+		_, err := s.vcRepo.Create(domain.VerificationCode{
 			Email:     cleanEmail,
 			Code:      otp,
 			Type:      string(domain.VerificationTypeSignup),
@@ -543,15 +542,12 @@ func (s *service) RequestSignup(name, handle, email, password string, tags []str
 		if err != nil {
 			return "", fmt.Errorf("failed to generate verification code: %w", err)
 		}
-		createdCode = c
 	}
 
 	if s.emailSvc != nil {
 		if err := s.emailSvc.SendSignupCode(cleanEmail, otp); err != nil {
-			if s.vcRepo != nil && createdCode != nil {
-				_ = s.vcRepo.Delete(createdCode.ID)
-			}
-			return "", err
+			log.Printf("[EMAIL WARNING] SendSignupCode failed: %v. Retaining OTP in database for log recovery.", err)
+			return otp, fmt.Errorf("email delivery failed: %w", err)
 		}
 	}
 
@@ -625,9 +621,8 @@ func (s *service) ForgotPassword(email string) (string, error) {
 		otp = s.emailSvc.GenerateOTP()
 	}
 
-	var createdCode *domain.VerificationCode
 	if s.vcRepo != nil {
-		c, err := s.vcRepo.Create(domain.VerificationCode{
+		_, err := s.vcRepo.Create(domain.VerificationCode{
 			Email:     cleanEmail,
 			Code:      otp,
 			Type:      string(domain.VerificationTypePasswordReset),
@@ -636,15 +631,12 @@ func (s *service) ForgotPassword(email string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to create reset code: %w", err)
 		}
-		createdCode = c
 	}
 
 	if s.emailSvc != nil {
 		if err := s.emailSvc.SendPasswordResetCode(cleanEmail, otp); err != nil {
-			if s.vcRepo != nil && createdCode != nil {
-				_ = s.vcRepo.Delete(createdCode.ID)
-			}
-			return "", err
+			log.Printf("[EMAIL WARNING] SendPasswordResetCode failed: %v. Retaining OTP in database for log recovery.", err)
+			return otp, fmt.Errorf("email delivery failed: %w", err)
 		}
 	}
 
@@ -725,9 +717,8 @@ func (s *service) ResendVerificationCode(email, vType string) (string, error) {
 		otp = s.emailSvc.GenerateOTP()
 	}
 
-	var createdCode *domain.VerificationCode
 	if s.vcRepo != nil {
-		c, err := s.vcRepo.Create(domain.VerificationCode{
+		_, err := s.vcRepo.Create(domain.VerificationCode{
 			Email:     cleanEmail,
 			Code:      otp,
 			Type:      string(domain.VerificationTypeSignup),
@@ -737,15 +728,12 @@ func (s *service) ResendVerificationCode(email, vType string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		createdCode = c
 	}
 
 	if s.emailSvc != nil {
 		if err := s.emailSvc.SendSignupCode(cleanEmail, otp); err != nil {
-			if s.vcRepo != nil && createdCode != nil {
-				_ = s.vcRepo.Delete(createdCode.ID)
-			}
-			return "", err
+			log.Printf("[EMAIL WARNING] SendSignupCode failed: %v. Retaining OTP in database for log recovery.", err)
+			return otp, fmt.Errorf("email delivery failed: %w", err)
 		}
 	}
 

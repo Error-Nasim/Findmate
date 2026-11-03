@@ -222,7 +222,7 @@ export default function AuthModal({
       changeView("verify-signup");
       setVerificationCode("");
       setResendCooldown(60);
-      setInfoMsg(`We sent a 6-digit verification code to ${cleanEmail}. Check your inbox or spam folder.`);
+      setInfoMsg(res?.message || `We sent a 6-digit verification code to ${cleanEmail}. Check your inbox or spam folder.`);
     } catch (err) {
       setErrorMsg(err.message || "Failed to initiate registration.");
     } finally {
@@ -270,7 +270,7 @@ export default function AuthModal({
       changeView("reset-password");
       setResetCode("");
       setResendCooldown(60);
-      setInfoMsg(`We sent a 6-digit password reset code to ${targetEmail}. Check your inbox or spam folder.`);
+      setInfoMsg(res?.message || `We sent a 6-digit password reset code to ${targetEmail}. Check your inbox or spam folder.`);
     } catch (err) {
       setErrorMsg(err.message || "Could not send reset code. Please check your email address.");
     } finally {
