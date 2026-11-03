@@ -57,6 +57,15 @@ func (h *Handler) RegisterRequest(w http.ResponseWriter, r *http.Request) {
 
 	_, err := h.userSvc.RequestSignup(req.Name, handle, req.Email, req.Password, req.Tags)
 	if err != nil {
+		if strings.Contains(err.Error(), "email delivery failed") {
+			util.SendData(w, map[string]interface{}{
+				"success": true,
+				"warning": err.Error(),
+				"message": "Registration code created. (SMTP port 587 is blocked on Render Free Tier; check Render service logs for your 6-digit code or add RESEND_API_KEY).",
+				"email":   req.Email,
+			}, http.StatusOK)
+			return
+		}
 		util.SendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -96,6 +105,15 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 	_, err := h.userSvc.ForgotPassword(req.Email)
 	if err != nil {
+		if strings.Contains(err.Error(), "email delivery failed") {
+			util.SendData(w, map[string]interface{}{
+				"success": true,
+				"warning": err.Error(),
+				"message": "Reset code created. (SMTP port 587 is blocked on Render Free Tier; check Render service logs for your 6-digit code or add RESEND_API_KEY).",
+				"email":   req.Email,
+			}, http.StatusOK)
+			return
+		}
 		util.SendError(w, http.StatusBadRequest, err.Error())
 		return
 	}

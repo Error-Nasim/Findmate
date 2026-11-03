@@ -16,6 +16,7 @@ const normalizedBaseURL = rawBaseURL.replace(/\/+$/, "").endsWith("/api")
 
 export const apiClient = axios.create({
   baseURL: normalizedBaseURL,
+  timeout: 15000,
   headers: {
     "Content-Type": "application/json",
   },

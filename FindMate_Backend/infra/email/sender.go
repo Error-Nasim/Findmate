@@ -1,10 +1,16 @@
 package email
 
 import (
+	"bytes"
 	"crypto/rand"
+	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/big"
+	"net"
+	"net/http"
 	"net/smtp"
 	"strings"
 	"time"
@@ -17,20 +23,38 @@ type EmailService interface {
 }
 
 type emailService struct {
-	host string
-	port int
-	user string
-	pass string
-	from string
+	host              string
+	port              int
+	user              string
+	pass              string
+	from              string
+	resendAPIKey      string
+	brevoAPIKey       string
+	emailJSServiceID  string
+	emailJSTemplateID string
+	emailJSPublicKey  string
+	emailJSPrivateKey string
 }
 
-func NewEmailService(host string, port int, user, pass, from string) EmailService {
+func NewEmailService(
+	host string,
+	port int,
+	user, pass, from string,
+	resendAPIKey, brevoAPIKey string,
+	emailJSServiceID, emailJSTemplateID, emailJSPublicKey, emailJSPrivateKey string,
+) EmailService {
 	return &emailService{
-		host: host,
-		port: port,
-		user: user,
-		pass: pass,
-		from: from,
+		host:              host,
+		port:              port,
+		user:              user,
+		pass:              pass,
+		from:              from,
+		resendAPIKey:      resendAPIKey,
+		brevoAPIKey:       brevoAPIKey,
+		emailJSServiceID:  emailJSServiceID,
+		emailJSTemplateID: emailJSTemplateID,
+		emailJSPublicKey:  emailJSPublicKey,
+		emailJSPrivateKey: emailJSPrivateKey,
 	}
 }
 
@@ -44,6 +68,10 @@ func (s *emailService) GenerateOTP() string {
 }
 
 func (s *emailService) SendSignupCode(email, code string) error {
+	log.Printf("==================================================================")
+	log.Printf("[VERIFICATION OTP] Registration code for %s: %s", email, code)
+	log.Printf("==================================================================")
+
 	subject := "Verify your FindMate account"
 	bodyText := fmt.Sprintf("Welcome to FindMate!\n\nYour 6-digit verification code is: %s\n\nThis code will expire in 15 minutes.", code)
 	bodyHTML := fmt.Sprintf(`
@@ -74,10 +102,14 @@ func (s *emailService) SendSignupCode(email, code string) error {
 </html>
 `, code)
 
-	return s.sendMail(email, subject, bodyText, bodyHTML)
+	return s.sendMail(email, subject, code, bodyText, bodyHTML)
 }
 
 func (s *emailService) SendPasswordResetCode(email, code string) error {
+	log.Printf("==================================================================")
+	log.Printf("[VERIFICATION OTP] Password reset code for %s: %s", email, code)
+	log.Printf("==================================================================")
+
 	subject := "Reset your FindMate password"
 	bodyText := fmt.Sprintf("FindMate Password Reset\n\nYour 6-digit password reset code is: %s\n\nThis code will expire in 15 minutes.", code)
 	bodyHTML := fmt.Sprintf(`
@@ -108,17 +140,217 @@ func (s *emailService) SendPasswordResetCode(email, code string) error {
 </html>
 `, code)
 
-	return s.sendMail(email, subject, bodyText, bodyHTML)
+	return s.sendMail(email, subject, code, bodyText, bodyHTML)
 }
 
-func (s *emailService) sendMail(recipient, subject, bodyText, bodyHTML string) error {
-	log.Printf("[EMAIL NOTIFICATION] Attempting to deliver email to %s (Subject: %s)", recipient, subject)
+func (s *emailService) sendMail(recipient, subject, code, bodyText, bodyHTML string) error {
+	log.Printf("[EMAIL NOTIFICATION] Delivering email to %s (Subject: %s)", recipient, subject)
 
-	if s.host == "" || s.user == "" || s.pass == "" {
-		log.Printf("[EMAIL ERROR] Missing SMTP credentials: host='%s', user='%s'", s.host, s.user)
-		return fmt.Errorf("email service not configured: please set SMTP_USER and SMTP_PASS in FindMate_Backend/.env")
+	// 1. Try EmailJS HTTP API (Port 443 HTTPS - sends from your personal Gmail to ANY recipient, no domain required!)
+	if s.emailJSServiceID != "" && s.emailJSTemplateID != "" && s.emailJSPublicKey != "" {
+		err := s.sendViaEmailJS(recipient, subject, code, bodyText, bodyHTML)
+		if err == nil {
+			log.Printf("[EMAIL SUCCESS] Email successfully delivered via EmailJS API to %s", recipient)
+			return nil
+		}
+		log.Printf("[EMAIL WARNING] EmailJS delivery failed: %v. Trying next method...", err)
 	}
 
+	// 2. Try Resend HTTP API (Port 443 HTTPS)
+	if s.resendAPIKey != "" {
+		err := s.sendViaResend(recipient, subject, bodyText, bodyHTML)
+		if err == nil {
+			log.Printf("[EMAIL SUCCESS] Email successfully delivered via Resend API to %s", recipient)
+			return nil
+		}
+		log.Printf("[EMAIL WARNING] Resend API delivery failed: %v. Trying next method...", err)
+	}
+
+	// 3. Try Brevo HTTP API (Port 443 HTTPS)
+	if s.brevoAPIKey != "" {
+		err := s.sendViaBrevo(recipient, subject, bodyText, bodyHTML)
+		if err == nil {
+			log.Printf("[EMAIL SUCCESS] Email successfully delivered via Brevo API to %s", recipient)
+			return nil
+		}
+		log.Printf("[EMAIL WARNING] Brevo API delivery failed: %v. Trying next method...", err)
+	}
+
+	// 4. Try standard SMTP with strict 5-second connection timeout
+	if s.host != "" && s.user != "" && s.pass != "" {
+		err := s.sendViaSMTP(recipient, subject, bodyText, bodyHTML)
+		if err == nil {
+			log.Printf("[EMAIL SUCCESS] Email successfully delivered via SMTP to %s", recipient)
+			return nil
+		}
+		log.Printf("[EMAIL ERROR] SMTP delivery failed: %v", err)
+		return fmt.Errorf("SMTP delivery failed: %w (Note: Render Free Tier blocks outbound SMTP ports 25/465/587; set EMAILJS or RESEND credentials in Render to send via HTTPS)", err)
+	}
+
+	log.Printf("[EMAIL WARNING] No active email delivery service configured")
+	return fmt.Errorf("email service not configured: set EMAILJS, RESEND_API_KEY, or SMTP credentials")
+}
+
+type emailJSPayload struct {
+	ServiceID      string                 `json:"service_id"`
+	TemplateID     string                 `json:"template_id"`
+	UserID         string                 `json:"user_id"`
+	AccessToken    string                 `json:"accessToken,omitempty"`
+	TemplateParams map[string]interface{} `json:"template_params"`
+}
+
+func (s *emailService) sendViaEmailJS(recipient, subject, code, bodyText, bodyHTML string) error {
+	params := map[string]interface{}{
+		"to_email":  recipient,
+		"email":     recipient,
+		"to_name":   recipient,
+		"subject":   subject,
+		"code":      code,
+		"otp_code":  code,
+		"passcode":  code,
+		"message":   bodyText,
+		"body_html": bodyHTML,
+	}
+
+	payload := emailJSPayload{
+		ServiceID:      s.emailJSServiceID,
+		TemplateID:     s.emailJSTemplateID,
+		UserID:         s.emailJSPublicKey,
+		AccessToken:    s.emailJSPrivateKey,
+		TemplateParams: params,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", "https://api.emailjs.com/api/v1.0/email/send", bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "FindMate-Backend/1.0")
+
+	client := &http.Client{Timeout: 8 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("emailJS request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("emailJS returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+type resendRequest struct {
+	From    string   `json:"from"`
+	To      []string `json:"to"`
+	Subject string   `json:"subject"`
+	HTML    string   `json:"html"`
+	Text    string   `json:"text"`
+}
+
+func (s *emailService) sendViaResend(recipient, subject, bodyText, bodyHTML string) error {
+	from := s.from
+	if from == "" || strings.Contains(from, "findmate.local") || strings.Contains(from, "@gmail.com") {
+		from = "FindMate <onboarding@resend.dev>"
+	}
+
+	payload, err := json.Marshal(resendRequest{
+		From:    from,
+		To:      []string{recipient},
+		Subject: subject,
+		HTML:    bodyHTML,
+		Text:    bodyText,
+	})
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", "https://api.resend.com/emails", bytes.NewBuffer(payload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+s.resendAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 8 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("resend returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return nil
+}
+
+type brevoSender struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type brevoRecipient struct {
+	Email string `json:"email"`
+}
+
+type brevoRequest struct {
+	Sender      brevoSender      `json:"sender"`
+	To          []brevoRecipient `json:"to"`
+	Subject     string           `json:"subject"`
+	HTMLContent string           `json:"htmlContent"`
+	TextContent string           `json:"textContent"`
+}
+
+func (s *emailService) sendViaBrevo(recipient, subject, bodyText, bodyHTML string) error {
+	senderEmail := s.from
+	if senderEmail == "" || strings.Contains(senderEmail, "findmate.local") {
+		senderEmail = s.user
+	}
+
+	payload, err := json.Marshal(brevoRequest{
+		Sender:      brevoSender{Name: "FindMate", Email: senderEmail},
+		To:          []brevoRecipient{{Email: recipient}},
+		Subject:     subject,
+		HTMLContent: bodyHTML,
+		TextContent: bodyText,
+	})
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", "https://api.brevo.com/v3/smtp/email", bytes.NewBuffer(payload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("api-key", s.brevoAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 8 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("brevo returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return nil
+}
+
+func (s *emailService) sendViaSMTP(recipient, subject, bodyText, bodyHTML string) error {
 	addr := fmt.Sprintf("%s:%d", s.host, s.port)
 	from := s.from
 	if from == "" || strings.Contains(from, "findmate.local") {
@@ -146,15 +378,56 @@ func (s *emailService) sendMail(recipient, subject, bodyText, bodyHTML string) e
 		fmt.Sprintf("--%s--", boundary),
 	}, "\r\n")
 
-	auth := smtp.PlainAuth("", s.user, s.pass, s.host)
-
-	// Attempt real SMTP delivery
-	err := smtp.SendMail(addr, auth, from, []string{recipient}, []byte(msg))
+	// 5-second timeout prevents indefinite hanging when host drops SMTP packets (e.g., Render Free Tier)
+	conn, err := net.DialTimeout("tcp", addr, 5*time.Second)
 	if err != nil {
-		log.Printf("[EMAIL ERROR] SMTP SendMail failed for %s: %v", recipient, err)
-		return fmt.Errorf("SMTP delivery failed: %w", err)
+		return fmt.Errorf("connect to %s timed out or failed: %w", addr, err)
 	}
 
-	log.Printf("[EMAIL SUCCESS] Email successfully delivered via SMTP to %s", recipient)
-	return nil
+	c, err := smtp.NewClient(conn, s.host)
+	if err != nil {
+		conn.Close()
+		return fmt.Errorf("initialize SMTP client: %w", err)
+	}
+	defer c.Close()
+
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		tlsConfig := &tls.Config{
+			ServerName: s.host,
+		}
+		if err = c.StartTLS(tlsConfig); err != nil {
+			return fmt.Errorf("SMTP StartTLS: %w", err)
+		}
+	}
+
+	if s.user != "" && s.pass != "" {
+		auth := smtp.PlainAuth("", s.user, s.pass, s.host)
+		if err = c.Auth(auth); err != nil {
+			return fmt.Errorf("SMTP auth: %w", err)
+		}
+	}
+
+	if err = c.Mail(from); err != nil {
+		return fmt.Errorf("SMTP MAIL: %w", err)
+	}
+
+	if err = c.Rcpt(recipient); err != nil {
+		return fmt.Errorf("SMTP RCPT: %w", err)
+	}
+
+	w, err := c.Data()
+	if err != nil {
+		return fmt.Errorf("SMTP DATA: %w", err)
+	}
+
+	if _, err = w.Write([]byte(msg)); err != nil {
+		w.Close()
+		return fmt.Errorf("SMTP write: %w", err)
+	}
+
+	if err = w.Close(); err != nil {
+		return fmt.Errorf("SMTP close data writer: %w", err)
+	}
+
+	return c.Quit()
 }
