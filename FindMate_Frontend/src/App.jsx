@@ -74,6 +74,7 @@ function LobbyRouteWrapper({
   pendingIds,
   acceptedIds,
   onJoin,
+  onCancelApplication,
   onReport,
   onGroupChat,
   onMsgHost,
@@ -124,6 +125,7 @@ function LobbyRouteWrapper({
       isAccepted={acceptedIds.has(lobby.id) || acceptedIds.has(String(lobby.id))}
       onBack={() => navigate("/feed")}
       onJoin={onJoin}
+      onCancelApplication={onCancelApplication}
       onReport={() => onReport({ type: "lobby", id: lobby.id, name: lobby.title })}
       onGroupChat={() => onGroupChat(lobby.id)}
       onMsgHost={() => onMsgHost(lobby)}
@@ -147,7 +149,8 @@ export default function App() {
   // Current user info (defined early to prevent TDZ ReferenceError in hooks)
   const isNasim =
     user?.handle?.toLowerCase() === "error-nasim" ||
-    (user?.name && user.name.toLowerCase().includes("nasim"));
+    user?.id === "u1" ||
+    user?.email?.toLowerCase() === "nasim@findmate.local";
   const currentUserAvatar =
     user?.avatar && (isNasim || user.avatar !== "AN")
       ? user.avatar
@@ -276,16 +279,32 @@ export default function App() {
       acceptedLobbyIds.forEach((id) => ids.add(String(id)));
     }
     if (currentUserHandle || currentUserId) {
-      applicantsList.forEach((a) => {
+      // Resolve latest applicant state per lobby so old historical records don't overwrite current state
+      const latestAppPerLobby = new Map();
+      applicantsList.forEach((a, idx) => {
         const match =
           (currentUserHandle && a.handle?.toLowerCase() === currentUserHandle) ||
           (currentUserId && a.userId === currentUserId);
         if (match) {
-          if (a.status === "accepted") {
-            ids.add(String(a.lobbyId));
-          } else if (a.status === "removed" || a.status === "declined") {
-            ids.delete(String(a.lobbyId));
+          const lobbyId = String(a.lobbyId);
+          const current = latestAppPerLobby.get(lobbyId);
+          if (!current) {
+            latestAppPerLobby.set(lobbyId, { app: a, idx });
+          } else {
+            const thisTime = new Date(a.createdAt || a.updatedAt || 0).getTime();
+            const currTime = new Date(current.app.createdAt || current.app.updatedAt || 0).getTime();
+            if (thisTime > currTime || (thisTime === currTime && idx < current.idx)) {
+              latestAppPerLobby.set(lobbyId, { app: a, idx });
+            }
           }
+        }
+      });
+
+      latestAppPerLobby.forEach(({ app }, lobbyId) => {
+        if (app.status === "accepted") {
+          ids.add(lobbyId);
+        } else {
+          ids.delete(lobbyId);
         }
       });
     }
@@ -298,16 +317,32 @@ export default function App() {
       pendingLobbyIds.forEach((id) => ids.add(String(id)));
     }
     if (currentUserHandle || currentUserId) {
-      applicantsList.forEach((a) => {
+      // Resolve latest applicant state per lobby so old historical records don't overwrite current state
+      const latestAppPerLobby = new Map();
+      applicantsList.forEach((a, idx) => {
         const match =
           (currentUserHandle && a.handle?.toLowerCase() === currentUserHandle) ||
           (currentUserId && a.userId === currentUserId);
         if (match) {
-          if (a.status === "pending") {
-            ids.add(String(a.lobbyId));
-          } else if (a.status === "accepted" || a.status === "declined" || a.status === "removed") {
-            ids.delete(String(a.lobbyId));
+          const lobbyId = String(a.lobbyId);
+          const current = latestAppPerLobby.get(lobbyId);
+          if (!current) {
+            latestAppPerLobby.set(lobbyId, { app: a, idx });
+          } else {
+            const thisTime = new Date(a.createdAt || a.updatedAt || 0).getTime();
+            const currTime = new Date(current.app.createdAt || current.app.updatedAt || 0).getTime();
+            if (thisTime > currTime || (thisTime === currTime && idx < current.idx)) {
+              latestAppPerLobby.set(lobbyId, { app: a, idx });
+            }
           }
+        }
+      });
+
+      latestAppPerLobby.forEach(({ app }, lobbyId) => {
+        if (app.status === "pending") {
+          ids.add(lobbyId);
+        } else {
+          ids.delete(lobbyId);
         }
       });
     }
@@ -767,6 +802,7 @@ export default function App() {
     // Refresh entities from backend
     api.getLobbies().then((data) => setLobbiesList(Array.isArray(data) ? data : []));
     api.getApplicants().then((data) => setApplicantsList(Array.isArray(data) ? data : []));
+    api.getUsers().then((data) => setUsersList(Array.isArray(data) ? data : []));
     if (userData?.handle) {
       api.getNotifications(userData.handle).then((data) => {
         const clean = (Array.isArray(data) ? data : []).filter(
@@ -853,6 +889,7 @@ export default function App() {
     });
 
     const hostHandle = (lobby.handle || "").replace(/^@/, "");
+    const cleanUserHandle = (currentUser?.handle || "").replace(/^@/, "").toLowerCase();
     const newApp = {
       id: `app_${Date.now()}`,
       lobbyId: strId,
@@ -865,9 +902,21 @@ export default function App() {
       status: "pending",
       message,
       hostHandle,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
-    setApplicantsList((prev) => [newApp, ...prev]);
+    setApplicantsList((prev) => [
+      newApp,
+      ...prev.filter(
+        (a) =>
+          !(
+            String(a.lobbyId) === strId &&
+            ((cleanUserHandle && (a.handle || "").replace(/^@/, "").toLowerCase() === cleanUserHandle) ||
+              (currentUser?.id && a.userId === currentUser.id))
+          ),
+      ),
+    ]);
 
     api.addApplicant(newApp).then((saved) => {
       if (saved && saved.id) {
@@ -893,13 +942,72 @@ export default function App() {
     showToast("Application submitted with your pitch note!");
   };
 
+  // Cancel pending application / request to join
+  const handleCancelApplication = async (lobbyId) => {
+    const strId = String(lobbyId);
+    const lobby = lobbiesList.find((l) => String(l.id) === strId);
+
+    // Remove from user-scoped pending sets
+    setPendingLobbyIds((prev) => {
+      const next = new Set([...prev].filter((id) => String(id) !== strId));
+      api.savePendingLobbyIds(currentUser?.handle || "default", next);
+      return next;
+    });
+
+    // Locate matching pending applicant
+    const targetApp = applicantsList.find(
+      (a) =>
+        String(a.lobbyId) === strId &&
+        ((currentUser?.handle && a.handle?.toLowerCase() === currentUser.handle.toLowerCase()) ||
+          (currentUser?.id && a.userId === currentUser.id)) &&
+        a.status === "pending",
+    );
+
+    // Update local applicant list
+    setApplicantsList((prev) =>
+      prev.map((a) =>
+        (targetApp && a.id === targetApp.id) ||
+        (String(a.lobbyId) === strId &&
+          currentUser?.handle &&
+          a.handle?.toLowerCase() === currentUser.handle.toLowerCase() &&
+          a.status === "pending")
+          ? { ...a, status: "cancelled" }
+          : a,
+      ),
+    );
+
+    // Decrement pending count in lobby list
+    setLobbiesList((prev) =>
+      prev.map((l) =>
+        String(l.id) === strId ? { ...l, pending: Math.max(0, (l.pending || 1) - 1) } : l,
+      ),
+    );
+
+    try {
+      await api.cancelApplication(strId, targetApp?.id, currentUser?.handle || currentUser?.id);
+    } catch (err) {
+      console.warn("[App] cancelApplication error:", err.message);
+    }
+
+    // Refresh data in background
+    api.getApplicants().then((data) => {
+      if (Array.isArray(data)) setApplicantsList(data);
+    });
+    api.getLobbies().then((data) => {
+      if (Array.isArray(data)) setLobbiesList(data);
+    });
+
+    showToast(`Request to join "${lobby?.title || "lobby"}" was cancelled.`);
+  };
+
   // Accept applicant (Sequence Diagram 3)
   const handleAcceptApplicant = (applicant) => {
     const lobby = lobbiesList.find((l) => String(l.id) === String(applicant.lobbyId));
     const hostHandle = lobby?.handle || currentUser?.handle || "host";
     const appHandle = applicant.handle || "player";
+    const cleanHostHandle = hostHandle.replace(/^@/, "");
     const cleanAppHandle = appHandle.replace(/^@/, "");
-    const threadId = `dm_${hostHandle}_${cleanAppHandle}`;
+    const threadId = `dm_${cleanHostHandle}_${cleanAppHandle}`;
 
     setApplicantsList((prev) =>
       prev.map((a) =>
@@ -936,34 +1044,6 @@ export default function App() {
       api.saveAcceptedLobbyIds(cleanAppHandle, nextSet);
     });
 
-    setApplicantsList((prev) =>
-      prev.map((a) =>
-        String(a.id) === String(applicant.id) ? { ...a, status: "accepted" } : a,
-      ),
-    );
-
-    if (lobby) {
-      setLobbiesList((prev) =>
-        prev.map((l) =>
-          String(l.id) === String(applicant.lobbyId)
-            ? {
-                ...l,
-                joined: Math.min(l.joined + 1, l.max),
-                pending: Math.max(0, (l.pending || 1) - 1),
-                chatMessages: [
-                  ...(l.chatMessages || []),
-                  {
-                    id: `sys_${Date.now()}`,
-                    type: "system",
-                    text: `${applicant.name} was accepted and joined the team! 🎉`,
-                  },
-                ],
-              }
-            : l,
-        ),
-      );
-    }
-
     api.updateApplicantStatus(applicant.id, "accepted").then(() => {
       api.getApplicants().then((data) => setApplicantsList(Array.isArray(data) ? data : []));
       api.getLobbies().then((data) => setLobbiesList(Array.isArray(data) ? data : []));
@@ -978,6 +1058,7 @@ export default function App() {
       handle: applicant.handle,
       avatar: applicant.avatar,
       lobbyContext: lobby?.title || "Lobby",
+      participants: [cleanHostHandle, cleanAppHandle],
       unread: 1,
       messages: [
         {
@@ -1826,7 +1907,7 @@ export default function App() {
     const targetUser = usersList.find((u) => u.id === userId || u.handle === userId);
     const targetHandle = (targetUser?.handle || String(userId)).replace(/^@/, "").toLowerCase();
 
-    if (targetHandle === "error-nasim" || (targetUser?.name && targetUser.name.toLowerCase().includes("nasim"))) {
+    if (targetHandle === "error-nasim" || targetUser?.id === "u1" || targetUser?.email === "nasim@findmate.local") {
       showToast("Superadmin (Nasim) is permanent and cannot be deleted.", "error");
       return;
     }
@@ -1856,15 +1937,27 @@ export default function App() {
     showToast(`Reliability score updated to ${newScore}%`);
   };
 
-  const handleUpdateProfile = (updates) => {
+  const handleUpdateProfile = async (updates) => {
     if (currentUser?.handle) {
+      const oldHandle = currentUser.handle;
+      const res = await api.updateUser(oldHandle, updates);
       updateUser(updates);
-      api.updateUser(currentUser.handle, updates);
       setUsersList((prev) =>
         prev.map((u) =>
-          u.handle.toLowerCase() === currentUser.handle.toLowerCase() ? { ...u, ...updates } : u
+          u.handle.toLowerCase() === oldHandle.toLowerCase() ? { ...u, ...updates } : u
         )
       );
+      if (updates.handle && updates.handle.toLowerCase() !== oldHandle.toLowerCase()) {
+        const newHandle = updates.handle;
+        setLobbiesList((prev) =>
+          prev.map((l) =>
+            l.handle?.toLowerCase() === oldHandle.toLowerCase()
+              ? { ...l, handle: newHandle, host: updates.name || l.host }
+              : l
+          )
+        );
+      }
+      return res;
     }
   };
 
@@ -2051,6 +2144,7 @@ export default function App() {
                 onSelectLobby={(lobby) => navigate(`/lobby/${lobby.id}`)}
                 onCreateLobby={() => setShowCreateLobby(true)}
                 onApply={handleJoinLobby}
+                onCancelApplication={handleCancelApplication}
                 onOpenChat={openGroupChat}
               />
             )
@@ -2074,6 +2168,7 @@ export default function App() {
                 else setShowCreateLobby(true);
               }}
               onApply={handleJoinLobby}
+              onCancelApplication={handleCancelApplication}
               onOpenChat={openGroupChat}
               onReviewApplicants={(id, title) => {
                 setActiveApplicantsLobbyId(id);
@@ -2094,6 +2189,7 @@ export default function App() {
               pendingIds={computedPendingLobbyIds}
               acceptedIds={computedAcceptedLobbyIds}
               onJoin={handleJoinLobby}
+              onCancelApplication={handleCancelApplication}
               onReport={handleOpenReport}
               onGroupChat={openGroupChat}
               onMsgHost={handleMessageHost}
@@ -2127,6 +2223,7 @@ export default function App() {
                 readGroupChatCounts={readGroupChatCounts}
                 onCreateLobby={() => setShowCreateLobby(true)}
                 onEditLobby={(l) => setEditingLobby(l)}
+                onCancelApplication={handleCancelApplication}
                 onReviewApplicants={(id, title) => {
                   setActiveApplicantsLobbyId(id);
                   setActiveApplicantsLobbyTitle(title);
@@ -2412,6 +2509,11 @@ export default function App() {
           lobbyId={activeChatLobbyId}
           lobbyTitle={activeChatLobby.title}
           lobbyStatus={activeChatLobby.status}
+          lobbyHost={activeChatLobby.handle || activeChatLobby.host}
+          lobbyCategory={activeChatLobby.category}
+          lobbyAvatar={activeChatLobby.avatar}
+          lobbyJoined={activeChatLobby.joined}
+          lobbyMax={activeChatLobby.max}
           messages={activeChatLobby.chatMessages || []}
           onClose={() => {
             if (activeChatLobby) {

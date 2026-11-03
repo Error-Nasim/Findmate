@@ -31,7 +31,8 @@ export function AuthProvider({ children }) {
         const parsed = JSON.parse(savedUser)
         const isNasim =
           parsed.handle?.toLowerCase() === 'error-nasim' ||
-          (parsed.name && parsed.name.toLowerCase().includes('nasim'))
+          parsed.id === 'u1' ||
+          parsed.email?.toLowerCase() === 'nasim@findmate.local'
         if (parsed.avatar === 'AN' && !isNasim) {
           if (parsed.name) {
             parsed.avatar = parsed.name
@@ -70,7 +71,8 @@ export function AuthProvider({ children }) {
     const cleanHandle = handle.replace(/^@/, '')
     const isNasim =
       cleanHandle.toLowerCase() === 'error-nasim' ||
-      (userData.name && userData.name.toLowerCase().includes('nasim'))
+      userData.id === 'u1' ||
+      userData.email?.toLowerCase() === 'nasim@findmate.local'
 
     const role =
       isNasim || userData.role === 'superadmin'
@@ -78,6 +80,11 @@ export function AuthProvider({ children }) {
         : userData.role === 'admin'
         ? 'admin'
         : userData.role || 'member'
+
+    if (role === 'member') {
+      sessionStorage.removeItem('findmate_admin_unlocked')
+      sessionStorage.removeItem('findmate_admin_username')
+    }
 
     let initials = 'ME'
     if (userData.avatar && (isNasim || userData.avatar !== 'AN')) {
@@ -127,6 +134,8 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('findmate_is_authed')
     localStorage.removeItem('findmate_auth_user')
     localStorage.removeItem('findmate_jwt_token')
+    sessionStorage.removeItem('findmate_admin_unlocked')
+    sessionStorage.removeItem('findmate_admin_username')
   }
 
   const updateUser = (updates) => {

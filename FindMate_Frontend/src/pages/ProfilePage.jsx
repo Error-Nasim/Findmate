@@ -2,7 +2,7 @@
 // Features: Dynamic profile by handle/id, rooms joined/completed stats,
 // active lobbies running right now, calculated ratings from teammate reviews, and interactive rating submission.
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import Avatar from '../components/ui/Avatar.jsx'
 import Button from '../components/ui/Button.jsx'
@@ -118,11 +118,45 @@ export default function ProfilePage({
 
   // Self editing states
   const [isEditing, setIsEditing] = useState(false)
-  const [editName, setEditName] = useState(displayedUser.name)
-  const [editBio, setEditBio] = useState(displayedUser.bio)
+  const [editName, setEditName] = useState(displayedUser.name || '')
+  const [editHandle, setEditHandle] = useState(displayedUser.handle?.replace(/^@/, '') || '')
+  const [editBio, setEditBio] = useState(displayedUser.bio || '')
   const [userTags, setUserTags] = useState(displayedUser.tags || [])
   const [newTagInput, setNewTagInput] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [editError, setEditError] = useState('')
   const [oauthLoading, setOauthLoading] = useState(null)
+
+  // Sync edit form fields when displayedUser or edit state changes
+  useEffect(() => {
+    setEditName(displayedUser.name || '')
+    setEditHandle(displayedUser.handle?.replace(/^@/, '') || '')
+    setEditBio(displayedUser.bio || '')
+    setUserTags(displayedUser.tags || [])
+    setNewPassword('')
+    setConfirmNewPassword('')
+    setEditError('')
+  }, [displayedUser, isEditing])
+
+  // Live handle availability indicator
+  const handleAvailability = useMemo(() => {
+    const clean = editHandle.trim().replace(/^@/, '').toLowerCase()
+    const current = displayedUser.handle?.replace(/^@/, '').toLowerCase()
+    if (!clean) return { status: 'empty', message: 'Username cannot be empty' }
+    if (clean.length < 3) return { status: 'invalid', message: 'Min 3 characters' }
+    if (clean === current) return { status: 'current', message: 'Current username' }
+    const taken = (usersList || []).some(
+      (u) =>
+        u.handle?.replace(/^@/, '').toLowerCase() === clean &&
+        u.id !== displayedUser.id &&
+        u.handle?.replace(/^@/, '').toLowerCase() !== current
+    )
+    if (taken) {
+      return { status: 'taken', message: '❌ Taken' }
+    }
+    return { status: 'available', message: '✓ Available' }
+  }, [editHandle, displayedUser, usersList])
 
   // Real dynamic linked accounts based on user auth provider & linked accounts
   const displayLinkedAccounts = useMemo(() => {
@@ -158,15 +192,76 @@ export default function ProfilePage({
   const [showRatingModal, setShowRatingModal] = useState(false)
   const [hasRatedSession, setHasRatedSession] = useState(false)
 
-  const handleSaveSelf = () => {
-    setIsEditing(false)
-    displayedUser.name = editName
-    displayedUser.bio = editBio
-    displayedUser.tags = userTags
-    if (onUpdateProfile) {
-      onUpdateProfile({ name: editName, bio: editBio, tags: userTags })
+  const handleSaveSelf = async () => {
+    setEditError('')
+
+    const cleanNewHandle = editHandle.trim().replace(/^@/, '')
+    const currentHandle = displayedUser.handle?.replace(/^@/, '')
+
+    if (!cleanNewHandle) {
+      setEditError('Username cannot be empty.')
+      return
     }
-    toast?.('Profile updated successfully!')
+
+    if (cleanNewHandle.length < 3) {
+      setEditError('Username must be at least 3 characters long.')
+      return
+    }
+
+    if (handleAvailability.status === 'taken') {
+      setEditError('This username is already taken. Please choose an available username.')
+      return
+    }
+
+    if (newPassword || confirmNewPassword) {
+      if (newPassword.length < 4) {
+        setEditError('New password must be at least 4 characters long.')
+        return
+      }
+      if (newPassword !== confirmNewPassword) {
+        setEditError('New passwords do not match. Please verify both password fields.')
+        return
+      }
+    }
+
+    const updates = {
+      name: editName.trim() || displayedUser.name,
+      bio: editBio.trim(),
+      tags: userTags,
+    }
+
+    if (cleanNewHandle && cleanNewHandle.toLowerCase() !== currentHandle?.toLowerCase()) {
+      updates.handle = cleanNewHandle
+      updates.username = cleanNewHandle
+    }
+
+    if (newPassword.trim()) {
+      updates.password = newPassword.trim()
+      updates.confirm_password = confirmNewPassword.trim()
+    }
+
+    try {
+      if (onUpdateProfile) {
+        await onUpdateProfile(updates)
+      }
+      displayedUser.name = updates.name
+      displayedUser.bio = updates.bio
+      displayedUser.tags = updates.tags
+      if (updates.handle) {
+        displayedUser.handle = updates.handle
+        displayedUser.username = updates.handle
+      }
+      setIsEditing(false)
+      setNewPassword('')
+      setConfirmNewPassword('')
+      setEditError('')
+      toast?.('Profile updated successfully!')
+      if (updates.handle && updates.handle.toLowerCase() !== currentHandle?.toLowerCase()) {
+        navigate(`/profile/${updates.handle}`, { replace: true })
+      }
+    } catch (err) {
+      setEditError(err.message || 'Failed to update profile.')
+    }
   }
 
   const handleAddTag = () => {
@@ -463,6 +558,23 @@ export default function ProfilePage({
           {/* User Bio / Edit Inputs */}
           {isEditing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
+              {/* Error Message if validation fails */}
+              {editError && (
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    borderRadius: 10,
+                    color: '#ef4444',
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  ⚠️ {editError}
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>
                   Display Name
@@ -470,6 +582,7 @@ export default function ProfilePage({
                 <input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Your full name"
                   style={{
                     padding: '10px 14px',
                     background: 'var(--bg-input)',
@@ -480,6 +593,139 @@ export default function ProfilePage({
                     fontFamily: 'var(--font-inter)',
                   }}
                 />
+              </div>
+
+              {/* Username / Handle with Live Availability Check */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>
+                    Username / Handle
+                  </label>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color:
+                        handleAvailability.status === 'available'
+                          ? '#10b981'
+                          : handleAvailability.status === 'taken'
+                          ? '#ef4444'
+                          : 'var(--text-muted)',
+                    }}
+                  >
+                    {handleAvailability.message}
+                  </span>
+                </div>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      left: 14,
+                      color: 'var(--text-muted)',
+                      fontWeight: 600,
+                      fontSize: 14,
+                    }}
+                  >
+                    @
+                  </span>
+                  <input
+                    value={editHandle}
+                    onChange={(e) => setEditHandle(e.target.value.replace(/^@/, ''))}
+                    placeholder="unique_username"
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px 10px 32px',
+                      background: 'var(--bg-input)',
+                      border: `1px solid ${
+                        handleAvailability.status === 'taken'
+                          ? '#ef4444'
+                          : handleAvailability.status === 'available'
+                          ? '#10b981'
+                          : 'var(--border-subtle)'
+                      }`,
+                      borderRadius: 10,
+                      color: 'var(--text-primary)',
+                      fontSize: 14,
+                      fontFamily: 'var(--font-inter)',
+                    }}
+                  />
+                </div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  Usernames must be unique across FindMate and at least 3 characters.
+                </span>
+              </div>
+
+              {/* Password Change Section (Two Fields: Password & Password Again) */}
+              <div
+                style={{
+                  background: 'var(--bg-surface-alt, rgba(255,255,255,0.03))',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 12,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                    🔑 Change Password
+                  </span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    Leave both fields blank if you do not want to change your password.
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <label style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New password (min 4 chars)"
+                      style={{
+                        padding: '9px 12px',
+                        background: 'var(--bg-input)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 8,
+                        color: 'var(--text-primary)',
+                        fontSize: 13,
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <label style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+                      Password Again / Confirm
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      style={{
+                        padding: '9px 12px',
+                        background: 'var(--bg-input)',
+                        border: `1px solid ${
+                          confirmNewPassword && newPassword !== confirmNewPassword
+                            ? '#ef4444'
+                            : 'var(--border-subtle)'
+                        }`,
+                        borderRadius: 8,
+                        color: 'var(--text-primary)',
+                        fontSize: 13,
+                      }}
+                    />
+                  </div>
+                </div>
+                {newPassword && confirmNewPassword && newPassword !== confirmNewPassword && (
+                  <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 600 }}>
+                    ⚠️ Passwords do not match
+                  </span>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1360,26 +1606,28 @@ export default function ProfilePage({
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             {isSelf ? (
               <>
-                <Link
-                  to="/admin"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '7px 16px',
-                    borderRadius: 10,
-                    background: 'var(--primary-light)',
-                    border: '1px solid var(--primary-border)',
-                    color: 'var(--primary-text)',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    fontFamily: 'var(--font-inter)',
-                    transition: 'opacity 0.15s ease',
-                  }}
-                >
-                  🛡️ Admin Panel
-                </Link>
+                {(displayedUser.role === 'admin' || displayedUser.role === 'superadmin' || displayedUser.handle?.toLowerCase().replace(/^@/, '') === 'error-nasim') && (
+                  <Link
+                    to="/admin"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '7px 16px',
+                      borderRadius: 10,
+                      background: 'var(--primary-light)',
+                      border: '1px solid var(--primary-border)',
+                      color: 'var(--primary-text)',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      fontFamily: 'var(--font-inter)',
+                      transition: 'opacity 0.15s ease',
+                    }}
+                  >
+                    🛡️ Admin Panel
+                  </Link>
+                )}
                 {isAuthed && (
                   <button
                     onClick={onLogout}

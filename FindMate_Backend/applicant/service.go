@@ -171,13 +171,16 @@ func (s *service) AcceptApplicant(applicantID string) (*domain.Applicant, error)
 
 	// 4. Auto-provision bilateral DM thread
 	if s.dmRepo != nil {
-		threadID := fmt.Sprintf("dm_%s_%s", lobby.Handle, app.Handle)
+		cleanHost := strings.TrimPrefix(lobby.Handle, "@")
+		cleanApp := strings.TrimPrefix(app.Handle, "@")
+		threadID := fmt.Sprintf("dm_%s_%s", cleanHost, cleanApp)
 		_, _ = s.dmRepo.GetOrCreateThread(domain.DMThread{
 			ID:           threadID,
 			User:         app.Name,
 			Handle:       app.Handle,
 			Avatar:       app.Avatar,
-			LobbyContext: lobby.Title,
+			LobbyContext: fmt.Sprintf("%s (Host: %s)", lobby.Title, lobby.Handle),
+			Participants: []string{cleanHost, cleanApp},
 			Unread:       0,
 			LastMessage:  fmt.Sprintf("Accepted into \"%s\"", lobby.Title),
 			UpdatedAt:    time.Now(),
@@ -191,6 +194,7 @@ func (s *service) AcceptApplicant(applicantID string) (*domain.Applicant, error)
 			Icon:        "🎉",
 			Text:        fmt.Sprintf("🎉 You were accepted into the squad for \"%s\"!", lobby.Title),
 			Type:        "lobby_accepted",
+			Unread:      true,
 			CreatedAt:   time.Now(),
 		})
 	}
@@ -273,4 +277,58 @@ func (s *service) RemoveApplicant(applicantID string) (*domain.Applicant, error)
 	}
 
 	return app, nil
+}
+
+func (s *service) CancelApplication(lobbyID, userIdentifier string) (*domain.Applicant, error) {
+	cleanID := strings.TrimSpace(userIdentifier)
+	cleanHandle := strings.ToLower(strings.TrimPrefix(cleanID, "@"))
+	if cleanHandle == "" {
+		return nil, errors.New("user identifier is required to cancel application")
+	}
+
+	apps, err := s.appRepo.ListByLobby(lobbyID)
+	if err != nil {
+		return nil, err
+	}
+
+	var target *domain.Applicant
+	for _, a := range apps {
+		aHandle := strings.ToLower(strings.TrimPrefix(a.Handle, "@"))
+		if (a.UserID != "" && (a.UserID == cleanID || a.UserID == userIdentifier)) || aHandle == cleanHandle || a.ID == cleanID {
+			if a.Status == "pending" {
+				target = a
+				break
+			}
+		}
+	}
+
+	// Fallback lookup directly by ID if not matched in list
+	if target == nil {
+		a, err := s.appRepo.GetByID(cleanID)
+		if err == nil && a != nil && a.LobbyID == lobbyID && a.Status == "pending" {
+			target = a
+		}
+	}
+
+	if target == nil {
+		return nil, errors.New("no active pending application found to cancel")
+	}
+
+	err = s.appRepo.UpdateStatus(target.ID, "cancelled")
+	if err != nil {
+		return nil, err
+	}
+	target.Status = "cancelled"
+
+	// Decrement lobby pending count
+	lobby, err := s.lobbyRepo.GetByID(lobbyID)
+	if err == nil && lobby != nil {
+		newPending := lobby.Pending - 1
+		if newPending < 0 {
+			newPending = 0
+		}
+		_ = s.lobbyRepo.UpdateCapacity(lobby.ID, lobby.Joined, newPending, lobby.Status)
+	}
+
+	return target, nil
 }

@@ -8,12 +8,13 @@ import (
 )
 
 type ReqRegister struct {
-	Name     string   `json:"name"`
-	Username string   `json:"username"`
-	Handle   string   `json:"handle"`
-	Email    string   `json:"email"`
-	Password string   `json:"password"`
-	Tags     []string `json:"tags"`
+	Name            string   `json:"name"`
+	Username        string   `json:"username"`
+	Handle          string   `json:"handle"`
+	Email           string   `json:"email"`
+	Password        string   `json:"password"`
+	ConfirmPassword string   `json:"confirmPassword"`
+	Tags            []string `json:"tags"`
 }
 
 type AuthResponse struct {
@@ -26,6 +27,11 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		util.SendError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if req.ConfirmPassword != "" && req.Password != req.ConfirmPassword {
+		util.SendError(w, http.StatusBadRequest, "Passwords do not match")
 		return
 	}
 

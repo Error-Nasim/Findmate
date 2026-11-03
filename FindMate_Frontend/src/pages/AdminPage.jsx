@@ -58,24 +58,22 @@ export default function AdminPage({
   const isNasim = Boolean(
     (currentUser && (
       (currentUser.handle && currentUser.handle.replace(/^@/, '').toLowerCase() === 'error-nasim') ||
-      (currentUser.name && currentUser.name.toLowerCase().includes('nasim')) ||
-      (currentUser.email && currentUser.email.toLowerCase().includes('nasim'))
+      currentUser.id === 'u1' ||
+      (currentUser.email && currentUser.email.toLowerCase() === 'nasim@findmate.local')
     )) ||
-    sessionUser === "error-nasim" ||
-    sessionUser === "nasim"
+    (!currentUser && sessionUser === "error-nasim")
   );
 
   const isSuperAdmin = Boolean(
     isNasim ||
     (currentUser && currentUser.role === 'superadmin') ||
-    (sessionUser && users.find(u => u.handle?.toLowerCase().replace(/^@/, '') === sessionUser)?.role === 'superadmin')
+    (!currentUser && sessionUser && users.find(u => u.handle?.toLowerCase().replace(/^@/, '') === sessionUser)?.role === 'superadmin')
   );
 
   const isApprovedAdmin = Boolean(
     isSuperAdmin ||
-    (currentUser && currentUser.role === 'admin') ||
-    (sessionUser && users.find(u => u.handle?.toLowerCase().replace(/^@/, '') === sessionUser)?.role === 'admin') ||
-    sessionUser === 'admin'
+    (currentUser && (currentUser.role === 'admin' || currentUser.role === 'superadmin')) ||
+    (!currentUser && sessionUser && (users.find(u => u.handle?.toLowerCase().replace(/^@/, '') === sessionUser)?.role === 'admin' || sessionUser === 'admin'))
   );
 
   const [adminUsername, setAdminUsername] = useState("");
@@ -99,7 +97,7 @@ export default function AdminPage({
       return;
     }
 
-    const isNasimUser = cleanUser === "error-nasim" || cleanUser === "nasim";
+    const isNasimUser = cleanUser === "error-nasim";
     const matchedUser = users.find(
       (u) =>
         (u.handle && u.handle.toLowerCase().replace(/^@/, "") === cleanUser) ||
@@ -518,7 +516,8 @@ export default function AdminPage({
   return (
     <div
       style={{
-        maxWidth: 1440,
+        maxWidth: 1640,
+        width: "100%",
         margin: "0 auto",
         padding: "24px 20px 80px",
         fontFamily: "var(--font-inter)",
@@ -1619,8 +1618,8 @@ export default function AdminPage({
               boxShadow: "var(--card-shadow)",
             }}
           >
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+            <div style={{ overflowX: "auto", width: "100%", WebkitOverflowScrolling: "touch" }}>
+              <table style={{ width: "100%", minWidth: 1060, borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
                 <thead>
                   <tr
                     style={{
@@ -1632,13 +1631,13 @@ export default function AdminPage({
                       letterSpacing: "0.05em",
                     }}
                   >
-                    <th style={{ padding: "14px 18px" }}>USER</th>
-                    <th style={{ padding: "14px 14px" }}>ROLE</th>
-                    <th style={{ padding: "14px 14px" }}>RELIABILITY</th>
-                    <th style={{ padding: "14px 14px" }}>ROOMS JOINED/COMPLETED</th>
-                    <th style={{ padding: "14px 14px" }}>RATING</th>
-                    <th style={{ padding: "14px 14px" }}>STATUS</th>
-                    <th style={{ padding: "14px 18px", textAlign: "right" }}>ACTIONS</th>
+                    <th style={{ padding: "14px 18px", minWidth: 170 }}>USER</th>
+                    <th style={{ padding: "14px 12px", minWidth: 110 }}>ROLE</th>
+                    <th style={{ padding: "14px 12px", minWidth: 95 }}>RELIABILITY</th>
+                    <th style={{ padding: "14px 12px", minWidth: 130 }}>ROOMS JOINED/COMPLETED</th>
+                    <th style={{ padding: "14px 12px", minWidth: 75 }}>RATING</th>
+                    <th style={{ padding: "14px 12px", minWidth: 80 }}>STATUS</th>
+                    <th style={{ padding: "14px 18px", textAlign: "right", minWidth: 260 }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1646,8 +1645,8 @@ export default function AdminPage({
                     const ratingObj = calculateUserRating(u.ratings || []);
                     const isNasimTarget = Boolean(
                       (u.handle && u.handle.toLowerCase().replace(/^@/, '') === 'error-nasim') ||
-                      (u.name && u.name.toLowerCase().includes('nasim')) ||
-                      (u.email && u.email.toLowerCase().includes('nasim'))
+                      u.id === 'u1' ||
+                      (u.email && u.email.toLowerCase() === 'nasim@findmate.local')
                     );
                     const isSuperAdminTarget = isNasimTarget || u.role === "superadmin";
                     const isAdminTarget = !isSuperAdminTarget && u.role === "admin";
@@ -1662,7 +1661,7 @@ export default function AdminPage({
                         }}
                       >
                         {/* User identity */}
-                        <td style={{ padding: "14px 18px" }}>
+                        <td style={{ padding: "14px 18px", whiteSpace: "nowrap" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                             <Avatar initials={u.avatar || u.name?.slice(0, 2) || "U"} size={36} />
                             <div>
@@ -1680,7 +1679,7 @@ export default function AdminPage({
                         </td>
 
                         {/* Role */}
-                        <td style={{ padding: "14px 14px" }}>
+                        <td style={{ padding: "14px 12px", whiteSpace: "nowrap" }}>
                           {isNasimTarget ? (
                             <span
                               style={{
@@ -1753,7 +1752,7 @@ export default function AdminPage({
                         </td>
 
                         {/* Reliability score */}
-                        <td style={{ padding: "14px 14px" }}>
+                        <td style={{ padding: "14px 12px", whiteSpace: "nowrap" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <span
                               style={{
@@ -1811,13 +1810,13 @@ export default function AdminPage({
                         </td>
 
                         {/* Rooms Joined & Completed */}
-                        <td style={{ padding: "14px 14px", color: "var(--text-secondary)" }}>
+                        <td style={{ padding: "14px 12px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
                           <strong>{u.roomsJoined || 0}</strong> joined •{" "}
                           <strong style={{ color: "#10B981" }}>{u.roomsCompleted || 0}</strong> completed
                         </td>
 
                         {/* Dynamic Rating */}
-                        <td style={{ padding: "14px 14px" }}>
+                        <td style={{ padding: "14px 12px", whiteSpace: "nowrap" }}>
                           <span style={{ fontWeight: 800, color: "#F59E0B" }}>
                             ★ {ratingObj.average}
                           </span>{" "}
@@ -1827,7 +1826,7 @@ export default function AdminPage({
                         </td>
 
                         {/* Status */}
-                        <td style={{ padding: "14px 14px" }}>
+                        <td style={{ padding: "14px 12px", whiteSpace: "nowrap" }}>
                           {isBanned ? (
                             <span
                               style={{
@@ -1860,12 +1859,13 @@ export default function AdminPage({
                         </td>
 
                         {/* Actions */}
-                        <td style={{ padding: "14px 18px", textAlign: "right" }}>
-                          <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                        <td style={{ padding: "12px 18px", textAlign: "right", whiteSpace: "nowrap" }}>
+                          <div style={{ display: "inline-flex", gap: 6, alignItems: "center", justifyContent: "flex-end", flexWrap: "nowrap" }}>
                             <Button
                               v="line"
                               sm
                               onClick={() => setInspectingUser(u)}
+                              style={{ padding: "6px 11px", fontSize: 12 }}
                             >
                               Inspect
                             </Button>
@@ -1877,9 +1877,10 @@ export default function AdminPage({
                                   fontSize: 11,
                                   color: "#D97706",
                                   fontWeight: 800,
-                                  padding: "4px 8px",
+                                  padding: "5px 9px",
                                   background: "#FEF3C7",
                                   borderRadius: 8,
+                                  whiteSpace: "nowrap",
                                 }}
                               >
                                 👑 Permanent Superadmin
@@ -1894,6 +1895,7 @@ export default function AdminPage({
                                         <Button
                                           v="ghost"
                                           sm
+                                          style={{ padding: "6px 10px", fontSize: 12 }}
                                           onClick={() => {
                                             if (onUpdateUserRole) onUpdateUserRole(u.id, "admin");
                                             showToast(`Demoted @${u.handle} to Admin`);
@@ -1904,6 +1906,7 @@ export default function AdminPage({
                                         <Button
                                           v="ghost"
                                           sm
+                                          style={{ padding: "6px 10px", fontSize: 12 }}
                                           onClick={() => {
                                             if (onUpdateUserRole) onUpdateUserRole(u.id, "member");
                                             showToast(`Demoted @${u.handle} to Member`);
@@ -1917,6 +1920,7 @@ export default function AdminPage({
                                         <Button
                                           v="primary"
                                           sm
+                                          style={{ padding: "6px 10px", fontSize: 12 }}
                                           onClick={() => {
                                             if (onUpdateUserRole) onUpdateUserRole(u.id, "superadmin");
                                             showToast(`Promoted @${u.handle} to Super Admin!`);
@@ -1927,6 +1931,7 @@ export default function AdminPage({
                                         <Button
                                           v="ghost"
                                           sm
+                                          style={{ padding: "6px 10px", fontSize: 12 }}
                                           onClick={() => {
                                             if (onUpdateUserRole) onUpdateUserRole(u.id, "member");
                                             showToast(`Demoted @${u.handle} to Member`);
@@ -1939,6 +1944,7 @@ export default function AdminPage({
                                       <Button
                                         v="ghost"
                                         sm
+                                        style={{ padding: "6px 10px", fontSize: 12 }}
                                         onClick={() => {
                                           if (onUpdateUserRole) onUpdateUserRole(u.id, "admin");
                                           showToast(`Promoted @${u.handle} to Admin`);
@@ -1956,6 +1962,7 @@ export default function AdminPage({
                                         color: "var(--text-muted)",
                                         fontStyle: "italic",
                                         padding: "4px 6px",
+                                        whiteSpace: "nowrap",
                                       }}
                                     >
                                       Protected (Superadmin)
@@ -1968,6 +1975,7 @@ export default function AdminPage({
                                   <Button
                                     v="ghost"
                                     sm
+                                    style={{ padding: "6px 10px", fontSize: 12 }}
                                     onClick={() => {
                                       if (onUnbanUser) onUnbanUser(u.handle, u.name);
                                     }}
@@ -1978,6 +1986,7 @@ export default function AdminPage({
                                   <Button
                                     v="bad"
                                     sm
+                                    style={{ padding: "6px 10px", fontSize: 12 }}
                                     onClick={() => {
                                       setConfirmModalData({
                                         title: `Ban User @${u.handle}?`,
@@ -2000,6 +2009,7 @@ export default function AdminPage({
                                   v="bad"
                                   sm
                                   title="Permanently Delete User"
+                                  style={{ padding: "6px 9px", minWidth: 32 }}
                                   onClick={() => {
                                     setConfirmModalData({
                                       title: `Delete User @${u.handle}?`,
@@ -2168,8 +2178,8 @@ export default function AdminPage({
               boxShadow: "var(--card-shadow)",
             }}
           >
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+            <div style={{ overflowX: "auto", width: "100%", WebkitOverflowScrolling: "touch" }}>
+              <table style={{ width: "100%", minWidth: 960, borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
                 <thead>
                   <tr
                     style={{
@@ -2181,12 +2191,12 @@ export default function AdminPage({
                       letterSpacing: "0.05em",
                     }}
                   >
-                    <th style={{ padding: "14px 18px" }}>LOBBY TITLE</th>
-                    <th style={{ padding: "14px 14px" }}>HOST</th>
-                    <th style={{ padding: "14px 14px" }}>DOMAIN</th>
-                    <th style={{ padding: "14px 14px" }}>CAPACITY</th>
-                    <th style={{ padding: "14px 14px" }}>STATUS</th>
-                    <th style={{ padding: "14px 18px", textAlign: "right" }}>ADMIN ACTIONS</th>
+                    <th style={{ padding: "14px 18px", minWidth: 180 }}>LOBBY TITLE</th>
+                    <th style={{ padding: "14px 14px", minWidth: 110 }}>HOST</th>
+                    <th style={{ padding: "14px 14px", minWidth: 90 }}>DOMAIN</th>
+                    <th style={{ padding: "14px 14px", minWidth: 100 }}>CAPACITY</th>
+                    <th style={{ padding: "14px 14px", minWidth: 85 }}>STATUS</th>
+                    <th style={{ padding: "14px 18px", textAlign: "right", minWidth: 250 }}>ADMIN ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2291,11 +2301,12 @@ export default function AdminPage({
                         </td>
 
                         {/* Actions */}
-                        <td style={{ padding: "14px 18px", textAlign: "right" }}>
-                          <div style={{ display: "inline-flex", gap: 6 }}>
+                        <td style={{ padding: "12px 18px", textAlign: "right", whiteSpace: "nowrap" }}>
+                          <div style={{ display: "inline-flex", gap: 6, alignItems: "center", justifyContent: "flex-end", flexWrap: "nowrap" }}>
                             <Button
                               v="line"
                               sm
+                              style={{ padding: "6px 11px", fontSize: 12 }}
                               onClick={() => setInspectingLobby(l)}
                             >
                               Inspect Squad
@@ -2304,6 +2315,7 @@ export default function AdminPage({
                             <Button
                               v="ghost"
                               sm
+                              style={{ padding: "6px 10px", fontSize: 12 }}
                               onClick={() => {
                                 if (onTogglePinLobby) onTogglePinLobby(l.id);
                               }}
@@ -2316,6 +2328,7 @@ export default function AdminPage({
                               <Button
                                 v="ghost"
                                 sm
+                                style={{ padding: "6px 10px", fontSize: 12 }}
                                 onClick={() => {
                                   if (onForceCompleteLobby) onForceCompleteLobby(l.id);
                                 }}
@@ -2327,6 +2340,7 @@ export default function AdminPage({
                             <Button
                               v="bad"
                               sm
+                              style={{ padding: "6px 10px", fontSize: 12 }}
                               onClick={() => {
                                 setConfirmModalData({
                                   title: `Delete Lobby "${l.title}"?`,
@@ -2831,8 +2845,8 @@ export default function AdminPage({
           </div>
 
           {/* Audit Table */}
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+          <div style={{ overflowX: "auto", width: "100%", WebkitOverflowScrolling: "touch" }}>
+            <table style={{ width: "100%", minWidth: 860, borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
               <thead>
                 <tr
                   style={{
@@ -2844,11 +2858,11 @@ export default function AdminPage({
                     letterSpacing: "0.05em",
                   }}
                 >
-                  <th style={{ padding: "12px 16px" }}>TIMESTAMP</th>
-                  <th style={{ padding: "12px 14px" }}>ADMIN</th>
-                  <th style={{ padding: "12px 14px" }}>ACTION</th>
-                  <th style={{ padding: "12px 14px" }}>TARGET</th>
-                  <th style={{ padding: "12px 16px" }}>DETAILS</th>
+                  <th style={{ padding: "12px 16px", minWidth: 150 }}>TIMESTAMP</th>
+                  <th style={{ padding: "12px 14px", minWidth: 120 }}>ADMIN</th>
+                  <th style={{ padding: "12px 14px", minWidth: 110 }}>ACTION</th>
+                  <th style={{ padding: "12px 14px", minWidth: 120 }}>TARGET</th>
+                  <th style={{ padding: "12px 16px", minWidth: 200 }}>DETAILS</th>
                 </tr>
               </thead>
               <tbody>

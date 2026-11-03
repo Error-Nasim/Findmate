@@ -4,6 +4,11 @@ import "findmate-backend/domain"
 
 type Service interface {
 	Register(name, handle, email, password string, tags []string) (*domain.User, string, error)
+	RequestSignup(name, handle, email, password string, tags []string) (string, error)
+	VerifySignup(email, code string) (*domain.User, string, error)
+	ForgotPassword(email string) (string, error)
+	ResetPassword(email, code, newPassword string) error
+	ResendVerificationCode(email, vType string) (string, error)
 	Login(emailOrHandle, password string) (*domain.User, string, error)
 	GetProfile(handleOrID string) (*domain.User, error)
 	ListUsers(search, role, status string) ([]*domain.User, error)

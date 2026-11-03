@@ -77,3 +77,126 @@ test('TC-TAG-02: formatTaxonomyTag rejects empty or single-character tags', () =
   assert.strictEqual(formatTaxonomyTag('#'), null);
   assert.strictEqual(formatTaxonomyTag('a'), null);
 });
+
+// ── Registration Email Structure Validation ──
+function validateEmailStructure(email) {
+  if (!email || typeof email !== 'string') return { valid: false, error: 'Email is required' };
+  const trimmed = email.trim();
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(trimmed)) {
+    return { valid: false, error: 'Invalid email address structure' };
+  }
+  return { valid: true, value: trimmed };
+}
+
+test('TC-EMAIL-01: Valid RFC email structure conforms to format', () => {
+  assert.strictEqual(validateEmailStructure('nasim@findmate.local').valid, true);
+  assert.strictEqual(validateEmailStructure('user.name+test@example.com').valid, true);
+  assert.strictEqual(validateEmailStructure('student@uits.edu.bd').valid, true);
+});
+
+test('TC-EMAIL-02: Invalid email structures are strictly rejected', () => {
+  assert.strictEqual(validateEmailStructure('plainaddress').valid, false);
+  assert.strictEqual(validateEmailStructure('missingatsign.com').valid, false);
+  assert.strictEqual(validateEmailStructure('@missingusername.com').valid, false);
+  assert.strictEqual(validateEmailStructure('username@.com').valid, false);
+  assert.strictEqual(validateEmailStructure('username@domain').valid, false);
+});
+
+// ── Sign Up & Profile Password / Confirm Password Validation ──
+function validatePasswordPair(password, confirmPassword, isOptional = false) {
+  if (isOptional && !password && !confirmPassword) {
+    return { valid: true, updated: false };
+  }
+  if (!password) return { valid: false, error: 'Password is required' };
+  if (password.length < 4) return { valid: false, error: 'Password must be at least 4 characters long' };
+  if (password !== confirmPassword) return { valid: false, error: 'Passwords do not match' };
+  return { valid: true, updated: true, value: password };
+}
+
+test('TC-PWD-01: Sign up password matching passes when identical', () => {
+  const res = validatePasswordPair('Secret123', 'Secret123');
+  assert.strictEqual(res.valid, true);
+  assert.strictEqual(res.value, 'Secret123');
+});
+
+test('TC-PWD-02: Sign up password mismatch is rejected', () => {
+  const res = validatePasswordPair('Secret123', 'Secret456');
+  assert.strictEqual(res.valid, false);
+  assert.strictEqual(res.error, 'Passwords do not match');
+});
+
+test('TC-PWD-03: Password below 4 characters is rejected', () => {
+  const res = validatePasswordPair('123', '123');
+  assert.strictEqual(res.valid, false);
+  assert.strictEqual(res.error, 'Password must be at least 4 characters long');
+});
+
+// ── Username Uniqueness & Availability ──
+function checkUsernameAvailability(requestedHandle, currentHandle, existingUsers = []) {
+  const clean = String(requestedHandle || '').trim().replace(/^@/, '').toLowerCase();
+  const current = String(currentHandle || '').trim().replace(/^@/, '').toLowerCase();
+  if (!clean) return { available: false, error: 'Username cannot be empty' };
+  if (clean.length < 3) return { available: false, error: 'Username must be at least 3 characters' };
+  if (clean === current) return { available: true, isCurrent: true };
+
+  const taken = existingUsers.some(
+    (u) =>
+      u.handle.replace(/^@/, '').toLowerCase() === clean &&
+      u.handle.replace(/^@/, '').toLowerCase() !== current
+  );
+  if (taken) {
+    return { available: false, error: 'Username is already taken' };
+  }
+  return { available: true, isCurrent: false };
+}
+
+test('TC-USER-AVAIL-01: Existing user handle is identified as taken', () => {
+  const existingUsers = [
+    { id: 'u1', handle: 'Error-nasim' },
+    { id: 'u2', handle: 'rimon21' },
+    { id: 'u3', handle: 'imtiaz11' },
+  ];
+  const res = checkUsernameAvailability('rimon21', 'Error-nasim', existingUsers);
+  assert.strictEqual(res.available, false);
+  assert.strictEqual(res.error, 'Username is already taken');
+});
+
+test('TC-USER-AVAIL-02: Case-insensitive handle match correctly detected as taken', () => {
+  const existingUsers = [{ id: 'u1', handle: 'Error-nasim' }];
+  const res = checkUsernameAvailability('error-NASIM', 'rimon21', existingUsers);
+  assert.strictEqual(res.available, false);
+});
+
+test('TC-USER-AVAIL-03: Keeping own current username is valid', () => {
+  const existingUsers = [{ id: 'u1', handle: 'Error-nasim' }];
+  const res = checkUsernameAvailability('Error-nasim', 'Error-nasim', existingUsers);
+  assert.strictEqual(res.available, true);
+  assert.strictEqual(res.isCurrent, true);
+});
+
+test('TC-USER-AVAIL-04: Fresh unique username is available', () => {
+  const existingUsers = [{ id: 'u1', handle: 'Error-nasim' }];
+  const res = checkUsernameAvailability('new_champion_2026', 'Error-nasim', existingUsers);
+  assert.strictEqual(res.available, true);
+});
+
+// ── Profile Password Update (Two Password Fields) ──
+test('TC-PROF-PWD-01: Leaving both password fields blank preserves existing password', () => {
+  const res = validatePasswordPair('', '', true);
+  assert.strictEqual(res.valid, true);
+  assert.strictEqual(res.updated, false);
+});
+
+test('TC-PROF-PWD-02: Providing matching new passwords enables password update', () => {
+  const res = validatePasswordPair('NewSecurePass2026', 'NewSecurePass2026', true);
+  assert.strictEqual(res.valid, true);
+  assert.strictEqual(res.updated, true);
+  assert.strictEqual(res.value, 'NewSecurePass2026');
+});
+
+test('TC-PROF-PWD-03: Mismatched new passwords in edit profile are blocked', () => {
+  const res = validatePasswordPair('NewPass1', 'NewPass2', true);
+  assert.strictEqual(res.valid, false);
+  assert.strictEqual(res.error, 'Passwords do not match');
+});

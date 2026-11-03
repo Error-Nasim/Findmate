@@ -177,6 +177,8 @@ func (r *lobbyRepo) Update(id string, updates map[string]interface{}) (*domain.L
 			}
 		case "status":
 			col = "status"
+		case "ispinned", "is_pinned":
+			col = "is_pinned"
 		default:
 			continue
 		}

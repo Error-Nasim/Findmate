@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/lib/pq"
+)
 
 type DMMessage struct {
 	ID       string    `json:"id" db:"id"`
@@ -14,14 +18,15 @@ type DMMessage struct {
 }
 
 type DMThread struct {
-	ID           string      `json:"id" db:"id"`
-	User         string      `json:"user" db:"user_name"`
-	Handle       string      `json:"handle" db:"handle"`
-	Avatar       string      `json:"avatar" db:"avatar"`
-	LobbyContext string      `json:"lobbyContext,omitempty" db:"lobby_context"`
-	Unread       int         `json:"unread" db:"unread"`
-	LastMessage  string      `json:"lastMessage" db:"last_message"`
-	LastTime     string      `json:"lastTime,omitempty" db:"-"`
-	Messages     []DMMessage `json:"messages,omitempty" db:"-"`
-	UpdatedAt    time.Time   `json:"updatedAt" db:"updated_at"`
+	ID           string         `json:"id" db:"id"`
+	User         string         `json:"user" db:"user_name"`
+	Handle       string         `json:"handle" db:"handle"`
+	Avatar       string         `json:"avatar" db:"avatar"`
+	LobbyContext string         `json:"lobbyContext,omitempty" db:"lobby_context"`
+	Participants pq.StringArray `json:"participants,omitempty" db:"participants"`
+	Unread       int            `json:"unread" db:"unread"`
+	LastMessage  string         `json:"lastMessage" db:"last_message"`
+	LastTime     string         `json:"lastTime,omitempty" db:"-"`
+	Messages     []DMMessage    `json:"messages,omitempty" db:"-"`
+	UpdatedAt    time.Time      `json:"updatedAt" db:"updated_at"`
 }

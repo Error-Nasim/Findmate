@@ -10,6 +10,7 @@ import (
 	"findmate-backend/config"
 	"findmate-backend/dm"
 	"findmate-backend/infra/db"
+	"findmate-backend/infra/email"
 	"findmate-backend/lobby"
 	"findmate-backend/notification"
 	"findmate-backend/repo"
@@ -62,9 +63,16 @@ func Serve() {
 	notificationRepo := repo.NewNotificationRepo(dbConn)
 	reportRepo := repo.NewReportRepo(dbConn)
 	adminRepo := repo.NewAdminRepo(dbConn)
+	vcRepo := repo.NewVerificationRepo(dbConn)
 
 	// 6. Initialize Domain Services (Domain-Driven Design)
-	userSvc := user.NewService(userRepo, cfg)
+	var emailSvc email.EmailService
+	if cfg.SMTP != nil {
+		emailSvc = email.NewEmailService(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.User, cfg.SMTP.Pass, cfg.SMTP.From)
+	} else {
+		emailSvc = email.NewEmailService("", 587, "", "", "noreply@findmate.local")
+	}
+	userSvc := user.NewService(userRepo, cfg, vcRepo, emailSvc)
 	lobbySvc := lobby.NewService(lobbyRepo, chatRepo)
 	applicantSvc := applicant.NewService(applicantRepo, lobbyRepo, chatRepo, dmRepo, notificationRepo)
 	chatSvc := chat.NewService(chatRepo, lobbyRepo)

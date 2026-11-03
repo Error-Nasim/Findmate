@@ -113,6 +113,64 @@ export const api = {
     }
   },
 
+  requestSignupVerification: async (userData) => {
+    try {
+      const res = await apiClient.post("/auth/register-request", userData);
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Failed to send verification code";
+      throw new Error(msg);
+    }
+  },
+
+  verifySignupCode: async (email, code) => {
+    try {
+      const res = await apiClient.post("/auth/verify-signup", { email, code });
+      if (res.data?.token) {
+        localStorage.setItem("findmate_jwt_token", res.data.token);
+      }
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Verification failed";
+      throw new Error(msg);
+    }
+  },
+
+  forgotPassword: async (email) => {
+    try {
+      const res = await apiClient.post("/auth/forgot-password", { email });
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Failed to send reset code";
+      throw new Error(msg);
+    }
+  },
+
+  resetPassword: async ({ email, code, newPassword, confirmPassword }) => {
+    try {
+      const res = await apiClient.post("/auth/reset-password", {
+        email,
+        code,
+        newPassword,
+        confirmPassword,
+      });
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Failed to reset password";
+      throw new Error(msg);
+    }
+  },
+
+  resendVerificationCode: async (email, type = "signup") => {
+    try {
+      const res = await apiClient.post("/auth/resend-code", { email, type });
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "Failed to resend code";
+      throw new Error(msg);
+    }
+  },
+
   // ── OAuth 2.0 (Google, Discord, LinkedIn) ──
   getOAuthConfig: async () => {
     try {
@@ -282,9 +340,23 @@ export const api = {
       status: "pending",
       reliability: 100,
       teamUps: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       ...applicantData,
     };
-    const updated = [newApplicant, ...applicants];
+    const cleanAppHandle = String(applicantData.handle || "").replace(/^@/, "").toLowerCase();
+    const cleanAppUserId = String(applicantData.userId || applicantData.id || "");
+    const updated = [
+      newApplicant,
+      ...applicants.filter(
+        (a) =>
+          !(
+            String(a.lobbyId) === String(applicantData.lobbyId) &&
+            ((cleanAppHandle && String(a.handle || "").replace(/^@/, "").toLowerCase() === cleanAppHandle) ||
+              (cleanAppUserId && String(a.userId || a.id || "") === cleanAppUserId))
+          ),
+      ),
+    ];
     writeStorage(STORAGE_KEYS.APPLICANTS, updated);
 
     // Also persist host notification in fallback storage
@@ -350,6 +422,33 @@ export const api = {
       );
       writeStorage(STORAGE_KEYS.APPLICANTS, updatedApplicants);
       return { success: true, applicantId, status: "removed", fallback: true };
+    }
+  },
+
+  cancelApplication: async (lobbyId, applicantId, userIdentifier) => {
+    try {
+      const res = await apiClient.delete(`/lobbies/${lobbyId}/apply`, {
+        data: { applicantId, handle: userIdentifier, userId: userIdentifier },
+      });
+      const serverData = res.data;
+      const applicants = readStorage(STORAGE_KEYS.APPLICANTS, initialApplicants);
+      const updatedApplicants = applicants.map((a) =>
+        (a.id === applicantId || (String(a.lobbyId) === String(lobbyId) && a.status === "pending"))
+          ? { ...a, status: "cancelled" }
+          : a,
+      );
+      writeStorage(STORAGE_KEYS.APPLICANTS, updatedApplicants);
+      return serverData || { success: true, lobbyId, status: "cancelled" };
+    } catch (err) {
+      console.warn("[API] cancelApplication error, fallback to local:", err.message);
+      const applicants = readStorage(STORAGE_KEYS.APPLICANTS, initialApplicants);
+      const updatedApplicants = applicants.map((a) =>
+        (a.id === applicantId || (String(a.lobbyId) === String(lobbyId) && a.status === "pending"))
+          ? { ...a, status: "cancelled" }
+          : a,
+      );
+      writeStorage(STORAGE_KEYS.APPLICANTS, updatedApplicants);
+      return { success: true, lobbyId, status: "cancelled", fallback: true };
     }
   },
 
@@ -713,10 +812,41 @@ export const api = {
       const res = await apiClient.put(`/users/${cleanHandle}`, updates);
       if (res.data) return res.data;
     } catch (err) {
+      if (err.response?.data?.error) {
+        throw new Error(err.response.data.error);
+      }
       console.warn("[API] updateUser fallback:", err.message);
     }
     const users = readStorage(STORAGE_KEYS.USERS, initialUsers);
     const cleanQuery = String(userQuery).replace(/^@/, "").toLowerCase();
+    const targetUser = users.find(
+      (u) =>
+        u.id === userQuery ||
+        u.handle.toLowerCase() === cleanQuery ||
+        u.name.toLowerCase() === cleanQuery
+    );
+
+    if (updates.handle) {
+      const newHandle = String(updates.handle).replace(/^@/, "").trim();
+      const isTaken = users.some(
+        (u) =>
+          u.handle.toLowerCase() === newHandle.toLowerCase() &&
+          u.id !== targetUser?.id
+      );
+      if (isTaken) {
+        throw new Error("Username is already taken");
+      }
+      updates.handle = newHandle;
+      updates.username = newHandle;
+    }
+
+    if (updates.password) {
+      const confirmPwd = updates.confirm_password || updates.confirmPassword || updates.password_again;
+      if (confirmPwd && updates.password !== confirmPwd) {
+        throw new Error("Passwords do not match");
+      }
+    }
+
     const updated = users.map((u) => {
       if (
         u.id === userQuery ||
@@ -728,12 +858,13 @@ export const api = {
       return u;
     });
     writeStorage(STORAGE_KEYS.USERS, updated);
+    const targetId = targetUser?.id || userQuery;
+    const finalNewHandle = (updates.handle || cleanQuery).toLowerCase();
     return Promise.resolve(
       updated.find(
         (u) =>
-          u.id === userQuery ||
-          u.handle.toLowerCase() === cleanQuery ||
-          u.name.toLowerCase() === cleanQuery
+          u.id === targetId ||
+          u.handle.toLowerCase() === finalNewHandle
       )
     );
   },

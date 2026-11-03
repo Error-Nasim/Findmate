@@ -22,6 +22,7 @@ export default function MyLobbiesPage({
   onStatusChange,
   onCompleteLobby,
   onCreateLobby,
+  onCancelApplication,
 }) {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('created') // 'created' | 'joined' | 'pending'
@@ -549,6 +550,35 @@ export default function MyLobbiesPage({
                 >
                   ⏳ Awaiting Host Approval
                 </div>
+                {onCancelApplication && (
+                  <button
+                    type="button"
+                    onClick={() => onCancelApplication(lobby.id)}
+                    style={{
+                      padding: '7px 12px',
+                      borderRadius: 8,
+                      background: 'rgba(239,68,68,0.1)',
+                      color: '#EF4444',
+                      border: '1px solid rgba(239,68,68,0.3)',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(239,68,68,0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(239,68,68,0.1)';
+                    }}
+                    title="Cancel this join request"
+                  >
+                    ✕ Cancel Request
+                  </button>
+                )}
                 <Button v="line" sm onClick={() => navigate(`/lobby/${lobby.id}`)}>
                   View Lobby →
                 </Button>

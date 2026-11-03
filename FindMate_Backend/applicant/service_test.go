@@ -17,7 +17,15 @@ func (m *mockAppRepo) Create(app domain.Applicant) (*domain.Applicant, error) {
 func (m *mockAppRepo) GetByID(id string) (*domain.Applicant, error) {
 	return m.apps[id], nil
 }
-func (m *mockAppRepo) ListByLobby(lobbyID string) ([]*domain.Applicant, error) { return nil, nil }
+func (m *mockAppRepo) ListByLobby(lobbyID string) ([]*domain.Applicant, error) {
+	var res []*domain.Applicant
+	for _, a := range m.apps {
+		if a.LobbyID == lobbyID {
+			res = append(res, a)
+		}
+	}
+	return res, nil
+}
 func (m *mockAppRepo) ListAll() ([]*domain.Applicant, error)                   { return nil, nil }
 func (m *mockAppRepo) UpdateStatus(id, status string) error {
 	if a, exists := m.apps[id]; exists {
@@ -127,5 +135,53 @@ func TestAcceptApplicantAtomicWorkflow(t *testing.T) {
 	}
 	if len(chatRepo.messages) != 1 || !strings.Contains(chatRepo.messages[0].Text, "was accepted") {
 		t.Errorf("Expected system welcome message, got: %v", chatRepo.messages)
+	}
+}
+
+func TestCancelApplicationWorkflow(t *testing.T) {
+	appRepo := &mockAppRepo{apps: make(map[string]*domain.Applicant)}
+	lobbyRepo := &mockLobbyRepo{
+		lobby: &domain.Lobby{
+			ID:      "lob_cancel",
+			Host:    "Alex",
+			Handle:  "alex_host",
+			Title:   "Coding Jam",
+			Joined:  1,
+			Pending: 0,
+			Max:     4,
+			Status:  "Open",
+		},
+	}
+
+	svc := NewService(appRepo, lobbyRepo, nil, nil, nil)
+
+	// 1. User applies -> pending becomes 1
+	app, err := svc.Apply("lob_cancel", "u_seeker", "Seeker User", "seeker", "SU", nil, "I want to join your jam session!")
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+	if app.Status != "pending" {
+		t.Errorf("Expected status pending, got %s", app.Status)
+	}
+	if lobbyRepo.lobby.Pending != 1 {
+		t.Errorf("Expected pending count 1 after apply, got %d", lobbyRepo.lobby.Pending)
+	}
+
+	// 2. User cancels application -> status becomes 'cancelled', pending decrements to 0
+	cancelled, err := svc.CancelApplication("lob_cancel", "seeker")
+	if err != nil {
+		t.Fatalf("CancelApplication failed: %v", err)
+	}
+	if cancelled.Status != "cancelled" {
+		t.Errorf("Expected status 'cancelled', got '%s'", cancelled.Status)
+	}
+	if lobbyRepo.lobby.Pending != 0 {
+		t.Errorf("Expected pending count 0 after cancel, got %d", lobbyRepo.lobby.Pending)
+	}
+
+	// 3. Trying to cancel again returns error
+	_, err = svc.CancelApplication("lob_cancel", "seeker")
+	if err == nil {
+		t.Error("Expected error when canceling already cancelled application")
 	}
 }

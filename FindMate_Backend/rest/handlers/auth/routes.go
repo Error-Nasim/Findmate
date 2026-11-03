@@ -11,6 +11,26 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, manager *middleware.Manager
 		manager.With(http.HandlerFunc(h.Register)),
 	)
 	mux.Handle(
+		"POST /api/auth/register-request",
+		manager.With(http.HandlerFunc(h.RegisterRequest)),
+	)
+	mux.Handle(
+		"POST /api/auth/verify-signup",
+		manager.With(http.HandlerFunc(h.VerifySignup)),
+	)
+	mux.Handle(
+		"POST /api/auth/forgot-password",
+		manager.With(http.HandlerFunc(h.ForgotPassword)),
+	)
+	mux.Handle(
+		"POST /api/auth/reset-password",
+		manager.With(http.HandlerFunc(h.ResetPassword)),
+	)
+	mux.Handle(
+		"POST /api/auth/resend-code",
+		manager.With(http.HandlerFunc(h.ResendCode)),
+	)
+	mux.Handle(
 		"POST /api/auth/login",
 		manager.With(http.HandlerFunc(h.Login)),
 	)
