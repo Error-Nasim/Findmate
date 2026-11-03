@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -144,18 +145,18 @@ func LoadConfig() {
 			FacebookRedirectURI:  os.Getenv("FACEBOOK_REDIRECT_URI"),
 		},
 		SMTP: &SMTPConfig{
-			Host: os.Getenv("SMTP_HOST"),
+			Host: strings.TrimSpace(os.Getenv("SMTP_HOST")),
 			Port: func() int {
-				p, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+				p, _ := strconv.Atoi(strings.TrimSpace(os.Getenv("SMTP_PORT")))
 				if p == 0 {
 					return 587
 				}
 				return p
 			}(),
-			User: os.Getenv("SMTP_USER"),
-			Pass: os.Getenv("SMTP_PASS"),
+			User: strings.TrimSpace(os.Getenv("SMTP_USER")),
+			Pass: strings.ReplaceAll(strings.TrimSpace(os.Getenv("SMTP_PASS")), " ", ""),
 			From: func() string {
-				f := os.Getenv("SMTP_FROM")
+				f := strings.TrimSpace(os.Getenv("SMTP_FROM"))
 				if f == "" {
 					return "noreply@findmate.local"
 				}
