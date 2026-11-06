@@ -17,6 +17,7 @@ _No Event Planning Overhead. No Discord Clutter. Zero Ghosting._
 [![Tests](<https://img.shields.io/badge/Tests-77%2F77_Passed_(100%25)-brightgreen?style=flat-square>)](./tests/README.md)
 [![Coverage](https://img.shields.io/badge/Coverage-99.00%25_Line-brightgreen?style=flat-square)](./tests/evidence/coverage_summary.txt)
 [![Capstone](https://img.shields.io/badge/Capstone_Report-v1.0.0_Delivered-indigo?style=flat-square)](./docs/Reports/final/Final_Report.md)
+[![Presentation](https://img.shields.io/badge/Presentation-24_Slides_(PPTX)-D24726?style=flat-square&logo=microsoftpowerpoint&logoColor=white)](./docs/Presentation_Slide.pptx)
 [![Schedule](<https://img.shields.io/badge/Gantt_Schedule-14_Weeks_(Excel)-emerald?style=flat-square>)](./docs/Schedule/FindMate_14_Week_Gantt_Schedule.xlsx)
 [![Figma](https://img.shields.io/badge/UI_Design-Figma_Prototype-F24E1E?style=flat-square&logo=figma&logoColor=white)](https://appeal-rich-26498266.figma.site)
 
@@ -26,6 +27,7 @@ _No Event Planning Overhead. No Discord Clutter. Zero Ghosting._
   <a href="#-key-features">Key Features</a> •
   <a href="#-system-architecture--diagrams">Architecture</a> •
   <a href="#-14-week-schedule--gantt-chart">Gantt Schedule</a> •
+  <a href="#-project-presentation--defense-slides">Presentation</a> •
   <a href="#-tech-stack">Tech Stack</a> •
   <a href="#-cloud-deployment-100-free">Deployment</a> •
   <a href="#-getting-started">Local Setup</a> •
@@ -184,7 +186,7 @@ The project was executed across a 14-week lifecycle adhering to Agile Scrum prin
 | **M4** | Week 8  | **Mid-Term Evaluation Defense**       | Discover feed, pitch vetting, and squad chat demo | **PASSED** (Actions integrated) |
 | **M5** | Week 10 | **QA Test Verification Exit Gate**    | 31 automated tests, 99.00% line coverage          | **PASSED** (Exit criteria met)  |
 | **M6** | Week 12 | **Multi-Job CI/CD Operational**       | GitHub Actions multi-job runners (Node + Go)      | **PASSED** (Automated on push)  |
-| **M7** | Week 13 | **Final Viva Voce & Demonstration**   | End-to-end platform defense to instructor         | **PASSED** (Defense approved)   |
+| **M7** | Week 13 | **Final Viva Voce & Demonstration**   | End-to-end platform defense & 24-slide presentation deck | **PASSED** (Defense approved)   |
 | **M8** | Week 14 | **Official Project Release (v1.0.0)** | 13-section capstone report & v1.0.0 release tag   | **PASSED** (Capstone delivered) |
 
 ---
@@ -222,6 +224,7 @@ Findmate/
 │       └── test.yml                      # Automated multi-job CI/CD pipeline (Node + Go)
 ├── docs/                                 # Central project documentation repository
 │   ├── README.md                         # Master documentation index & deliverable hub
+│   ├── Presentation_Slide.pptx           # Official Course Defense & Presentation Slides (24 Slides)
 │   ├── Diagrams/                         # System UML, ER, and Sequence design specifications
 │   │   ├── ER_Diagram.md                 # Chen's ER model & Crow's foot relational schema
 │   │   ├── ER Diagram.drawio             # Vector schema diagram for draw.io
@@ -369,6 +372,7 @@ npm test
 
 | Deliverable                          | Format  | Repository Path                                                                                              | Description                                                     |
 | :----------------------------------- | :-----: | :----------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------- |
+| **Project Presentation Slides (PPTX)**| `.pptx`| [`docs/Presentation_Slide.pptx`](./docs/Presentation_Slide.pptx)                                             | Official 24-slide presentation deck used for course defense & viva voce (1.84 MB). |
 | **Final Capstone Report (Word)**     | `.docx` | [`docs/Reports/final/Final_Report.docx`](./docs/Reports/final/Final_Report.docx)                             | Formal 13-section OBE/BAETE submission report (271 KB).         |
 | **Final Capstone Report (Markdown)** |  `.md`  | [`docs/Reports/final/Final_Report.md`](./docs/Reports/final/Final_Report.md)                                 | Complete companion document with 19 diagrams & 26 tables.       |
 | **14-Week Gantt Chart (Excel)**      | `.xlsx` | [`docs/Schedule/FindMate_14_Week_Gantt_Schedule.xlsx`](./docs/Schedule/FindMate_14_Week_Gantt_Schedule.xlsx) | Color-coded workbook with frozen panes & milestone gates.       |
@@ -377,6 +381,22 @@ npm test
 | **Software Test Report (Markdown)**  |  `.md`  | [`docs/Reports/testing/Test_Report.md`](./docs/Reports/testing/Test_Report.md)                               | 13-section ISO 29119-3 software test report.                    |
 | **Testing Suite & QA Guide**         |  `.md`  | [`tests/README.md`](./tests/README.md)                                                                       | Comprehensive reproduction guide and verification protocol.     |
 | **Master Documentation Hub**         |  `.md`  | [`docs/README.md`](./docs/README.md)                                                                         | Central inventory of all architectural, API, and setup manuals. |
+
+---
+
+## 🖥️ Project Presentation & Defense Slides
+
+The official presentation deck for the **CSE0613316 — Software Project Design and Development (Lab)** final defense is preserved directly in the repository:
+
+- 📊 **Download / View Presentation**: [**`docs/Presentation_Slide.pptx`**](./docs/Presentation_Slide.pptx) *(24 Slides, 1.84 MB, Microsoft PowerPoint)*
+- **Course Context**: Department of Computer Science & Engineering, **University of Information Technology and Sciences (UITS)**
+- **Team**: **Abu Nasim** (`0432320005101033` — Lead Developer & Testing) & **Rimon Chandra Bhowmik** (`0432320005101001` — Documentation Lead & QA)
+- **Key Defense Topics Covered**:
+  - **Problem & Objectives**: Overcoming friction in gaming & study matchmaking vs. Discord & Reddit `/r/lfg`.
+  - **System Architecture**: 3-tier decoupling (React 19, Go 1.22 DDD REST API, Neon Serverless PostgreSQL).
+  - **Live Product Demo**: Real-time lobby discovery, pitch vetting, instant squad chat unlocking, and admin center.
+  - **Verification & QA**: 77 automated test cases (100% pass), 99.00% line coverage, and OWASP ASVS compliance.
+  - **Engineering Rigor**: 14-week 7-sprint Agile Scrum lifecycle, GitHub Actions multi-job CI/CD, and balanced 50/50 teamwork breakdown.
 
 ---
 
