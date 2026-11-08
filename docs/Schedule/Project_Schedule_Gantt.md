@@ -2,8 +2,8 @@
 
 **Course**: `CSE0613316 — Software Project Design and Development (Lab)`  
 **Semester**: Autumn 2026 | **Institution**: University of Information Technology and Sciences (UITS), Dhaka  
-**Project Lead & Full-Stack Developer**: Abu Nasim (Student ID: `211014022`, GitHub: `@Error-nasim`)  
-**Quality Assurance & Documentation Lead**: Rimon Chandra Bhowmik (Student ID: `211014035`)  
+**Project Lead & Full-Stack Developer**: Abu Nasim (Student ID: `0432320005101033` / `211014022`, GitHub: `@Error-nasim`)  
+**Quality Assurance & Documentation Lead**: Rimon Chandra Bhowmik (Student ID: `0432320005101001` / `211014035`)  
 **Supervisor / Course Instructor**: Al Imtiaz, Assistant Professor, Department of CSE, UITS  
 
 ---

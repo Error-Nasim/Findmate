@@ -10,11 +10,11 @@
 ---
 
 ### Developed By:
-**Abu Nasim** — Student ID: `211014022`  
+**Abu Nasim** — Student ID: `0432320005101033` (`211014022`)  
 Department of Computer Science and Engineering, UITS  
 GitHub: [`@Error-nasim`](https://github.com/Error-nasim)
 
-**Rimon Chandra Bhowmik** — Student ID: `211014035`  
+**Rimon Chandra Bhowmik** — Student ID: `0432320005101001` (`211014035`)  
 Department of Computer Science and Engineering, UITS  
 
 ---
@@ -39,7 +39,7 @@ Baridhara J Block, Dhaka 1212, Bangladesh
 | :--- | :--- |
 | **Repository URL** | `https://github.com/Error-nasim/Findmate` |
 | **Final Release Tag** | `v1.0.0` |
-| **Commit SHA of Release** | `791f8e5` |
+| **Commit SHA of Release** | `48cc584` |
 | **Deployed Product URL** | `https://appeal-rich-26498266.figma.site` (Production Prototype & Staging API: `http://localhost:8080/api`) |
 | **Demo / Test Accounts** | **Seeker**: `demo_seeker` / `Password123!`<br>**Host**: `host_nasim` / `FindMate2026!`<br>**Admin**: `admin_rimon` / `AdminSecret2026!` |
 | **Demo Video (Optional)** | `https://github.com/Error-nasim/Findmate/releases/tag/v1.0.0` |
@@ -71,8 +71,8 @@ We acknowledge that the assistant tools listed below were used in this project. 
 
 | Member (Name, ID) | Signature | Date |
 | :--- | :--- | :--- |
-| **Abu Nasim** (ID: 211014022) | *Abu Nasim* | October 29, 2026 |
-| **Rimon Chandra Bhowmik** (ID: 211014035) | *Rimon Bhowmik* | October 29, 2026 |
+| **Abu Nasim** (ID: 0432320005101033 / 211014022) | *Abu Nasim* | October 29, 2026 |
+| **Rimon Chandra Bhowmik** (ID: 0432320005101001 / 211014035) | *Rimon Bhowmik* | October 29, 2026 |
 
 ---
 
@@ -1395,7 +1395,7 @@ The implementation phase successfully realized the system designs, delivering a 
 Comprehensive quality assurance ensures that software operates reliably, securely, and performantly under diverse operating conditions. This chapter presents the complete testing evaluation for FindMate, summarizing the Software Test Report (Experiment 9/10), tracing requirements to test cases, detailing code review and security audits, documenting CI/CD deployment pipelines, and analyzing project management metrics.
 
 ## 5.2 Testing and Quality Assurance
-Testing for FindMate was executed across the full test pyramid: **Unit Testing**, **Integration Testing**, **Role-Based Access Control (RBAC) Security Testing**, **End-to-End (E2E) System Testing**, and **Backend Go Testing**. The tested version corresponds to submitted Git release tag **`v1.0.0`** (Commit: `791f8e5`).
+Testing for FindMate was executed across the full test pyramid: **Unit Testing**, **Integration Testing**, **Role-Based Access Control (RBAC) Security Testing**, **End-to-End (E2E) System Testing**, and **Backend Go Testing**. The tested version corresponds to submitted Git release tag **`v1.0.0`** (Commit: `48cc584`).
 
 ### Requirements Traceability Matrix (RTM)
 
@@ -1697,14 +1697,22 @@ While the initial release (`v1.0.0`) fulfills all core requirements, strategic r
 
 [1] R. S. Pressman and B. R. Maxim, *Software Engineering: A Practitioner’s Approach*, 9th ed. New York, NY, USA: McGraw-Hill, 2020.  
 [2] I. Sommerville, *Software Engineering*, 10th ed. Harlow, U.K.: Pearson, 2015.  
-[3] GitHub, “GitHub Actions documentation,” *GitHub Docs*, 2024. [Online]. Available: `https://docs.github.com/actions`  
-[4] E. Gamma, R. Helm, R. Johnson, and J. Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software*. Reading, MA, USA: Addison-Wesley, 1994.  
-[5] OWASP Foundation, “OWASP Application Security Verification Standard 4.0,” *OWASP Project Repository*, 2023. [Online]. Available: `https://owasp.org/www-project-application-security-verification-standard/`  
-[6] World Wide Web Consortium (W3C), “Web Content Accessibility Guidelines (WCAG) 2.1,” *W3C Recommendation*, 2018. [Online]. Available: `https://www.w3.org/TR/WCAG21/`  
-[7] Gin Web Framework Contributors, “Gin Web Framework Documentation,” *Gin-Gonic*, 2024. [Online]. Available: `https://gin-gonic.com/docs/`  
-[8] React Core Team, “React 19 Documentation and API Reference,” *React Docs*, 2024. [Online]. Available: `https://react.dev/`  
-[9] PostgreSQL Global Development Group, “PostgreSQL 16.0 Documentation,” *PostgreSQL Docs*, 2023. [Online]. Available: `https://www.postgresql.org/docs/16/index.html`  
-[10] k6 by Grafana Labs, “k6 Open-Source Load Testing Tool Documentation,” *k6 Docs*, 2024. [Online]. Available: `https://k6.io/docs/`  
+[3] ISO/IEC/IEEE, “ISO/IEC/IEEE International Standard - Systems and software engineering -- Software life cycle processes -- Software testing -- Part 3: Test documentation,” *ISO/IEC/IEEE 29119-3:2013(E)*, pp. 1–138, 2013.  
+[4] ISO/IEC, “Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — System and software quality models,” *ISO/IEC 25010:2011*, Geneva, Switzerland: International Organization for Standardization, 2011.  
+[5] ISO/IEC/IEEE, “Systems and software engineering — Life cycle processes — Requirements engineering,” *ISO/IEC/IEEE 29148:2018*, pp. 1–104, 2018.  
+[6] E. Gamma, R. Helm, R. Johnson, and J. Vlissides, *Design Patterns: Elements of Reusable Object-Oriented Software*. Reading, MA, USA: Addison-Wesley, 1994.  
+[7] M. Fowler, *Patterns of Enterprise Application Architecture*. Boston, MA, USA: Addison-Wesley, 2002.  
+[8] E. Evans, *Domain-Driven Design: Tackling Complexity in the Heart of Software*. Boston, MA, USA: Addison-Wesley, 2003.  
+[9] V. Vernon, *Implementing Domain-Driven Design*. Upper Saddle River, NJ, USA: Addison-Wesley, 2013.  
+[10] R. C. Martin, *Clean Architecture: A Craftsman's Guide to Software Structure and Design*. Boston, MA, USA: Prentice Hall, 2017.  
+[11] OWASP Foundation, “OWASP Application Security Verification Standard 4.0,” *OWASP Project Repository*, 2023. [Online]. Available: `https://owasp.org/www-project-application-security-verification-standard/`  
+[12] World Wide Web Consortium (W3C), “Web Content Accessibility Guidelines (WCAG) 2.1,” *W3C Recommendation*, 2018. [Online]. Available: `https://www.w3.org/TR/WCAG21/`  
+[13] P. Resnick, R. Zeckhauser, E. Friedman, and K. Kuwabara, “Reputation systems,” *Communications of the ACM*, vol. 43, no. 12, pp. 45–48, 2000.  
+[14] Y. Koren, R. Bell, and C. Volinsky, “Matrix Factorization Techniques for Recommender Systems,” *Computer*, vol. 42, no. 8, pp. 30–37, Aug. 2009.  
+[15] A. A. A. Donovan and B. W. Kernighan, *The Go Programming Language*. New York, NY, USA: Addison-Wesley, 2015.  
+[16] PostgreSQL Global Development Group, “PostgreSQL 16.0 Documentation,” *PostgreSQL Docs*, 2023. [Online]. Available: `https://www.postgresql.org/docs/16/index.html`  
+[17] React Core Team, “React 19 Documentation and Architectural Guide,” *React Docs*, 2024. [Online]. Available: `https://react.dev/`  
+[18] GitHub, “GitHub Actions documentation,” *GitHub Docs*, 2024. [Online]. Available: `https://docs.github.com/actions`  
 
 ---
 
@@ -1733,14 +1741,14 @@ While the initial release (`v1.0.0`) fulfills all core requirements, strategic r
 #### Table B.1. Team Member Contribution Summary
 | Member (Name, ID) | Modules / Tasks Owned | Commits / PRs | Documentation, Testing & Review Role |
 | :--- | :--- | :---: | :--- |
-| **Abu Nasim**<br>(ID: 211014022) | Backend Go Gin API architecture, centralized state coordinator (`App.jsx`), pitch vetting engine, automated test suite (`tests/`), GitHub Actions CI/CD pipeline | 42 commits<br>14 PRs | Lead author of automated test cases, backend testing documentation, CI quality gate configuration |
-| **Rimon Chandra Bhowmik**<br>(ID: 211014035) | Figma UI/UX prototype, responsive React components, Tailwind styling, accessibility compliance, static security scans (OWASP ZAP), k6 load testing | 38 commits<br>12 PRs | Lead author of Software Requirements Specification (SRS), Software Test Report (Exp 9/10), and UI documentation |
+| **Abu Nasim**<br>(ID: 0432320005101033) | Backend Go Gin API architecture, centralized state coordinator (`App.jsx`), pitch vetting engine, automated test suite (`tests/`), GitHub Actions CI/CD pipeline | 42 commits<br>14 PRs | Lead author of automated test cases, backend testing documentation, CI quality gate configuration |
+| **Rimon Chandra Bhowmik**<br>(ID: 0432320005101001) | Figma UI/UX prototype, responsive React components, Tailwind styling, accessibility compliance, static security scans (OWASP ZAP), k6 load testing | 38 commits<br>12 PRs | Lead author of Software Requirements Specification (SRS), Software Test Report (Exp 9/10), and UI documentation |
 
 #### Table B.2. Agreed Contribution Split
 | Member (Name, ID) | Agreed Contribution (%) | Signature | Date |
 | :--- | :---: | :--- | :--- |
-| **Abu Nasim** (ID: 211014022) | **50%** | *Abu Nasim* | October 29, 2026 |
-| **Rimon Chandra Bhowmik** (ID: 211014035) | **50%** | *Rimon Bhowmik* | October 29, 2026 |
+| **Abu Nasim** (ID: 0432320005101033) | **50%** | *Abu Nasim* | October 29, 2026 |
+| **Rimon Chandra Bhowmik** (ID: 0432320005101001) | **50%** | *Rimon Bhowmik* | October 29, 2026 |
 
 *Explanation*: Both team members contributed equally to the research, architectural design, implementation, testing, and documentation of the FindMate platform across the 14-week lifecycle.
 
@@ -1760,7 +1768,7 @@ While the initial release (`v1.0.0`) fulfills all core requirements, strategic r
 # Appendix C: Software Test Report
 *(Summary of Experiment 9/10 Software Test Report, v1.1)*
 
-* **Version Tested**: `v1.0.0` (Git commit: `791f8e5`)
+* **Version Tested**: `v1.0.0` (Git commit: `48cc584`)
 * **Environment**: Ubuntu 24.04 LTS, Node.js 20.18.0, Go 1.22.4, PostgreSQL 16
 * **Test Scope**:
   * Unit validation (Pitch note lengths, user rating math, taxonomy hashtag sanitization)

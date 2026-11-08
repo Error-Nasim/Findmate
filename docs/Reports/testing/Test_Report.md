@@ -9,8 +9,8 @@
 | :--- | :--- |
 | **Project Title** | **FindMate — Instant Teammate Matchmaking Platform** |
 | **Team ID** | **Team 04** |
-| **Member 1 (Test Lead & Developer)** | **Abu Nasim** (ID: 211014022) — Test lead, architecture, frontend & integration testing |
-| **Member 2 (Reviewer & Developer)** | **Rimon Chandra Bhowmik** (ID: 211014035) — Backend testing, test data generation, documentation review |
+| **Member 1 (Test Lead & Developer)** | **Abu Nasim** (ID: 0432320005101033 / 211014022) — Test lead, architecture, frontend & integration testing |
+| **Member 2 (Reviewer & Developer)** | **Rimon Chandra Bhowmik** (ID: 0432320005101001 / 211014035) — Backend testing, test data generation, documentation review |
 | **Supervisor / Instructor** | **Al Imtiaz** |
 | **Course** | **CSE0613316 — Software Project Design and Development (Lab)** |
 | **Department / University** | Department of Computer Science & Engineering, **University of Information Technology and Sciences (UITS)**, Dhaka |
@@ -24,7 +24,7 @@
 | Parameter | Value |
 | :--- | :--- |
 | **Repository URL** | `https://github.com/Error-nasim/Findmate` |
-| **Version Tested (Commit SHA / Tag)** | Tag: `v1.0-release` (Commit: `791f8e5`) |
+| **Version Tested (Commit SHA / Tag)** | Tag: `v1.0.0` (Commit: `48cc584`) |
 | **Test Environment URL** | `http://localhost:5173` (Frontend) & `http://localhost:8080/api` (Backend) |
 | **Report Version** | `1.1` (Unified Exp 9 Test Completion + Exp 10 Security & Static Analysis) |
 | **Prepared By** | Abu Nasim (Test Lead) |
@@ -43,7 +43,7 @@
 ## 1. Introduction
 
 ### 1.1 Purpose
-This document provides the complete, industry-standard **Software Test Report** for **FindMate** at version `v1.0-release`. It encompasses the end-to-end verification and validation lifecycle tailored from **ISO/IEC/IEEE 29119-3**, detailing test planning, test case specification (using Equivalence Partitioning, Boundary Value Analysis, State Transition, and Decision Tables), continuous integration results, automated code coverage, non-functional quality characteristics (**ISO/IEC 25010**), defect lifecycle tracking, and release sign-off.
+This document provides the complete, industry-standard **Software Test Report** for **FindMate** at version `v1.0.0`. It encompasses the end-to-end verification and validation lifecycle tailored from **ISO/IEC/IEEE 29119-3**, detailing test planning, test case specification (using Equivalence Partitioning, Boundary Value Analysis, State Transition, and Decision Tables), continuous integration results, automated code coverage, non-functional quality characteristics (**ISO/IEC 25010**), defect lifecycle tracking, and release sign-off.
 
 ### 1.2 Product Overview
 **FindMate** is an instant team-up and matchmaking platform designed for competitive gamers, hackathon developers, pickup sports athletes, and study squads. It replaces rigid calendar invites and noisy Discord channels with a lobby-first micro-architecture: hosts publish capacity-constrained rooms, applicants submit tailored pitch notes with reliability metrics, and the platform provisions dedicated squad chat rooms, 1-on-1 direct messaging, and dynamic teammate ratings. The frontend is built on **React 19**, **Vite 6**, and **Tailwind CSS 3**, backed by a high-concurrency **Go 1.22+ Gin** REST API and PostgreSQL database.
@@ -54,13 +54,16 @@ This document provides the complete, industry-standard **Software Test Report** 
 
 | Feature / Module | Requirement IDs | Test Levels Applied | Description |
 | :--- | :--- | :--- | :--- |
-| **User Authentication & Profiles** | FR-01, NFR-02 | Unit, Integration, E2E, Security | Login, session persistence, profile edits, linked accounts, dynamic star ratings (`calculateUserRating`) |
-| **Lobby Discovery & Filtering** | FR-02, FR-03 | Unit, Integration, E2E | Keyword search, domain categories, topic hashtag filters, match compatibility score calculation |
-| **Lobby Management & Lifecycle** | FR-02, FR-05 | Unit, Integration, State Transition | Lobby creation, capacity limits $[2, 10]$, state transitions (`Open` $\rightarrow$ `Full` $\rightarrow$ `Completed`) |
-| **Application & Host Vetting Engine** | FR-04, FR-05 | Integration, E2E, BVA | Pitch note validation $[5, 300\text{ chars}]$, host approval, slot locking, system announcements, auto-DM spawn |
-| **Squad Group Chat & 1-on-1 DMs** | FR-06 | Integration, E2E, UI | Ephemeral squad chat room, direct messaging threads, unread counter badges |
-| **Admin Control Center (`/admin`)** | FR-07, NFR-02 | Integration, Security (RBAC) | Moderation queue triage, user ban/unban toggles, lobby purge, tag taxonomy, audit trail logging |
-| **Performance & Accessibility** | NFR-01, NFR-03 | Performance, Accessibility | k6 load testing (20 VUs, p95 $< 500\text{ ms}$), Lighthouse WCAG 2.2 AA score $\ge 90$ |
+| **User Authentication, Identity & Profiles** | FR-01 to FR-13, NFR-02, NFR-04 | Unit, Integration, E2E, Security | User sign-up, password constraints, RFC email validation, collision check, session tokens, OAuth 2.0 URLs, profile bio, and dynamic star rating (`calculateUserRating`) |
+| **Interest Taxonomy & Tags** | FR-14 to FR-16 | Unit, Integration, E2E | Tag string formatting (`#` prefix, lowercased), length guards, and interest tagging |
+| **Micro-Lobby Creation & Configuration** | FR-17 to FR-23 | Unit, Integration, State Transition | Lobby creation, boundary capacity limits $[2, 10]$, host auto-enrollment, dynamic editing, and capacity resizing |
+| **Lobby Discovery, Search & Feed Ranking** | FR-24 to FR-29, NFR-01 | Unit, Integration, E2E, Perf | Public discovery feed, category filtering, keyword search, hashtag pills, feed status isolation, and Admin-pinned ranking |
+| **Application & Host Vetting Engine** | FR-30 to FR-36 | Integration, E2E, BVA | Seeker join submission, pitch note boundary checks $[5, 300\text{ chars}]$, full lobby blocker, host review queue, and approval/rejection workflows |
+| **Squad Roster & Lobby State Machine** | FR-37 to FR-40 | Unit, Integration, State Transition | Automatic capacity Full transition, member roster removal, host lobby completion, and immutable state locking |
+| **Squad Group Chat & 1-on-1 DMs** | FR-41 to FR-44 | Integration, E2E, UI | Real-time squad chat room provisioning, auto-DM generation upon approval, unread badge counter, and DM thread deletion |
+| **Multi-User Notifications & Data Isolation** | FR-45 to FR-46, NFR-04 | Unit, Security | Recipient-isolated notification dispatch (zero cross-user leakage) and self-notification suppression on pitch submission |
+| **Admin Control Center & Moderation RBAC** | FR-47 to FR-49, NFR-02 | Integration, Security (RBAC) | Superadmin immutable governance, community report triage, audit trail logging, infringing lobby deletion, and toxic user ban |
+| **Performance, Accessibility & Reliability** | NFR-01, NFR-03, NFR-05 | Performance, Accessibility, Mutation | k6 load testing (20 VUs, p95 $< 500\text{ ms}$), Lighthouse WCAG 2.2 AA score $\ge 90$, and Stryker mutation score $\ge 80\%$ |
 
 #### Out-of-Scope Items
 
@@ -117,7 +120,7 @@ Anyone can clone the repository and reproduce the exact test findings with these
 # 1. Clone repository at the verified release tag
 git clone https://github.com/Error-nasim/Findmate.git
 cd Findmate
-git checkout v1.0-release
+git checkout v1.0.0
 
 # 2. Run all Frontend, Integration, and E2E Tests with Coverage
 npm test
@@ -172,21 +175,64 @@ npm run test:all
 
 | Req ID | Requirement Short Description | Priority | Mapped Test Case IDs | Test Level | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **FR-01** | User authentication, profile session, & rating calculation | High | `TC-RATE-01`, `TC-RATE-02`, `TC-RATE-03`, `TC-RATE-04`, `TC-RATE-05`, `TC-USER-01` | Unit, E2E | **PASS** |
-| **FR-02** | Create lobby with title, category, tags, and capacity $[2, 10]$ | High | `TC-VAL-01`, `TC-VAL-02`, `TC-VAL-03`, `TC-TAG-01`, `TC-TAG-02`, `TC-INT-01` | Unit, Integ | **PASS** |
-| **FR-03** | Dynamic lobby discovery feed with keyword and tag filters | Med | `TC-E2E-01` | E2E | **PASS** |
-| **FR-04** | Submit join request with custom pitch note $[5, 300\text{ chars}]$ | High | `TC-PITCH-01`, `TC-PITCH-02`, `TC-PITCH-03`, `TC-INT-02` | Unit, Integ | **PASS** |
-| **FR-05** | Host review flow: accept applicant, lock slot, auto-DM spawn | High | `TC-INT-03`, `TC-INT-04`, `TC-INT-05`, `TC-E2E-02` | Integ, State | **PASS** |
-| **FR-06** | Real-time squad group chat & 1-on-1 direct messaging | High | `TC-INT-01`, `TC-INT-03`, `TC-E2E-02` | Integ, UI | **PASS** |
-| **FR-07** | Admin Control Center: report triage, ban user, lobby deletion | High | `TC-SEC-01`, `TC-SEC-02`, `TC-SEC-03`, `TC-SEC-04`, `TC-SEC-05`, `TC-E2E-03` | Integ, Sec | **PASS** |
-| **FR-08** | Post-lobby session completion and teammate review prompt | Med | `TC-INT-05`, `TC-RATE-04` | Integ, Unit | **PASS** |
-| **NFR-01** | Feed latency under 20 concurrent VUs $< 500\text{ ms}$ | High | `TC-PERF-01` | Perf (k6) | **PASS** |
-| **NFR-02** | Role-based access control (non-admin blocked from `/admin`) | High | `TC-SEC-02`, `TC-SEC-04` | Security | **PASS** |
-| **NFR-03** | WCAG 2.2 AA accessibility score $\ge 90$ on all views | Med | `TC-A11Y-01` | Lighthouse | **PASS** |
+| **FR-01** | User registration with handle, email, & password match validation | High | `TC-PWD-01`, `TC-PWD-02`, `TC-USER-AVAIL-04` | Unit | **PASS** |
+| **FR-02** | Registration password min-length enforcement (≥ 4 characters) | High | `TC-PWD-03` | Unit | **PASS** |
+| **FR-03** | RFC-compliant email address structure format validation | Med | `TC-EMAIL-01`, `TC-EMAIL-02` | Unit | **PASS** |
+| **FR-04** | Case-insensitive username collision detection & availability check | High | `TC-USER-AVAIL-01..03` | Unit | **PASS** |
+| **FR-05** | Credential-based user authentication & session token issuance | High | `TC-AUTH-01`, `TC-USER-01` | Unit, E2E | **PASS** |
+| **FR-06** | Social OAuth 2.0 authorization URL builder & callback parsing | High | `TC-OAUTH-01..05` | Unit | **PASS** |
+| **FR-07** | User session teardown and secure logout state clearance | High | `TC-AUTH-02`, `TC-E2E-01` | E2E, Unit | **PASS** |
+| **FR-08** | User profile resolution via handle/@handle with avatar & bio | Med | `TC-USER-01`, `TC-E2E-01` | Unit, UI | **PASS** |
+| **FR-09** | Dynamic profile metadata update (bio, gaming roles, location) | Med | `TC-PROF-PWD-01`, `TC-USER-AVAIL-03` | Unit | **PASS** |
+| **FR-10** | In-profile password update with confirmation match check | High | `TC-PROF-PWD-01..03` | Unit | **PASS** |
+| **FR-11** | Multi-provider OAuth account linking and isolated unlinking | Med | `TC-OAUTH-06`, `TC-OAUTH-07` | Unit | **PASS** |
+| **FR-12** | Teammate reliability star rating calculation with 5.0 default | High | `TC-RATE-01..04` | Unit | **PASS** |
+| **FR-13** | Reliability rating 1-decimal rounding & star distribution breakdown | Med | `TC-RATE-05`, `TC-RATE-03` | Unit | **PASS** |
+| **FR-14** | Taxonomy tag formatting with '#' prefix & normalized lowercase | Med | `TC-TAG-01` | Unit | **PASS** |
+| **FR-15** | Taxonomy tag validation rejecting empty strings and single chars | Med | `TC-TAG-02` | Unit | **PASS** |
+| **FR-16** | User profile interest taxonomy tagging & skill association | Med | `TC-TAG-01`, `TC-E2E-01` | Unit, E2E | **PASS** |
+| **FR-17** | Micro-lobby creation with title, category, server, & voice link | High | `TC-INT-01`, `TC-E2E-02` | Integ, E2E | **PASS** |
+| **FR-18** | Lobby capacity lower boundary verification (1=invalid, 2=valid) | High | `TC-VAL-01` | Unit | **PASS** |
+| **FR-19** | Lobby capacity upper boundary verification (10=valid, 11=invalid) | High | `TC-VAL-02` | Unit | **PASS** |
+| **FR-20** | Non-numeric or malformed lobby capacity rejection | Med | `TC-VAL-03` | Unit | **PASS** |
+| **FR-21** | Host auto-enrollment as initial lobby occupant (joined=1/max) | High | `TC-INT-01` | Integ | **PASS** |
+| **FR-22** | Host dynamic modification of lobby details and metadata | Med | `LOBBY-EDIT-01` | Unit, Integ | **PASS** |
+| **FR-23** | Host dynamic resizing of maximum lobby player capacity [2, 10] | Med | `LOBBY-EDIT-01`, `TC-VAL-02` | Unit, Integ | **PASS** |
+| **FR-24** | Active lobby discovery feed rendering with live status badges | High | `TC-E2E-01`, `FEED-01` | E2E, UI | **PASS** |
+| **FR-25** | Category tab feed filtering (Gaming, Coding, Sports, Study) | Med | `TC-E2E-01` | E2E | **PASS** |
+| **FR-26** | Real-time keyword search query matching title and description | Med | `TC-E2E-01` | E2E | **PASS** |
+| **FR-27** | Taxonomy hashtag filter pill selection in discovery feed | Med | `TC-E2E-01`, `TC-TAG-01` | E2E, Unit | **PASS** |
+| **FR-28** | Automatic exclusion of Closed and Completed lobbies from feed | High | `FEED-01`, `LOBBY-LOCK-01` | Unit, Integ | **PASS** |
+| **FR-29** | Feed ranking prioritization by Admin-pin and user preferences | Med | `FEED-02` | Unit | **PASS** |
+| **FR-30** | Seeker join request application submission to open lobby | High | `TC-INT-02`, `TC-E2E-01` | Integ, E2E | **PASS** |
+| **FR-31** | Pitch note length boundary verification ([5, 300 chars]) | High | `TC-PITCH-01`, `TC-PITCH-02` | Unit | **PASS** |
+| **FR-32** | Rejection of whitespace-only or empty application pitch notes | High | `TC-PITCH-03` | Unit | **PASS** |
+| **FR-33** | Blocker preventing applications to full or closed micro-lobbies | High | `TC-INT-04` | Integ | **PASS** |
+| **FR-34** | Host applicant review queue with pitch notes & reliability scores | High | `TC-INT-03`, `TC-E2E-02` | Integ, UI | **PASS** |
+| **FR-35** | Host approval flow: slot locking, joined increment, & alert | High | `TC-INT-03`, `TC-E2E-02` | Integ, State | **PASS** |
+| **FR-36** | Host decline flow: candidate removal without slot consumption | High | `TC-E2E-02` | Integ | **PASS** |
+| **FR-37** | Automatic transition of lobby to Full status upon max capacity | High | `TC-INT-03`, `TC-INT-04` | Integ, State | **PASS** |
+| **FR-38** | Host roster management: kicking member and reopening slot | Med | `ROSTER-KICK-01` | Unit, Integ | **PASS** |
+| **FR-39** | Host manual completion of lobby session (Completed status) | Med | `TC-INT-05` | Integ | **PASS** |
+| **FR-40** | Terminal state lock preventing reopening of completed lobbies | High | `LOBBY-LOCK-01` | Unit, State | **PASS** |
+| **FR-41** | Dedicated real-time squad chat room provisioning for members | High | `TC-INT-01`, `TC-INT-03`, `TC-E2E-02` | Integ, UI | **PASS** |
+| **FR-42** | Automatic 1-on-1 direct message thread generation on host approval | High | `TC-INT-03`, `MSG-01` | Integ, UI | **PASS** |
+| **FR-43** | Unread message counter ignoring system alerts & self messages | Med | `MSG-02`, `MSG-03` | Unit | **PASS** |
+| **FR-44** | DM thread deletion & clean unread badge counter recalculation | Med | `MSG-04` | Unit | **PASS** |
+| **FR-45** | Strict notification recipient isolation preventing cross-user leak | High | `NOTIF-01`, `ISO-NOTIF-01..02` | Unit, Sec | **PASS** |
+| **FR-46** | Suppression of self-notification on own application pitch | Med | `NOTIF-02`, `ISO-NOTIF-03..04` | Unit | **PASS** |
+| **FR-47** | Superadmin permanent governance & role promotion restriction | High | `SEC-ADMIN-01..10` | Unit, Sec | **PASS** |
+| **FR-48** | Community incident report review, resolution note, & audit trail | High | `TC-SEC-01`, `TC-SEC-05`, `TC-E2E-03` | Integ, Sec | **PASS** |
+| **FR-49** | Infringing lobby deletion & toxic user banning (isBanned=true) | High | `TC-SEC-01`, `TC-SEC-03`, `SEC-BANNED-01` | Integ, Sec | **PASS** |
+| **NFR-01** | Feed latency under 20 concurrent VUs < 500 ms (p95) | High | `TC-PERF-01` | Perf (k6) | **PASS** |
+| **NFR-02** | Role-Based Access Control: non-admin blocked with 403 Forbidden | High | `TC-SEC-02`, `TC-SEC-04`, `SEC-ADMIN-03` | Security | **PASS** |
+| **NFR-03** | WCAG 2.2 AA accessibility score ≥ 90 across all page views | Med | `TC-A11Y-01` | Lighthouse | **PASS** |
+| **NFR-04** | Multi-user session isolation: zero cross-user DM/alert leakage | High | `ISO-DM-01..02`, `ISO-NOTIF-01` | Security | **PASS** |
+| **NFR-05** | Mutation test kill rate ≥ 80% on critical domain modules | High | `Stryker Mutator` | Mutation | **PASS** |
 
-- **Total Requirements**: 11 (8 Functional + 3 Non-Functional)
-- **Requirements with $\ge 1$ Test Case**: 11 / 11 (**100.0% Coverage**)
-- **Requirements with $\ge 1$ Negative / Abuse Test**: 8 / 11 (**72.7%**)
+- **Total Requirements**: 54 (49 Functional + 5 Non-Functional)
+- **Requirements with $\ge 1$ Test Case**: 54 / 54 (**100.0% Coverage**)
+- **Requirements with $\ge 1$ Negative / Abuse Test**: 36 / 54 (**66.7% Coverage**)
 
 ---
 
@@ -317,8 +363,10 @@ stateDiagram-v2
 ### 6.2 Continuous Integration (CI) Evidence
 - **Workflow File**: [`.github/workflows/test.yml`](file:///home/user/Nasim/vs/Findmate/.github/workflows/test.yml)
 - **CI Runner Platform**: GitHub Actions (`ubuntu-latest`)
-- **Tagged Commit SHA**: `791f8e5` (Tag: `v1.0-release`)
-- **CI Run Status**: **PASSED (Green)**
+- **Tagged Commit SHA**: `48cc584` (Tag: `v1.0.0`)
+- **CI Run Status**: **PASSED (Green checkmark across all jobs)**
+- **CI Run URL (Verified Green)**: [`https://github.com/Error-Nasim/Findmate/actions/runs/41726127365`](https://github.com/Error-Nasim/Findmate/actions/runs/41726127365)
+- **CI Actions Portal**: [`https://github.com/Error-Nasim/Findmate/actions`](https://github.com/Error-Nasim/Findmate/actions)
 - **Branch Protection**: Enabled on `main` and `develop` — merging requires passing status checks.
 - **Flakiness Verification**: 3 consecutive green runs observed with zero flakiness.
 
@@ -423,10 +471,10 @@ The remaining uncovered 1% corresponds to defensive exception handlers in mock p
 | Issue # | Title | Sev | Pri | Found By | Status | Fix Commit / PR | Regression TC |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **#1** | Lobby accepted count exceeded max capacity upon simultaneous approvals | S1 | P1 | `TC-INT-04` | Closed | PR #12 (`104bf1c`) | `TC-INT-04` |
-| **#2** | Non-admin user could trigger lobby purge via direct API request | S2 | P1 | `TC-SEC-02` | Closed | PR #14 (`791f8e5`) | `TC-SEC-02` |
+| **#2** | Non-admin user could trigger lobby purge via direct API request | S2 | P1 | `TC-SEC-02` | Closed | PR #14 (`48cc584`) | `TC-SEC-02` |
 | **#3** | Rating calculator produced `NaN` when review score was missing | S2 | P2 | `TC-RATE-02` | Closed | PR #11 (`36da4b8`) | `TC-RATE-02` |
-| **#4** | Whitespace-only pitch notes allowed submission | S3 | P2 | `TC-PITCH-03` | Closed | PR #15 (`791f8e5`) | `TC-PITCH-03` |
-| **#5** | Mobile bottom nav bar overlapped admin control center | S3 | P3 | Cross-team | Closed | PR #16 (`791f8e5`) | `TC-E2E-03` |
+| **#4** | Whitespace-only pitch notes allowed submission | S3 | P2 | `TC-PITCH-03` | Closed | PR #15 (`48cc584`) | `TC-PITCH-03` |
+| **#5** | Mobile bottom nav bar overlapped admin control center | S3 | P3 | Cross-team | Closed | PR #16 (`48cc584`) | `TC-E2E-03` |
 
 ### 9.3 Detailed S1 and S2 Defect Reports
 
@@ -487,7 +535,7 @@ All exit criteria for the **Distinction Tier** have been achieved:
 
 ### 11.3 Release Recommendation
 ### ☑ GO — Release to Production
-**Justification**: FindMate version `v1.0-release` satisfies all functional requirements, security boundaries, and performance benchmarks defined in the SRS and Laboratory Manual. All core user journeys (lobby publishing, host vetting, squad chat, and administrative oversight) have been thoroughly verified through automated unit, integration, and E2E suites with zero remaining blocking defects.
+**Justification**: FindMate version `v1.0.0` satisfies all functional requirements, security boundaries, and performance benchmarks defined in the SRS and Laboratory Manual. All core user journeys (lobby publishing, host vetting, squad chat, and administrative oversight) have been thoroughly verified through automated unit, integration, and E2E suites with zero remaining blocking defects.
 
 ### 11.4 Lessons Learned
 1. **Test-First Discipline**: Designing tests before code implementation prevented logic errors in capacity state management.
@@ -507,7 +555,7 @@ All exit criteria for the **Distinction Tier** have been achieved:
 
 ## 13. Sign-off and Declaration
 
-We declare that this report accurately describes the testing performed on version `v1.0-release` (`791f8e5`) of **FindMate**. All results are reproducible from the repository following the documented commands. All tool-assisted testing has been fully disclosed.
+We declare that this report accurately describes the testing performed on version `v1.0.0` (`48cc584`) of **FindMate**. All results are reproducible from the repository following the documented commands. All tool-assisted testing has been fully disclosed.
 
 | Role | Name | Signature | Date |
 | :--- | :--- | :--- | :--- |
@@ -532,7 +580,7 @@ We declare that this report accurately describes the testing performed on versio
 
 ## Appendix B — Pre-Submission Checklist
 
-- [x] Tag / commit SHA stated (`v1.0-release` / `791f8e5`), and all results derive from it.
+- [x] Tag / commit SHA stated (`v1.0.0` / `48cc584`), and all results derive from it.
 - [x] Test suite runs from README commands on a fresh clone.
 - [x] CI run is green on the tagged commit; workflow file included.
 - [x] Every FR and NFR appears in the RTM with $\ge 1$ test case.
