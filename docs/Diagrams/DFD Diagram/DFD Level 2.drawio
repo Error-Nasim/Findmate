@@ -1,0 +1,216 @@
+<mxfile host="app.diagrams.net" pages="2">
+  <diagram name="Process 2.0 (Lobby Lifecycle)" id="dfd-l2-p2">
+    <mxGraphModel dx="1414" dy="765" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="750" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#1A202C;" value="FindMate — Level 2 DFD: Process 2.0 (Lobby Lifecycle &amp; Capacity Management)" vertex="1">
+          <mxGeometry height="35" width="800" x="300" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="E_Host" parent="1" style="shape=rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#BF360C;arcSize=6;align=center;" value="👑 Lobby Host" vertex="1">
+          <mxGeometry height="80" width="160" x="56" y="259" as="geometry" />
+        </mxCell>
+        <mxCell id="D2_Store" parent="1" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=2;fontStyle=1;fontSize=11;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" value="D2 | LOBBIES &amp; ROSTERS" vertex="1">
+          <mxGeometry height="50" width="200" x="520" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="D7_Store" parent="1" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=2;fontStyle=1;fontSize=11;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" value="D7 | TAXONOMY_TAGS" vertex="1">
+          <mxGeometry height="50" width="200" x="517" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="D4_Store" parent="1" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=2;fontStyle=1;fontSize=11;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" value="D4 | MESSAGES &amp; CHAT" vertex="1">
+          <mxGeometry height="50" width="200" x="950" y="317" as="geometry" />
+        </mxCell>
+        <mxCell id="P2_1" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" value="2.1 Validate Lobby Inputs &amp; Capacity Bounds [2, 10]" vertex="1">
+          <mxGeometry height="70" width="180" x="280" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="P2_2" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" value="2.2 Initialize Host Slot &amp; Roster Seating (joined=1)" vertex="1">
+          <mxGeometry height="70" width="180" x="696" y="158" as="geometry" />
+        </mxCell>
+        <mxCell id="P2_3" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" value="2.3 Publish Lobby Record &amp; Format Hashtag Taxonomy" vertex="1">
+          <mxGeometry height="70" width="180" x="530" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="P2_4" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" value="2.4 Handle Host Edits &amp; Dynamic Capacity Resizing" vertex="1">
+          <mxGeometry height="70" width="180" x="283" y="331" as="geometry" />
+        </mxCell>
+        <mxCell id="P2_5" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" value="2.5 Roster Member Removal (Kick &amp; Reopen Slot)" vertex="1">
+          <mxGeometry height="70" width="180" x="171" y="496" as="geometry" />
+        </mxCell>
+        <mxCell id="P2_6" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" value="2.6 Session Completion &amp; Immutable Terminal Lock" vertex="1">
+          <mxGeometry height="70" width="180" x="760" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_1" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="P2_1" value="Lobby Specs (Title, Cap, URL)">
+          <mxGeometry relative="1" x="0.5323" y="-25" as="geometry">
+            <mxPoint x="-7" y="16" as="offset" />
+            <mxPoint x="216" y="277" as="sourcePoint" />
+            <mxPoint x="370" y="208" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2_2" edge="1" parent="1" source="P2_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P2_2" value="Verified Bounds (2&lt;=cap&lt;=10)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_3" edge="1" parent="1" source="P2_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P2_3" value="Seat Host (joined: 1 / max)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_4" edge="1" parent="1" source="D7_Store" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P2_3" value="Fetch Tag Formats">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_5" edge="1" parent="1" source="P2_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D2_Store" value="Persist Open Lobby">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_6" edge="1" parent="1" source="P2_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D4_Store" value="Provision Squad Chat Room">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_7" edge="1" parent="1" source="E_Host" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P2_4" value="Edit Request (New Cap / Title)">
+          <mxGeometry relative="1" x="0.5" y="-36" as="geometry">
+            <mxPoint x="-36" y="-27" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2_8" edge="1" parent="1" source="P2_4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D2_Store" value="Update Lobby Specs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_9" edge="1" parent="1" source="E_Host" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P2_5" value="Kick Member Request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_10" edge="1" parent="1" source="P2_5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D2_Store" value="Decrement joined count">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_11" edge="1" parent="1" source="E_Host" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P2_6" value="Complete Session Request">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="140" y="350" />
+              <mxPoint x="140" y="580" />
+              <mxPoint x="850" y="580" />
+              <mxPoint x="850" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2_12" edge="1" parent="1" source="P2_6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D2_Store" value="Set status=Completed &amp; Lock">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Process 4.0 (Application Vetting)" id="dfd-l2-p4">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="750">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t4" value="FindMate — Level 2 DFD: Process 4.0 (Application &amp; Vetting Engine)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#1A202C;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="800" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="E_Seeker" value="👤 Seeker / Applicant" style="shape=rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#BF360C;arcSize=6;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="180" width="160" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="E_Host4" value="👑 Lobby Host" style="shape=rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#BF360C;arcSize=6;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="480" width="160" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="D2_Store4" value="D2 | LOBBIES &amp; ROSTERS" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=2;fontStyle=1;fontSize=11;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="120" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="D3_Store4" value="D3 | JOIN_APPLICATIONS" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=2;fontStyle=1;fontSize=11;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="330" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="D1_Store4" value="D1 | USERS &amp; PROFILES" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=2;fontStyle=1;fontSize=11;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="220" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="D4_Store4" value="D4 | MESSAGES &amp; CHAT" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=2;fontStyle=1;fontSize=11;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="480" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="P4_1" value="4.1 Validate Pitch Note Length Boundary ([5, 300 chars])" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="180" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="P4_2" value="4.2 Capacity Invariant Pre-Check (joined &lt; max &amp; status=Open)" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" vertex="1" parent="1">
+          <mxGeometry x="525" y="210" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="P4_3" value="4.3 Enqueue Candidate Application &amp; Alert Host Interface" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="330" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="P4_4" value="4.4 Host Review &amp; Applicant Reliability Score Lookup" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="480" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="P4_5" value="4.5 Atomic Slot Lock &amp; Capacity Increment (joined+1)" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" vertex="1" parent="1">
+          <mxGeometry x="525" y="480" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="P4_6" value="4.6 Automatic 1-on-1 DM Thread &amp; Squad Chat Unlocking" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" vertex="1" parent="1">
+          <mxGeometry x="780" y="360" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="P4_7" value="4.7 Decline Applicant &amp; Release Pending Queue" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;fontStyle=1;fontSize=12;fontColor=#1B5E20;align=center;" vertex="1" parent="1">
+          <mxGeometry x="525" y="600" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e4_1" value="Submit Pitch Note" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="E_Seeker" target="P4_1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4_2" value="Valid Note ([5,300])" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="P4_1" target="P4_2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4_3" value="Check Lobby Open &amp; Space" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="D2_Store4" target="P4_2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4_4" value="Capacity Passed" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="P4_2" target="P4_3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4_5" value="Store Application Record" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="P4_3" target="D3_Store4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4_6" value="Queue Notification Alert" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="P4_3" target="E_Host4" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="360" y="420" />
+              <mxPoint x="140" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4_7" value="Fetch Candidate Pitches" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="E_Host4" target="P4_4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4_8" value="Fetch Reliability Star Rating" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="D1_Store4" target="P4_4" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="250" />
+              <mxPoint x="480" y="250" />
+              <mxPoint x="480" y="500" />
+              <mxPoint x="460" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4_9" value="Decision: Approve" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="E_Host4" target="P4_5" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="530" />
+              <mxPoint x="510" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4_10" value="Atomic joined=joined+1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="P4_5" target="D2_Store4" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="730" y="500" />
+              <mxPoint x="750" y="150" />
+              <mxPoint x="730" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4_11" value="Update status=Accepted" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="P4_5" target="D3_Store4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4_12" value="Trigger DM &amp; Chat Room" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="P4_5" target="P4_6" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4_13" value="Spawn 1-on-1 DM Thread" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="P4_6" target="D4_Store4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4_14" value="Decision: Decline" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="E_Host4" target="P4_7" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="140" y="570" />
+              <mxPoint x="140" y="630" />
+              <mxPoint x="510" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4_15" value="Update status=Declined" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" edge="1" source="P4_7" target="D3_Store4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

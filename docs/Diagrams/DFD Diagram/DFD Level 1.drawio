@@ -1,0 +1,287 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="DFD Level 1" id="dfd-l1">
+    <mxGraphModel dx="1504" dy="814" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;fontColor=#1A202C;strokeWidth=3;" value="FindMate Platform — Level 1 Data Flow Diagram (DFD)" vertex="1">
+          <mxGeometry height="35" width="650" x="450" y="15" as="geometry" />
+        </mxCell>
+        <mxCell id="E1" parent="1" style="shape=rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#BF360C;arcSize=6;align=center;" value="👤 Seeker / Member" vertex="1">
+          <mxGeometry height="70" width="160" x="40" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="E2" parent="1" style="shape=rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#BF360C;arcSize=6;align=center;" value="👑 Lobby Host" vertex="1">
+          <mxGeometry height="70" width="160" x="40" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="E3" parent="1" style="shape=rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#BF360C;arcSize=6;align=center;" value="🛡️ Platform Admin" vertex="1">
+          <mxGeometry height="70" width="160" x="1340" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="E4" parent="1" style="shape=rect;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#BF360C;arcSize=6;align=center;" value="☁️ OAuth Provider" vertex="1">
+          <mxGeometry height="60" width="160" x="40" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="P1" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#1B5E20;align=center;" value="1.0 Authentication &amp;amp; User Identity Management" vertex="1">
+          <mxGeometry height="75" width="190" x="280" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="P2" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#1B5E20;align=center;" value="2.0 Lobby Creation &amp;amp; Lifecycle Management" vertex="1">
+          <mxGeometry height="75" width="190" x="248" y="428" as="geometry" />
+        </mxCell>
+        <mxCell id="P3" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#1B5E20;align=center;" value="3.0 Matchmaking Discovery &amp;amp; Feed Ranking" vertex="1">
+          <mxGeometry height="75" width="190" x="580" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="P4" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#1B5E20;align=center;" value="4.0 Application Vetting &amp;amp; Capacity Guard" vertex="1">
+          <mxGeometry height="75" width="190" x="580" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="P5" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#1B5E20;align=center;" value="5.0 Real-Time Messaging &amp;amp; Chat Communication" vertex="1">
+          <mxGeometry height="75" width="190" x="880" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="P6" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#1B5E20;align=center;" value="6.0 Teammate Reliability &amp;amp; Rating Calculation" vertex="1">
+          <mxGeometry height="75" width="190" x="580" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="P7" parent="1" style="shape=rect;rounded=1;arcSize=25;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#1B5E20;align=center;" value="7.0 Moderation Triage &amp;amp; Platform Governance" vertex="1">
+          <mxGeometry height="75" width="190" x="1080" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="D1" parent="1" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" value="D1 | USERS &amp;amp; SESSIONS" vertex="1">
+          <mxGeometry height="50" width="170" x="290" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="D2" parent="1" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" value="D2 | LOBBIES &amp;amp; ROSTERS" vertex="1">
+          <mxGeometry height="50" width="170" x="290" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="D3" parent="1" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" value="D3 | JOIN_APPLICATIONS" vertex="1">
+          <mxGeometry height="50" width="170" x="590" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="D4" parent="1" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" value="D4 | MESSAGES &amp;amp; THREADS" vertex="1">
+          <mxGeometry height="50" width="170" x="890" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="D5" parent="1" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" value="D5 | TEAMMATE_RATINGS" vertex="1">
+          <mxGeometry height="50" width="170" x="890" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="D6" parent="1" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" value="D6 | REPORTS &amp;amp; AUDIT_LOGS" vertex="1">
+          <mxGeometry height="50" width="170" x="1090" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="D7" parent="1" style="shape=partialRectangle;top=0;bottom=0;left=1;right=1;fillColor=#EDE7F6;strokeColor=#512DA8;strokeWidth=3;fontStyle=1;fontSize=13;fontColor=#311B92;align=center;whiteSpace=wrap;html=1;" value="D7 | TAXONOMY_TAGS" vertex="1">
+          <mxGeometry height="45" width="170" x="590" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_1" edge="1" parent="1" source="E1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P1" value="Credentials / Auth Code">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="120" y="190" />
+              <mxPoint x="120" y="100" />
+              <mxPoint x="270" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f1_2" edge="1" parent="1" source="E4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P1" value="OAuth Handshake Token">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_3" edge="1" parent="1" source="P1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D1" value="Save User / Session Token">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_4" edge="1" parent="1" source="D1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P1" value="Validate Password / Token">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_5" edge="1" parent="1" source="P1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="E1" value="Session Token &amp;amp; Profile">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="140" />
+              <mxPoint x="190" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f2_1" edge="1" parent="1" source="E2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P2" value="Lobby Config (Title, Cap [2,10])">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_2" edge="1" parent="1" source="P2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D2" value="Index Lobby &amp;amp; Host Slot (1/max)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_3" edge="1" parent="1" source="D7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P2" value="Tag Normalization (#tag)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="580" y="120" />
+              <mxPoint x="520" y="120" />
+              <mxPoint x="520" y="490" />
+              <mxPoint x="480" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f2_4" edge="1" parent="1" source="P2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="E2" value="Lobby Created Confirmation">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="270" y="530" />
+              <mxPoint x="210" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f3_1" edge="1" parent="1" source="E1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P3" value="Search Query &amp;amp; Tag Filter">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="210" y="230" />
+              <mxPoint x="570" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f3_2" edge="1" parent="1" source="D2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P3" value="Fetch Active Open Lobbies">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="470" y="370" />
+              <mxPoint x="590" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f3_3" edge="1" parent="1" source="D7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P3" value="Available Tags">
+          <mxGeometry relative="1" x="-0.2883" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f3_4" edge="1" parent="1" source="P3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="E1" value="Live Ranked Lobbies">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="580" y="250" />
+              <mxPoint x="210" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f4_1" edge="1" parent="1" source="E1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P4" value="Pitch Note [5,300 chars]">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="190" y="270" />
+              <mxPoint x="570" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f4_2" edge="1" parent="1" source="D2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P4" value="Capacity Guard Pre-Check">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="470" y="400" />
+              <mxPoint x="580" y="510" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f4_3" edge="1" parent="1" source="P4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D3" value="Store Application Record">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f4_4" edge="1" parent="1" source="P4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="E2" value="Review Queue Notification">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="580" y="530" />
+              <mxPoint x="210" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f4_5" edge="1" parent="1" source="E2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P4" value="Host Decision (Accept/Decline)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="210" y="570" />
+              <mxPoint x="570" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f4_6" edge="1" parent="1" source="P4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D2" value="Atomic Slot Increment (joined+1)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="490" />
+              <mxPoint x="470" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f4_7" edge="1" parent="1" source="P4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P5" value="Trigger Auto-DM &amp;amp; Chat Unlock">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="500" />
+              <mxPoint x="870" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f5_1" edge="1" parent="1" source="E1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P5" value="Post Squad Chat / DM">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="210" y="210" />
+              <mxPoint x="870" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f5_2" edge="1" parent="1" source="E2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P5" value="Host Messages">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="210" y="510" />
+              <mxPoint x="870" y="410" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f5_3" edge="1" parent="1" source="P5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D4" value="Store Message &amp;amp; Update Read Badge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f5_4" edge="1" parent="1" source="D4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P5" value="Fetch Unread Thread Count">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f6_1" edge="1" parent="1" source="P2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P6" value="Lobby Completed Event">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370" y="560" />
+              <mxPoint x="370" y="680" />
+              <mxPoint x="570" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f6_2" edge="1" parent="1" source="E1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P6" value="Teammate Star Review (1-5)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="280" />
+              <mxPoint x="170" y="710" />
+              <mxPoint x="570" y="710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f6_3" edge="1" parent="1" source="P6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D5" value="Save Review Record">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f6_4" edge="1" parent="1" source="P6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D1" value="Update Reliability Score (default 5.0)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="730" />
+              <mxPoint x="250" y="730" />
+              <mxPoint x="250" y="260" />
+              <mxPoint x="280" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f7_1" edge="1" parent="1" source="E1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P7" value="File Incident Report">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="210" y="190" />
+              <mxPoint x="1070" y="190" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f7_2" edge="1" parent="1" source="P7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D6" value="Store Incident &amp;amp; Log">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f7_3" edge="1" parent="1" source="D6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P7" value="Moderation Queue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f7_4" edge="1" parent="1" source="E3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="P7" value="Admin Passcode &amp;amp; Ban Action">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f7_5" edge="1" parent="1" source="P7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D1" value="Toggle isBanned=true">
+          <mxGeometry relative="1" x="-0.0198" y="11" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="1090" y="170" />
+              <mxPoint x="430" y="170" />
+              <mxPoint x="430" y="210" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f7_6" edge="1" parent="1" source="P7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A5568;strokeWidth=3;endArrow=block;endFill=1;fontSize=13;fontColor=#2D3748;labelBackgroundColor=#FFFFFF;" target="D2" value="Purge Infringing Lobby">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1170" y="280" />
+              <mxPoint x="1170" y="440" />
+              <mxPoint x="470" y="440" />
+              <mxPoint x="470" y="410" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
